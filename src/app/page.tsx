@@ -11,84 +11,116 @@ export default async function HomePage() {
   const openWeek = gameweeks?.find((gw) => gw.is_open);
 
   return (
-    <div className="space-y-10">
-      {/* Hero */}
-      <section className="rounded-2xl bg-brand text-white px-8 py-12 text-center shadow-lg">
-        <h1 className="text-4xl font-extrabold tracking-tight mb-3">
-          CMK Premier Tipping
-        </h1>
-        <p className="text-brand-gold text-lg mb-6">
-          Pick the winners. Top the table. Win the glory.
-        </p>
-        <div className="flex justify-center gap-4">
-          <Link
-            href="/tips"
-            className="px-6 py-3 bg-brand-gold hover:bg-yellow-500 text-white font-semibold rounded-lg transition-colors"
-          >
-            Make Your Tips
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="px-6 py-3 bg-white text-brand font-semibold rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            Leaderboard
-          </Link>
+    <div className="space-y-8">
+
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
+        {/* Radial glow */}
+        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
+
+        <div className="relative px-8 sm:px-12 py-14 sm:py-16 text-center">
+          <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
+            2026 Season
+          </span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
+            CMK Premier<br />
+            <span className="text-brand-gold">Tipping</span>
+          </h1>
+          <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
+            Pick the winners. Top the table. Win the glory.
+          </p>
+          <div className="flex justify-center gap-3 flex-wrap">
+            <Link
+              href="/tips"
+              className="btn-gold shadow-lg"
+            >
+              Make Your Tips →
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="btn-ghost"
+            >
+              Leaderboard
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Current round status */}
+      {/* ── Current round status ───────────────────────────────────────────── */}
       {openWeek ? (
-        <section className="rounded-xl border border-brand-gold bg-yellow-50 px-6 py-5">
-          <p className="text-sm text-yellow-700 font-medium uppercase tracking-wide mb-1">
-            Open now
-          </p>
-          <h2 className="text-xl font-bold text-brand">
-            {openWeek.label}
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Deadline:{" "}
-            {new Date(openWeek.deadline).toLocaleString("en-NZ", {
-              timeZone: "Pacific/Auckland",
-            })}
-          </p>
-          <Link
-            href="/tips"
-            className="inline-block mt-4 px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand-light transition-colors"
-          >
-            Submit Tips →
+        <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            {/* Pulsing indicator */}
+            <div className="relative shrink-0">
+              <span className="flex w-10 h-10 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg">
+                🟢
+              </span>
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 animate-ping opacity-70" />
+            </div>
+            <div>
+              <p className="eyebrow mb-0.5">Open Now</p>
+              <h2 className="text-lg font-bold text-brand leading-tight">
+                {openWeek.label}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Deadline:{" "}
+                {new Date(openWeek.deadline).toLocaleString("en-NZ", {
+                  timeZone: "Pacific/Auckland",
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          </div>
+          <Link href="/tips" className="btn-primary shrink-0">
+            Submit Tips
           </Link>
         </section>
       ) : (
-        <section className="rounded-xl border border-gray-200 bg-white px-6 py-5 text-center text-gray-500">
-          No round is currently open for tipping. Check back soon!
+        <section className="card px-6 py-5 text-center">
+          <p className="text-gray-500 text-sm">
+            No round is currently open for tipping. Check back soon!
+          </p>
         </section>
       )}
 
-      {/* Rounds list */}
+      {/* ── All rounds ─────────────────────────────────────────────────────── */}
       {gameweeks && gameweeks.length > 0 && (
         <section>
-          <h2 className="text-lg font-bold text-brand mb-3">All Rounds</h2>
-          <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
+            <h2 className="text-base font-bold text-brand uppercase tracking-wide">
+              All Rounds
+            </h2>
+          </div>
+
+          <div className="card overflow-hidden divide-y divide-gray-50">
             {gameweeks.map((gw) => (
-              <li
+              <div
                 key={gw.id}
-                className="flex items-center justify-between px-5 py-3 text-sm"
+                className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
               >
-                <span className="font-medium text-gray-800">
+                <span className="font-medium text-gray-800 text-sm">
                   {gw.label}
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                     gw.is_open
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  {gw.is_open ? "Open" : "Closed"}
+                  {gw.is_open ? "● Open" : "Closed"}
                 </span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
     </div>

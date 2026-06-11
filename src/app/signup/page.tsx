@@ -27,27 +27,38 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="max-w-md mx-auto mt-12 text-center">
-        <div className="bg-white rounded-2xl shadow-md p-8">
-          <h1 className="text-2xl font-bold text-brand mb-3">Check your email</h1>
-          <p className="text-gray-600 text-sm">
-            We sent a confirmation link to <strong>{email}</strong>. Click it to
-            activate your account and start tipping!
+      <div className="max-w-md mx-auto mt-10 sm:mt-16">
+        <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
+          <span className="text-3xl block mb-2 select-none">✉️</span>
+          <h1 className="text-xl font-bold text-white tracking-tight">Check your email</h1>
+        </div>
+        <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-8 text-center">
+          <p className="text-gray-600 text-sm leading-relaxed">
+            We sent a confirmation link to{" "}
+            <strong className="text-gray-800">{email}</strong>.<br />
+            Click it to activate your account and start tipping!
           </p>
+          <Link href="/login" className="btn-primary mt-6 w-full">
+            Back to sign in
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto mt-12">
-      <div className="bg-white rounded-2xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-brand mb-6 text-center">
-          Create account
-        </h1>
+    <div className="max-w-md mx-auto mt-10 sm:mt-16">
+      {/* Brand bar */}
+      <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
+        <span className="text-3xl block mb-2 select-none">🏉</span>
+        <h1 className="text-xl font-bold text-white tracking-tight">CMK Premier Tipping</h1>
+        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">Create your account</p>
+      </div>
+
+      <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
               Email
             </label>
             <input
@@ -55,11 +66,12 @@ export default function SignupPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              placeholder="you@example.com"
+              className="input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
               Password
             </label>
             <input
@@ -68,25 +80,33 @@ export default function SignupPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              placeholder="Min. 6 characters"
+              className="input"
             />
           </div>
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
-              {error}
-            </p>
+            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
           )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand hover:bg-brand-light text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-60"
+            className="btn-primary w-full mt-2"
           >
-            {loading ? "Creating account…" : "Sign up"}
+            {loading ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Creating account…
+              </>
+            ) : (
+              "Create account"
+            )}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-5 text-center text-sm text-gray-400">
           Already have an account?{" "}
-          <Link href="/login" className="text-brand font-medium hover:underline">
+          <Link href="/login" className="text-brand font-semibold hover:text-brand-light transition-colors">
             Sign in
           </Link>
         </p>

@@ -3,7 +3,11 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CMK Premier Tipping",
@@ -16,10 +20,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+    <html lang="en" className={inter.variable}>
+      <body className={`${inter.className} min-h-screen`}>
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+          {children}
+        </main>
       </body>
     </html>
   );

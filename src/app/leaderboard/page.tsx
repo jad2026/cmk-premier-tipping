@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 
 type Profile = { id: string; display_name: string | null };
 
-/** A pick row with its picked team already joined */
 type RichPick = {
   id: string;
   user_id: string;
@@ -19,7 +18,6 @@ type RichPick = {
   picked_team: Team;
 };
 
-/** A fixture with both team relations resolved */
 type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   home_team: Team;
   away_team: Team;
@@ -32,7 +30,7 @@ type LeaderboardEntry = {
   total: number;
 };
 
-// ── Pure helpers ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function resolveDisplayName(
   userId: string,
@@ -45,6 +43,11 @@ function resolveDisplayName(
 function pct(correct: number, total: number): string {
   if (total === 0) return "—";
   return `${Math.round((correct / total) * 100)}%`;
+}
+
+function pctNum(correct: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((correct / total) * 100);
 }
 
 function fmtDate(iso: string) {
@@ -78,47 +81,29 @@ function PickChip({
   name: string;
   hasResult: boolean;
 }) {
-  const state = !hasResult
-    ? "pending"
-    : pick.is_correct
-    ? "correct"
-    : "wrong";
+  const state = !hasResult ? "pending" : pick.is_correct ? "correct" : "wrong";
 
   const chipCls =
     state === "correct"
       ? "bg-green-50 border-green-200 text-green-800"
       : state === "wrong"
       ? "bg-red-50 border-red-100 text-red-700 opacity-80"
-      : "bg-white border-gray-200 text-gray-700";
-
-  const title = `${name} picked ${pick.picked_team.name}${pick.auto_picked ? " (auto-assigned)" : ""}`;
+      : "bg-white border-gray-200 text-gray-600";
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full border text-xs font-medium ${chipCls}`}
-      title={title}
+      title={`${name} picked ${pick.picked_team.name}${pick.auto_picked ? " (auto)" : ""}`}
     >
       <TeamBadge team={pick.picked_team} size="xs" />
       <span>{name}</span>
-
-      {/* Correctness indicator */}
       {hasResult && (
-        <span
-          aria-label={state === "correct" ? "correct" : "incorrect"}
-          className={
-            state === "correct" ? "text-green-500 font-bold" : "text-red-400"
-          }
-        >
+        <span className={state === "correct" ? "text-green-500 font-bold" : "text-red-400"}>
           {state === "correct" ? "✓" : "✗"}
         </span>
       )}
-
-      {/* Auto-pick badge */}
       {pick.auto_picked && (
-        <span
-          aria-label="auto-assigned pick"
-          className="inline-block text-[9px] font-semibold uppercase tracking-wide leading-none px-1 py-0.5 rounded bg-gray-200/80 text-gray-500 border border-gray-300/60"
-        >
+        <span className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-200/80 text-gray-500 border border-gray-300/60 leading-none">
           auto
         </span>
       )}
@@ -126,7 +111,7 @@ function PickChip({
   );
 }
 
-// ── Fixture result card ───────────────────────────────────────────────────────
+// ── Fixture card ──────────────────────────────────────────────────────────────
 
 function FixtureCard({
   fixture,
@@ -140,17 +125,12 @@ function FixtureCard({
   profileMap: Map<string, string | null>;
 }) {
   const hasResult = fixture.result_team_id !== null;
-  const resultTeam = hasResult
-    ? teamMap.get(fixture.result_team_id!)
-    : null;
+  const resultTeam = hasResult ? teamMap.get(fixture.result_team_id!) : null;
 
-  // Sort: correct → wrong → pending; manual before auto within each group; then alpha
   const sorted = [...picks].sort((a, b) => {
-    const stateOrder = (p: RichPick) =>
-      !hasResult ? 1 : p.is_correct ? 0 : 2;
-    const stateDiff = stateOrder(a) - stateOrder(b);
-    if (stateDiff !== 0) return stateDiff;
-    // Manual picks before auto-picks in each group
+    const stateOrder = (p: RichPick) => (!hasResult ? 1 : p.is_correct ? 0 : 2);
+    const diff = stateOrder(a) - stateOrder(b);
+    if (diff !== 0) return diff;
     const autoDiff = (a.auto_picked ? 1 : 0) - (b.auto_picked ? 1 : 0);
     if (autoDiff !== 0) return autoDiff;
     return resolveDisplayName(a.user_id, profileMap).localeCompare(
@@ -159,48 +139,48 @@ function FixtureCard({
   });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* ── Match header ────────────────────────────────────────────────── */}
-      <div className="px-5 py-4">
-        {/* Teams row */}
+    <div className="card overflow-hidden">
+      {/* ── Match header ──────────────────────────────────────────────── */}
+      <div className="px-5 pt-4 pb-3">
+        {/* Teams */}
         <div className="flex items-center gap-2 mb-3">
           {/* Home */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <TeamBadge team={fixture.home_team} size="sm" />
-            <span className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">
+            <span className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
               {fixture.home_team.name}
             </span>
           </div>
 
-          {/* vs pill */}
-          <span className="shrink-0 px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 text-[11px] font-semibold">
-            vs
+          {/* VS pill */}
+          <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand/8 text-brand text-[10px] font-bold tracking-widest">
+            VS
           </span>
 
-          {/* Away — mirrored: name then badge */}
+          {/* Away */}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-            <span className="text-sm font-semibold text-gray-800 leading-tight text-right line-clamp-2">
+            <span className="text-sm font-semibold text-gray-800 leading-snug text-right line-clamp-2">
               {fixture.away_team.name}
             </span>
             <TeamBadge team={fixture.away_team} size="sm" />
           </div>
         </div>
 
-        {/* Meta row: date/venue + result badge */}
+        {/* Meta + result */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs text-gray-400">
             {fmtDate(fixture.match_date)}
             {fixture.venue && (
-              <span className="before:content-['·'] before:mx-1.5">
+              <span className="before:content-['·'] before:mx-1.5 before:text-gray-300">
                 {fixture.venue}
               </span>
             )}
           </p>
 
           {hasResult && resultTeam ? (
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
               <span
-                className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 shrink-0"
+                className="w-2 h-2 rounded-full ring-1 ring-black/10 shrink-0"
                 style={{ backgroundColor: resultTeam.colour }}
               />
               {resultTeam.name} won
@@ -214,8 +194,8 @@ function FixtureCard({
         </div>
       </div>
 
-      {/* ── Picks strip ─────────────────────────────────────────────────── */}
-      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      {/* ── Picks strip ──────────────────────────────────────────────── */}
+      <div className="px-5 py-3 bg-[#f8f9fb] border-t border-gray-100">
         {sorted.length === 0 ? (
           <p className="text-xs text-gray-400 italic">No picks submitted yet.</p>
         ) : (
@@ -240,80 +220,137 @@ function FixtureCard({
 function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
   if (rows.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-10 text-center text-gray-500">
-        No picks recorded yet — check back after the first round!
+      <div className="card px-6 py-12 text-center">
+        <span className="text-4xl mb-3 block">📋</span>
+        <p className="font-medium text-gray-600">No picks recorded yet</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Check back after the first round!
+        </p>
       </div>
     );
   }
 
-  // Find the top score so ties at the top both get 🏆
   const topCorrect = rows[0].correct;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-brand text-white">
-          <tr>
-            <th className="px-4 py-3 text-left w-12 font-semibold">#</th>
-            <th className="px-4 py-3 text-left font-semibold">Tipper</th>
-            <th className="px-4 py-3 text-right font-semibold">Correct</th>
-            <th className="px-4 py-3 text-right font-semibold">Tipped</th>
-            <th className="px-4 py-3 text-right font-semibold w-16">%</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((entry, idx) => {
-            const isLeader = entry.correct === topCorrect && entry.correct > 0;
-            return (
-              <tr
-                key={entry.user_id}
-                className={
-                  isLeader
-                    ? "bg-yellow-50 font-semibold"
-                    : "hover:bg-gray-50/70 transition-colors"
-                }
-              >
-                {/* Position */}
-                <td className="px-4 py-3.5">
-                  {isLeader ? (
-                    <span className="text-lg leading-none">🏆</span>
-                  ) : (
-                    <span className="text-gray-400 tabular-nums">{idx + 1}</span>
-                  )}
-                </td>
+    <div className="card overflow-hidden">
+      {/* Table head */}
+      <div className="grid grid-cols-[3rem_1fr_6rem_5rem_5rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider">
+        <div className="px-4 py-3.5 text-center">#</div>
+        <div className="px-4 py-3.5">Tipper</div>
+        <div className="px-4 py-3.5 text-right">Correct</div>
+        <div className="px-4 py-3.5 text-right">Tipped</div>
+        <div className="px-4 py-3.5 text-right pr-5">%</div>
+      </div>
 
-                {/* Name */}
-                <td className="px-4 py-3.5 text-gray-800">{entry.displayName}</td>
+      <div className="divide-y divide-gray-50">
+        {rows.map((entry, idx) => {
+          const isLeader = entry.correct === topCorrect && entry.correct > 0;
+          const isTop3 = idx < 3 && entry.correct > 0;
+          const hitRate = pctNum(entry.correct, entry.total);
 
-                {/* Correct */}
-                <td className="px-4 py-3.5 text-right text-green-700 tabular-nums font-semibold">
+          return (
+            <div
+              key={entry.user_id}
+              className={`grid grid-cols-[3rem_1fr_6rem_5rem_5rem] items-center transition-colors ${
+                isLeader
+                  ? "bg-brand-gold-light/60 border-l-4 border-l-brand-gold"
+                  : idx % 2 === 0
+                  ? "bg-white hover:bg-gray-50/70"
+                  : "bg-[#f9fafb] hover:bg-gray-50"
+              }`}
+            >
+              {/* Position */}
+              <div className="px-0 py-4 flex justify-center">
+                {isLeader ? (
+                  <span className="text-lg leading-none select-none" title="Leader">🏆</span>
+                ) : isTop3 ? (
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                    idx === 1 ? "bg-gray-400" : "bg-amber-600"
+                  }`}>
+                    {idx + 1}
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-400 tabular-nums font-medium">
+                    {idx + 1}
+                  </span>
+                )}
+              </div>
+
+              {/* Name */}
+              <div className="px-4 py-4">
+                <span className={`text-sm ${isLeader ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
+                  {entry.displayName}
+                </span>
+              </div>
+
+              {/* Correct */}
+              <div className="px-4 py-4 text-right">
+                <span className={`text-sm tabular-nums font-bold ${isLeader ? "text-brand-gold-dark" : "text-green-700"}`}>
                   {entry.correct}
-                </td>
+                </span>
+              </div>
 
-                {/* Total tipped */}
-                <td className="px-4 py-3.5 text-right text-gray-500 tabular-nums">
-                  {entry.total}
-                </td>
+              {/* Total */}
+              <div className="px-4 py-4 text-right">
+                <span className="text-sm tabular-nums text-gray-500">{entry.total}</span>
+              </div>
 
-                {/* Percentage */}
-                <td className="px-4 py-3.5 text-right tabular-nums">
-                  <span
-                    className={
-                      entry.total === 0
-                        ? "text-gray-400"
-                        : entry.correct / entry.total >= 0.6
-                        ? "text-green-600 font-semibold"
-                        : "text-gray-600"
-                    }
-                  >
+              {/* Percentage with mini bar */}
+              <div className="px-4 pr-5 py-4 text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-xs tabular-nums font-semibold ${
+                    entry.total === 0 ? "text-gray-400" :
+                    hitRate >= 60 ? "text-green-600" : "text-gray-600"
+                  }`}>
                     {pct(entry.correct, entry.total)}
                   </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  {entry.total > 0 && (
+                    <div className="w-12 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          hitRate >= 60 ? "bg-green-500" :
+                          hitRate >= 40 ? "bg-amber-400" : "bg-gray-400"
+                        }`}
+                        style={{ width: `${hitRate}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Section heading helper ────────────────────────────────────────────────────
+
+function SectionHeading({
+  title,
+  sub,
+  badge,
+}: {
+  title: string;
+  sub?: string;
+  badge?: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <div className="flex items-center gap-2.5 mb-0.5">
+          <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h2>
+        </div>
+        {sub && <p className="text-xs text-gray-400 ml-3.5">{sub}</p>}
+      </div>
+      {badge && (
+        <span className="card px-3 py-1 text-xs text-gray-500 font-medium shadow-none">
+          {badge}
+        </span>
+      )}
     </div>
   );
 }
@@ -323,7 +360,6 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
 export default async function LeaderboardPage() {
   const supabase = await createClient();
 
-  // ── Parallel fetches that don't depend on each other ─────────────────────
   const [
     { data: openGameweek },
     { data: allPicksRaw },
@@ -340,24 +376,18 @@ export default async function LeaderboardPage() {
     supabase.from("teams").select("*"),
   ]);
 
-  // ── Lookup maps ───────────────────────────────────────────────────────────
-  const teamMap = new Map<string, Team>(
-    (teams ?? []).map((t) => [t.id, t])
-  );
+  const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
   const profileMap = new Map<string, string | null>(
     (profiles ?? []).map((p: Profile) => [p.id, p.display_name])
   );
 
-  // ── Fetch this week's fixtures + picks (serial — needs openGameweek.id) ──
   let weekFixtures: RichFixture[] = [];
   let weekPicksByFixture = new Map<string, RichPick[]>();
 
   if (openGameweek) {
     const { data: fixturesRaw } = await supabase
       .from("fixtures")
-      .select(
-        `*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`
-      )
+      .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
       .eq("gameweek_id", openGameweek.id)
       .order("match_date");
 
@@ -366,13 +396,8 @@ export default async function LeaderboardPage() {
     if (weekFixtures.length > 0) {
       const { data: picksRaw } = await supabase
         .from("picks")
-        .select(
-          "id, user_id, fixture_id, picked_team_id, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)"
-        )
-        .in(
-          "fixture_id",
-          weekFixtures.map((f) => f.id)
-        );
+        .select("id, user_id, fixture_id, picked_team_id, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+        .in("fixture_id", weekFixtures.map((f) => f.id));
 
       for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
         const list = weekPicksByFixture.get(pick.fixture_id) ?? [];
@@ -382,7 +407,6 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // ── Overall leaderboard aggregation ───────────────────────────────────────
   const lbMap = new Map<string, { correct: number; total: number }>();
   for (const pick of allPicksRaw ?? []) {
     const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0 };
@@ -404,44 +428,34 @@ export default async function LeaderboardPage() {
         a.displayName.localeCompare(b.displayName)
     );
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-10">
-      <h1 className="text-2xl font-bold text-brand">Leaderboard</h1>
 
-      {/* ── Section 1: This Week ─────────────────────────────────────────── */}
+      {/* ── Page title ──────────────────────────────────────────────────── */}
+      <div>
+        <p className="eyebrow mb-1">2026 Season</p>
+        <h1 className="text-2xl font-bold tracking-tight text-brand">
+          Leaderboard
+        </h1>
+      </div>
+
+      {/* ── This week ───────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              {openGameweek
-                ? `This Week's Results — ${openGameweek.label}`
-                : "This Week's Results"}
-            </h2>
-            {openGameweek && (
-              <p className="text-xs text-gray-400 mt-0.5">
-                Round {openGameweek.number} · Deadline{" "}
-                {fmtDeadline(openGameweek.deadline)}
-              </p>
-            )}
-          </div>
-          {openGameweek && (
-            <span className="text-xs text-gray-400 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm">
-              {weekFixtures.length} fixture
-              {weekFixtures.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
+        <SectionHeading
+          title={openGameweek ? `This Week — ${openGameweek.label}` : "This Week's Results"}
+          sub={openGameweek ? `${openGameweek.label} · Deadline ${fmtDeadline(openGameweek.deadline)}` : undefined}
+          badge={openGameweek ? `${weekFixtures.length} fixture${weekFixtures.length !== 1 ? "s" : ""}` : undefined}
+        />
 
         {!openGameweek ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-10 text-center">
+          <div className="card px-6 py-10 text-center">
             <p className="font-medium text-gray-600">No round currently open</p>
             <p className="text-sm text-gray-400 mt-1">
-              Check back when the next round is open for tipping.
+              Check back when the next round opens for tipping.
             </p>
           </div>
         ) : weekFixtures.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-10 text-center text-gray-500 text-sm">
+          <div className="card px-6 py-10 text-center text-sm text-gray-500">
             No fixtures scheduled for this round yet.
           </div>
         ) : (
@@ -459,19 +473,12 @@ export default async function LeaderboardPage() {
         )}
       </section>
 
-      {/* ── Section 2: Overall Leaderboard ───────────────────────────────── */}
+      {/* ── Overall leaderboard ─────────────────────────────────────────── */}
       <section className="space-y-4">
-        <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <h2 className="text-lg font-bold text-gray-900">
-            Overall Leaderboard
-          </h2>
-          {leaderboard.length > 0 && (
-            <span className="text-xs text-gray-400 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm">
-              {leaderboard.length} tipper
-              {leaderboard.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
+        <SectionHeading
+          title="Overall Standings"
+          badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
+        />
         <LeaderboardTable rows={leaderboard} />
       </section>
     </div>

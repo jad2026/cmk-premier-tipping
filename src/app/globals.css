@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#f0f3f7] text-gray-900;
+  }
+}
+
+@layer components {
+  /* ── Card primitives ───────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-gray-100/80;
+  }
+  .card-md {
+    @apply bg-white rounded-2xl shadow-card-md border border-gray-100/80;
+  }
+
+  /* ── Section label (small ALL-CAPS eyebrow) ──────────────────────────── */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-brand-gold;
+  }
+
+  /* ── Primary button ───────────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-xl
+           bg-brand text-white font-semibold text-sm
+           shadow-sm
+           hover:bg-brand-light active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* ── Gold/CTA button ──────────────────────────────────────────────────── */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-xl
+           bg-brand-gold text-white font-semibold text-sm
+           shadow-sm
+           hover:bg-brand-gold-dark active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* ── Ghost button ────────────────────────────────────────────────────── */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-xl
+           bg-white text-brand font-semibold text-sm
+           shadow-sm border border-gray-200
+           hover:bg-gray-50 active:scale-[0.98]
+           transition-all duration-150;
+  }
+
+  /* ── Form inputs ─────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+           bg-white placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
+           transition-colors;
+  }
+}
