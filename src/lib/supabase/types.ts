@@ -37,25 +37,69 @@ export type Pick = {
   picked_team?: Team;
 };
 
+export type Profile = {
+  id: string;
+  display_name: string | null;
+  updated_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Database schema — must satisfy @supabase/supabase-js GenericSchema so that
+// the client's insert/update/upsert types resolve correctly.
+// Each table needs Row, Insert, Update, AND Relationships (even if empty).
+// The schema also needs Views, Functions, Enums, and CompositeTypes sections.
+// ---------------------------------------------------------------------------
+
 export type Database = {
   public: {
     Tables: {
-      teams: { Row: Team; Insert: Omit<Team, "id">; Update: Partial<Team> };
+      teams: {
+        Row: Team;
+        Insert: Omit<Team, "id">;
+        Update: Partial<Team>;
+        Relationships: [];
+      };
       gameweeks: {
         Row: Gameweek;
         Insert: Omit<Gameweek, "id">;
         Update: Partial<Gameweek>;
+        Relationships: [];
       };
       fixtures: {
         Row: Fixture;
         Insert: Omit<Fixture, "id">;
         Update: Partial<Fixture>;
+        Relationships: [];
       };
       picks: {
         Row: Pick;
         Insert: Omit<Pick, "id">;
         Update: Partial<Pick>;
+        Relationships: [];
+      };
+      profiles: {
+        Row: Profile;
+        Insert: { id: string } & Partial<Omit<Profile, "id">>;
+        Update: Partial<Profile>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: {
+      upsert_pick: {
+        Args: { p_fixture_id: string; p_picked_team_id: string };
+        Returns: undefined;
+      };
+      auto_fill_missing_picks: {
+        Args: { p_gameweek_id: string };
+        Returns: number;
+      };
+      score_fixture_picks: {
+        Args: { p_fixture_id: string; p_result_team_id: string | null };
+        Returns: number;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
