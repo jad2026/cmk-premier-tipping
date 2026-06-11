@@ -62,6 +62,7 @@ export async function addFixture(formData: FormData) {
     away_team_id: awayTeamId,
     match_date: new Date(matchDate).toISOString(),
     venue,
+    result_team_id: null,
   });
 
   if (fixtureError) {
@@ -109,9 +110,9 @@ export async function saveResults(
   if (metaErr) {
     errors.push(`Fixture metadata fetch: ${metaErr.message}`);
   } else {
-    const uniqueGameweekIds = [
-      ...new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)),
-    ];
+    const uniqueGameweekIds = Array.from(
+      new Set((fixtureMeta ?? []).map((f) => f.gameweek_id))
+    );
 
     for (const gwId of uniqueGameweekIds) {
       const { error: autoErr } = await supabase.rpc(
@@ -169,7 +170,7 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
   let imported = 0;
 
   // Resolve all unique round numbers → gameweek ids in one pass
-  const uniqueRounds = [...new Set(rows.map((r) => r.round))];
+  const uniqueRounds = Array.from(new Set(rows.map((r) => r.round)));
   const gameweekIdByRound = new Map<number, string>();
 
   for (const round of uniqueRounds) {
@@ -211,6 +212,7 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
       away_team_id: row.awayTeamId,
       match_date: new Date(`${row.matchDate}T15:00:00+12:00`).toISOString(),
       venue: row.venue,
+      result_team_id: null,
     });
 
     if (insErr) {

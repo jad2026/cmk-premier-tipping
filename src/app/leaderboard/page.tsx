@@ -334,7 +334,7 @@ export default async function LeaderboardPage() {
       .from("gameweeks")
       .select("*")
       .eq("is_open", true)
-      .maybeSingle() as Promise<{ data: Gameweek | null }>,
+      .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
     supabase.from("picks").select("user_id, is_correct"),
     supabase.from("profiles").select("id, display_name"),
     supabase.from("teams").select("*"),
@@ -374,7 +374,7 @@ export default async function LeaderboardPage() {
           weekFixtures.map((f) => f.id)
         );
 
-      for (const pick of (picksRaw ?? []) as RichPick[]) {
+      for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
         const list = weekPicksByFixture.get(pick.fixture_id) ?? [];
         list.push(pick);
         weekPicksByFixture.set(pick.fixture_id, list);
