@@ -15,52 +15,69 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
-        {/* Background image */}
-        <Image
-          src="/hero.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover pointer-events-none"
-        />
-        {/* Dark navy overlay for text readability */}
-        <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
-        {/* Radial glow */}
-        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
+      {/* ── Hero (with flanking club badges on md+) ───────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-[4.5rem_1fr_4.5rem] items-stretch gap-3">
 
-        <div className="relative px-8 sm:px-12 py-14 sm:py-16 text-center">
-          <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
-            2026 Season
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
-            Club Rugby<br />
-            <span className="text-brand-gold">Tipping</span>
-          </h1>
-          <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
-            Pick the winners. Top the table. Win the glory.
-          </p>
-          <div className="flex justify-center gap-3 flex-wrap">
-            <Link
-              href="/tips"
-              className="btn-gold shadow-lg"
-            >
-              Make Your Tips →
-            </Link>
-            <Link
-              href="/leaderboard"
-              className="btn-ghost"
-            >
-              Leaderboard
-            </Link>
-          </div>
+        {/* Left column — 4 badges, hidden on mobile */}
+        <div className="hidden md:flex flex-col justify-around items-center py-8">
+          {teams?.slice(0, 4).map((team) => (
+            <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
+              <TeamBadge team={team} size="lg" />
+            </div>
+          ))}
         </div>
-      </section>
+
+        {/* Hero */}
+        <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
+          {/* Background image */}
+          <Image
+            src="/hero.jpg"
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 768px) calc(100vw - 12rem), 100vw"
+            className="object-cover pointer-events-none"
+          />
+          {/* Dark navy overlay for text readability */}
+          <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
+          {/* Radial glow */}
+          <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
+
+          <div className="relative px-8 sm:px-12 py-14 sm:py-16 text-center">
+            <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
+              2026 Season
+            </span>
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
+              Club Rugby<br />
+              <span className="text-brand-gold">Tipping</span>
+            </h1>
+            <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
+              Pick the winners. Top the table. Win the glory.
+            </p>
+            <div className="flex justify-center gap-3 flex-wrap">
+              <Link href="/tips" className="btn-gold shadow-lg">
+                Make Your Tips →
+              </Link>
+              <Link href="/leaderboard" className="btn-ghost">
+                Leaderboard
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Right column — 4 badges, hidden on mobile */}
+        <div className="hidden md:flex flex-col justify-around items-center py-8">
+          {teams?.slice(4, 8).map((team) => (
+            <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
+              <TeamBadge team={team} size="lg" />
+            </div>
+          ))}
+        </div>
+
+      </div>
 
       {/* ── Current round status ───────────────────────────────────────────── */}
       {openWeek ? (
