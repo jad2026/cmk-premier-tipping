@@ -38,7 +38,7 @@ export default async function HomePage() {
             2026 Season
           </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
-            CMK Premier<br />
+            Club Rugby<br />
             <span className="text-brand-gold">Tipping</span>
           </h1>
           <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">

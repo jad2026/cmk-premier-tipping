@@ -45,7 +45,7 @@ export default function Navbar() {
               🏉
             </span>
             <span className="font-bold text-white text-[15px] tracking-tight leading-none">
-              CMK Premier<br />
+              Club Rugby<br />
               <span className="font-normal text-brand-gold text-[11px] tracking-widest uppercase">Tipping</span>
             </span>
           </Link>

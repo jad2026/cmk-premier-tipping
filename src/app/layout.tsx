@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CMK Premier Tipping",
-  description: "Rugby tipping competition for the CMK Premier competition",
+  title: "Club Rugby Tipping",
+  description: "Rugby tipping competition — pick the winners and top the table.",
 };
 
 export default function RootLayout({

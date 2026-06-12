@@ -32,7 +32,7 @@ export default function LoginPage() {
       {/* Brand bar */}
       <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
         <span className="text-3xl block mb-2 select-none">🏉</span>
-        <h1 className="text-xl font-bold text-white tracking-tight">CMK Premier Tipping</h1>
+        <h1 className="text-xl font-bold text-white tracking-tight">Club Rugby Tipping</h1>
         <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">Sign in to your account</p>
       </div>
 
