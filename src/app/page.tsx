@@ -1,8 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import TeamBadge from "@/components/TeamBadge";
-import type { Gameweek, Fixture } from "@/lib/supabase/types";
+import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
+
+// Force fresh data on every request — no caching for season state or round rollover
+export const dynamic = "force-dynamic";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +41,18 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    }
+  );
 
   const [{ data: gameweeks }, { data: teams }, { data: allFixtures }, { data: seasonConfig }] =
     await Promise.all([
@@ -70,7 +85,8 @@ export default async function HomePage() {
   const seasonComplete = seasonConfig?.season_complete ?? false;
 
   const openRound = rounds.find((r) => r.status === "open");
-  const nextUpcoming = rounds.find((r) => r.status === "upcoming");
+  // Next round: lowest-numbered closed round that has fixtures scheduled
+  const nextUpcoming = rounds.find((r) => r.status === "upcoming" && r.total > 0);
 
   let activeRound: RoundInfo | null = null;
   let activeMode: "open" | "open-complete" | "coming-soon" | "season-complete" | "none" = "none";
