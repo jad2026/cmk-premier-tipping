@@ -208,7 +208,7 @@ function FixtureCard({
 
 // ── Leaderboard table ─────────────────────────────────────────────────────────
 
-function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
+function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; seasonComplete: boolean }) {
   if (rows.length === 0) {
     return (
       <div className="card px-6 py-12 text-center">
@@ -219,7 +219,23 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
     );
   }
 
-  const topCorrect = rows[0].correct;
+  // Build rank medals from distinct score levels so ties share the same medal
+  const distinctScores = [...new Set(rows.map((e) => e.correct))]
+    .filter((s) => s > 0)
+    .sort((a, b) => b - a);
+  const medalForScore = new Map<number, "gold" | "silver" | "bronze">();
+  if (distinctScores[0] !== undefined) medalForScore.set(distinctScores[0], "gold");
+  if (distinctScores[1] !== undefined) medalForScore.set(distinctScores[1], "silver");
+  if (distinctScores[2] !== undefined) medalForScore.set(distinctScores[2], "bronze");
+
+  // Compute display rank (1, 1, 3, 4 — not 1, 1, 2, 3)
+  let rank = 0;
+  let prevCorrect = -1;
+  const rankForIndex: number[] = [];
+  for (const entry of rows) {
+    if (entry.correct !== prevCorrect) { rank++; prevCorrect = entry.correct; }
+    rankForIndex.push(rank);
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -233,15 +249,16 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
 
       <div className="divide-y divide-gray-50">
         {rows.map((entry, idx) => {
-          const isLeader = entry.correct === topCorrect && entry.correct > 0;
-          const isTop3 = idx < 3 && entry.correct > 0;
+          const medal = medalForScore.get(entry.correct);
+          const isGold = medal === "gold";
           const hitRate = pctNum(entry.correct, entry.total);
+          const displayRank = rankForIndex[idx];
 
           return (
             <div
               key={entry.user_id}
               className={`grid grid-cols-[3rem_1fr_6rem_5rem_5rem] items-center transition-colors ${
-                isLeader
+                isGold
                   ? "bg-brand-gold-light/60 border-l-4 border-l-brand-gold"
                   : idx % 2 === 0
                   ? "bg-white hover:bg-gray-50/70"
@@ -249,25 +266,23 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
               }`}
             >
               <div className="px-0 py-4 flex justify-center">
-                {isLeader ? (
-                  <span className="text-lg leading-none select-none" title="Leader">🏆</span>
-                ) : isTop3 ? (
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-                    idx === 1 ? "bg-gray-400" : "bg-amber-600"
-                  }`}>
-                    {idx + 1}
-                  </span>
+                {medal === "gold" ? (
+                  <span className="text-lg leading-none select-none" title={seasonComplete ? "Season Winner" : "Leader"}>🥇</span>
+                ) : medal === "silver" ? (
+                  <span className="text-lg leading-none select-none" title="2nd place">🥈</span>
+                ) : medal === "bronze" ? (
+                  <span className="text-lg leading-none select-none" title="3rd place">🥉</span>
                 ) : (
-                  <span className="text-sm text-gray-400 tabular-nums font-medium">{idx + 1}</span>
+                  <span className="text-sm text-gray-400 tabular-nums font-medium">{displayRank}</span>
                 )}
               </div>
               <div className="px-4 py-4">
-                <span className={`text-sm ${isLeader ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
+                <span className={`text-sm ${isGold ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
                   {entry.displayName}
                 </span>
               </div>
               <div className="px-4 py-4 text-right">
-                <span className={`text-sm tabular-nums font-bold ${isLeader ? "text-brand-gold-dark" : "text-green-700"}`}>
+                <span className={`text-sm tabular-nums font-bold ${isGold ? "text-brand-gold-dark" : "text-green-700"}`}>
                   {entry.correct}
                 </span>
               </div>
@@ -334,6 +349,7 @@ export default async function LeaderboardPage() {
     { data: teams },
     { data: closedGameweeks },
     { data: fixturesWithResults },
+    { data: seasonConfig },
   ] = await Promise.all([
     supabase
       .from("gameweeks")
@@ -344,9 +360,11 @@ export default async function LeaderboardPage() {
     supabase.from("profiles").select("id, display_name"),
     supabase.from("teams").select("*"),
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
-    // Which gameweeks have at least one result entered?
     supabase.from("fixtures").select("gameweek_id").not("result_team_id", "is", null),
+    supabase.from("season_config").select("season_complete").eq("id", 1).single(),
   ]);
+
+  const seasonComplete = seasonConfig?.season_complete ?? false;
 
   const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
   const profileMap = new Map<string, string | null>(
@@ -408,22 +426,69 @@ export default async function LeaderboardPage() {
         a.displayName.localeCompare(b.displayName)
     );
 
+  // ── Season summary data (only when season is complete) ───────────────────
+  let summaryGameweeks: Gameweek[] = [];
+  const summaryFixturesByGw = new Map<string, RichFixture[]>();
+  const summaryPicksByFixture = new Map<string, RichPick[]>();
+
+  if (seasonComplete) {
+    const { data: allGws } = await supabase
+      .from("gameweeks")
+      .select("*")
+      .order("number");
+
+    summaryGameweeks = allGws ?? [];
+
+    const { data: allFixturesRich } = await supabase
+      .from("fixtures")
+      .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
+      .order("match_date");
+
+    const richFixtures = (allFixturesRich ?? []) as RichFixture[];
+    for (const f of richFixtures) {
+      const list = summaryFixturesByGw.get(f.gameweek_id) ?? [];
+      list.push(f);
+      summaryFixturesByGw.set(f.gameweek_id, list);
+    }
+
+    const allFixtureIds = richFixtures.map((f) => f.id);
+    if (allFixtureIds.length > 0) {
+      const { data: summaryPicksRaw } = await supabase
+        .from("picks")
+        .select("id, user_id, fixture_id, picked_team_id, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+        .in("fixture_id", allFixtureIds);
+
+      for (const pick of (summaryPicksRaw ?? []) as unknown as RichPick[]) {
+        const list = summaryPicksByFixture.get(pick.fixture_id) ?? [];
+        list.push(pick);
+        summaryPicksByFixture.set(pick.fixture_id, list);
+      }
+    }
+  }
+
   return (
     <div className="space-y-10">
 
       {/* ── Page title ──────────────────────────────────────────────────── */}
-      <div>
-        <p className="eyebrow mb-1">2026 Season</p>
-        <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
+      <div className="flex items-start gap-3 flex-wrap">
+        <div>
+          <p className="eyebrow mb-1">2026 Season</p>
+          <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
+        </div>
+        {seasonComplete && (
+          <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 border border-brand-gold/30 text-brand-gold-dark text-xs font-semibold uppercase tracking-wide">
+            🏆 Season Complete
+          </span>
+        )}
       </div>
 
       {/* ── 1. Overall Standings ────────────────────────────────────────── */}
       <section className="space-y-4">
         <SectionHeading
-          title="Overall Standings"
+          title={seasonComplete ? "Final Standings" : "Overall Standings"}
           badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
         />
-        <LeaderboardTable rows={leaderboard} />
+        <LeaderboardTable rows={leaderboard} seasonComplete={seasonComplete} />
       </section>
 
       {/* ── 2. This Week ────────────────────────────────────────────────── */}
@@ -459,7 +524,7 @@ export default async function LeaderboardPage() {
       </section>
 
       {/* ── 3. Past Rounds ──────────────────────────────────────────────── */}
-      {pastRounds.length > 0 && (
+      {!seasonComplete && pastRounds.length > 0 && (
         <section className="space-y-4">
           <SectionHeading
             title="Past Rounds"
@@ -487,6 +552,62 @@ export default async function LeaderboardPage() {
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* ── 4. Season Summary (season complete only) ────────────────────── */}
+      {seasonComplete && summaryGameweeks.length > 0 && (
+        <section className="space-y-6">
+          <SectionHeading
+            title="Season Summary"
+            sub="Complete results for every round"
+            badge={`${summaryGameweeks.length} round${summaryGameweeks.length !== 1 ? "s" : ""}`}
+          />
+
+          {summaryGameweeks.map((gw) => {
+            const fixtures = summaryFixturesByGw.get(gw.id) ?? [];
+            if (fixtures.length === 0) return null;
+            const roundCorrect = fixtures.reduce((sum, f) => {
+              const picks = summaryPicksByFixture.get(f.id) ?? [];
+              return sum + picks.filter((p) => p.is_correct).length;
+            }, 0);
+            const roundTotal = fixtures.reduce((sum, f) => {
+              return sum + (summaryPicksByFixture.get(f.id)?.length ?? 0);
+            }, 0);
+
+            return (
+              <div key={gw.id} className="space-y-3">
+                {/* Round sub-header */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-full bg-brand/10 text-brand text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
+                      {gw.number}
+                    </span>
+                    <span className="font-semibold text-gray-800 text-sm">{gw.label}</span>
+                  </div>
+                  {roundTotal > 0 && (
+                    <span className="text-xs text-gray-500">
+                      <span className="font-semibold text-green-700">{roundCorrect}</span>
+                      {" / "}
+                      {roundTotal} correct picks
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {fixtures.map((fixture) => (
+                    <FixtureCard
+                      key={fixture.id}
+                      fixture={fixture}
+                      picks={summaryPicksByFixture.get(fixture.id) ?? []}
+                      teamMap={teamMap}
+                      profileMap={profileMap}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
     </div>
