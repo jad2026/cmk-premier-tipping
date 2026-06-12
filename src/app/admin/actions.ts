@@ -115,11 +115,17 @@ export async function saveResults(
     );
 
     for (const gwId of uniqueGameweekIds) {
+      console.log(`[saveResults] auto_fill_missing_picks → gameweek_id=${gwId}`);
       const { error: autoErr } = await supabase.rpc(
         "auto_fill_missing_picks",
         { p_gameweek_id: gwId }
       );
-      if (autoErr) errors.push(`Auto-pick (gameweek ${gwId}): ${autoErr.message}`);
+      if (autoErr) {
+        console.error(`[saveResults] auto_fill_missing_picks FAILED (gameweek ${gwId}):`, autoErr.message);
+        errors.push(`Auto-pick (gameweek ${gwId}): ${autoErr.message}`);
+      } else {
+        console.log(`[saveResults] auto_fill_missing_picks OK (gameweek ${gwId})`);
+      }
     }
   }
 
