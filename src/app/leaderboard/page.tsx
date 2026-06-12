@@ -220,7 +220,7 @@ function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; 
   }
 
   // Build rank medals from distinct score levels so ties share the same medal
-  const distinctScores = [...new Set(rows.map((e) => e.correct))]
+  const distinctScores = Array.from(new Set(rows.map((e) => e.correct))
     .filter((s) => s > 0)
     .sort((a, b) => b - a);
   const medalForScore = new Map<number, "gold" | "silver" | "bronze">();
