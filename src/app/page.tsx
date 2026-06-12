@@ -1,13 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import TeamBadge from "@/components/TeamBadge";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data: gameweeks } = await supabase
-    .from("gameweeks")
-    .select("*")
-    .order("number");
+  const [{ data: gameweeks }, { data: teams }] = await Promise.all([
+    supabase.from("gameweeks").select("*").order("number"),
+    supabase.from("teams").select("*").order("name"),
+  ]);
 
   const openWeek = gameweeks?.find((gw) => gw.is_open);
 
@@ -132,6 +133,31 @@ export default async function HomePage() {
                 </span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── The Clubs ──────────────────────────────────────────────────────── */}
+      {teams && teams.length > 0 && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
+            <h2 className="text-base font-bold text-brand uppercase tracking-wide">
+              The Clubs
+            </h2>
+          </div>
+
+          <div className="card px-6 py-6">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
+              {teams.map((team) => (
+                <div key={team.id} className="flex flex-col items-center gap-2.5">
+                  <TeamBadge team={team} size="xl" />
+                  <span className="text-xs font-medium text-gray-600 text-center leading-snug">
+                    {team.name}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
