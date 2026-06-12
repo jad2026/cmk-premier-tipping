@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
@@ -140,24 +141,17 @@ function FixtureCard({
 
   return (
     <div className="card overflow-hidden">
-      {/* ── Match header ──────────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-3">
-        {/* Teams */}
         <div className="flex items-center gap-2 mb-3">
-          {/* Home */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <TeamBadge team={fixture.home_team} size="sm" />
             <span className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
               {fixture.home_team.name}
             </span>
           </div>
-
-          {/* VS pill */}
           <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand/8 text-brand text-[10px] font-bold tracking-widest">
             VS
           </span>
-
-          {/* Away */}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
             <span className="text-sm font-semibold text-gray-800 leading-snug text-right line-clamp-2">
               {fixture.away_team.name}
@@ -166,7 +160,6 @@ function FixtureCard({
           </div>
         </div>
 
-        {/* Meta + result */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs text-gray-400">
             {fmtDate(fixture.match_date)}
@@ -176,7 +169,6 @@ function FixtureCard({
               </span>
             )}
           </p>
-
           {hasResult && resultTeam ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
               <span
@@ -194,7 +186,6 @@ function FixtureCard({
         </div>
       </div>
 
-      {/* ── Picks strip ──────────────────────────────────────────────── */}
       <div className="px-5 py-3 bg-[#f8f9fb] border-t border-gray-100">
         {sorted.length === 0 ? (
           <p className="text-xs text-gray-400 italic">No picks submitted yet.</p>
@@ -223,9 +214,7 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
       <div className="card px-6 py-12 text-center">
         <span className="text-4xl mb-3 block">📋</span>
         <p className="font-medium text-gray-600">No picks recorded yet</p>
-        <p className="text-sm text-gray-400 mt-1">
-          Check back after the first round!
-        </p>
+        <p className="text-sm text-gray-400 mt-1">Check back after the first round!</p>
       </div>
     );
   }
@@ -234,7 +223,6 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
 
   return (
     <div className="card overflow-hidden">
-      {/* Table head */}
       <div className="grid grid-cols-[3rem_1fr_6rem_5rem_5rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider">
         <div className="px-4 py-3.5 text-center">#</div>
         <div className="px-4 py-3.5">Tipper</div>
@@ -260,7 +248,6 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
                   : "bg-[#f9fafb] hover:bg-gray-50"
               }`}
             >
-              {/* Position */}
               <div className="px-0 py-4 flex justify-center">
                 {isLeader ? (
                   <span className="text-lg leading-none select-none" title="Leader">🏆</span>
@@ -271,32 +258,22 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
                     {idx + 1}
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-400 tabular-nums font-medium">
-                    {idx + 1}
-                  </span>
+                  <span className="text-sm text-gray-400 tabular-nums font-medium">{idx + 1}</span>
                 )}
               </div>
-
-              {/* Name */}
               <div className="px-4 py-4">
                 <span className={`text-sm ${isLeader ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
                   {entry.displayName}
                 </span>
               </div>
-
-              {/* Correct */}
               <div className="px-4 py-4 text-right">
                 <span className={`text-sm tabular-nums font-bold ${isLeader ? "text-brand-gold-dark" : "text-green-700"}`}>
                   {entry.correct}
                 </span>
               </div>
-
-              {/* Total */}
               <div className="px-4 py-4 text-right">
                 <span className="text-sm tabular-nums text-gray-500">{entry.total}</span>
               </div>
-
-              {/* Percentage with mini bar */}
               <div className="px-4 pr-5 py-4 text-right">
                 <div className="flex flex-col items-end gap-1">
                   <span className={`text-xs tabular-nums font-semibold ${
@@ -326,17 +303,9 @@ function LeaderboardTable({ rows }: { rows: LeaderboardEntry[] }) {
   );
 }
 
-// ── Section heading helper ────────────────────────────────────────────────────
+// ── Section heading ───────────────────────────────────────────────────────────
 
-function SectionHeading({
-  title,
-  sub,
-  badge,
-}: {
-  title: string;
-  sub?: string;
-  badge?: string;
-}) {
+function SectionHeading({ title, sub, badge }: { title: string; sub?: string; badge?: string }) {
   return (
     <div className="flex items-start justify-between gap-4 flex-wrap">
       <div>
@@ -347,9 +316,7 @@ function SectionHeading({
         {sub && <p className="text-xs text-gray-400 ml-3.5">{sub}</p>}
       </div>
       {badge && (
-        <span className="card px-3 py-1 text-xs text-gray-500 font-medium shadow-none">
-          {badge}
-        </span>
+        <span className="card px-3 py-1 text-xs text-gray-500 font-medium shadow-none">{badge}</span>
       )}
     </div>
   );
@@ -365,6 +332,8 @@ export default async function LeaderboardPage() {
     { data: allPicksRaw },
     { data: profiles },
     { data: teams },
+    { data: closedGameweeks },
+    { data: fixturesWithResults },
   ] = await Promise.all([
     supabase
       .from("gameweeks")
@@ -374,6 +343,9 @@ export default async function LeaderboardPage() {
     supabase.from("picks").select("user_id, is_correct"),
     supabase.from("profiles").select("id, display_name"),
     supabase.from("teams").select("*"),
+    supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
+    // Which gameweeks have at least one result entered?
+    supabase.from("fixtures").select("gameweek_id").not("result_team_id", "is", null),
   ]);
 
   const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
@@ -381,6 +353,13 @@ export default async function LeaderboardPage() {
     (profiles ?? []).map((p: Profile) => [p.id, p.display_name])
   );
 
+  // Gameweek IDs that have at least one result
+  const gwIdsWithResults = new Set((fixturesWithResults ?? []).map((f) => f.gameweek_id));
+
+  // Past rounds = closed and have results
+  const pastRounds = (closedGameweeks ?? []).filter((gw) => gwIdsWithResults.has(gw.id));
+
+  // This week's fixtures and picks
   let weekFixtures: RichFixture[] = [];
   let weekPicksByFixture = new Map<string, RichPick[]>();
 
@@ -407,6 +386,7 @@ export default async function LeaderboardPage() {
     }
   }
 
+  // Overall leaderboard
   const lbMap = new Map<string, { correct: number; total: number }>();
   for (const pick of allPicksRaw ?? []) {
     const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0 };
@@ -434,25 +414,30 @@ export default async function LeaderboardPage() {
       {/* ── Page title ──────────────────────────────────────────────────── */}
       <div>
         <p className="eyebrow mb-1">2026 Season</p>
-        <h1 className="text-2xl font-bold tracking-tight text-brand">
-          Leaderboard
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
       </div>
 
-      {/* ── This week ───────────────────────────────────────────────────── */}
+      {/* ── 1. Overall Standings ────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <SectionHeading
+          title="Overall Standings"
+          badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
+        />
+        <LeaderboardTable rows={leaderboard} />
+      </section>
+
+      {/* ── 2. This Week ────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <SectionHeading
           title={openGameweek ? `This Week — ${openGameweek.label}` : "This Week's Results"}
-          sub={openGameweek ? `${openGameweek.label} · Deadline ${fmtDeadline(openGameweek.deadline)}` : undefined}
+          sub={openGameweek ? `Deadline ${fmtDeadline(openGameweek.deadline)}` : undefined}
           badge={openGameweek ? `${weekFixtures.length} fixture${weekFixtures.length !== 1 ? "s" : ""}` : undefined}
         />
 
         {!openGameweek ? (
           <div className="card px-6 py-10 text-center">
             <p className="font-medium text-gray-600">No round currently open</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Check back when the next round opens for tipping.
-            </p>
+            <p className="text-sm text-gray-400 mt-1">Check back when the next round opens for tipping.</p>
           </div>
         ) : weekFixtures.length === 0 ? (
           <div className="card px-6 py-10 text-center text-sm text-gray-500">
@@ -473,14 +458,37 @@ export default async function LeaderboardPage() {
         )}
       </section>
 
-      {/* ── Overall leaderboard ─────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <SectionHeading
-          title="Overall Standings"
-          badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
-        />
-        <LeaderboardTable rows={leaderboard} />
-      </section>
+      {/* ── 3. Past Rounds ──────────────────────────────────────────────── */}
+      {pastRounds.length > 0 && (
+        <section className="space-y-4">
+          <SectionHeading
+            title="Past Rounds"
+            badge={`${pastRounds.length} round${pastRounds.length !== 1 ? "s" : ""}`}
+          />
+          <div className="card overflow-hidden divide-y divide-gray-50">
+            {pastRounds.map((gw) => (
+              <Link
+                key={gw.id}
+                href={`/leaderboard/round/${gw.number}`}
+                className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/70 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-brand/10 text-brand text-xs font-bold flex items-center justify-center tabular-nums">
+                    {gw.number}
+                  </span>
+                  <span className="font-medium text-gray-800 text-sm">{gw.label}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <span className="text-xs">View results</span>
+                  <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 14 14" fill="none">
+                    <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
