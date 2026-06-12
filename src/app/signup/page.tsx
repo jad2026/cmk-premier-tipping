@@ -17,17 +17,25 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: displayName.trim() } },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError(error.message);
-    } else {
-      setDone(true);
+      return;
     }
+    // Save display name to profiles immediately (no email confirmation step)
+    if (data.user) {
+      await supabase.from("profiles").upsert(
+        { id: data.user.id, display_name: displayName.trim() },
+        { onConflict: "id" }
+      );
+    }
+    setLoading(false);
+    window.location.href = "/tips";
   }
 
   if (done) {
