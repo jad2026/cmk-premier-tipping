@@ -39,11 +39,12 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: gameweeks }, { data: teams }, { data: allFixtures }] =
+  const [{ data: gameweeks }, { data: teams }, { data: allFixtures }, { data: seasonConfig }] =
     await Promise.all([
       supabase.from("gameweeks").select("*").order("number"),
       supabase.from("teams").select("*").order("name"),
       supabase.from("fixtures").select("id, gameweek_id, result_team_id"),
+      supabase.from("season_config").select("season_complete").eq("id", 1).single(),
     ]);
 
   // Build per-round info
@@ -65,16 +66,16 @@ export default async function HomePage() {
   });
 
   // ── Active round logic ────────────────────────────────────────────────────
-  // Find the open round. If it's fully completed (all results in), prefer
-  // the next upcoming round as the "active" one to display.
+  // season_complete flag takes priority over everything else.
+  const seasonComplete = seasonConfig?.season_complete ?? false;
+
   const openRound = rounds.find((r) => r.status === "open");
   const nextUpcoming = rounds.find((r) => r.status === "upcoming");
-  const allComplete = rounds.length > 0 && rounds.every((r) => r.status === "completed");
 
   let activeRound: RoundInfo | null = null;
   let activeMode: "open" | "open-complete" | "coming-soon" | "season-complete" | "none" = "none";
 
-  if (allComplete) {
+  if (seasonComplete) {
     activeMode = "season-complete";
   } else if (openRound) {
     const allResultsIn = openRound.total > 0 && openRound.resultsIn === openRound.total;
@@ -94,9 +95,9 @@ export default async function HomePage() {
     activeMode = "coming-soon";
   }
 
-  // ── Top player (season complete only) ────────────────────────────────────
+  // ── Top player (season complete banner only) ─────────────────────────────
   let winner: string | null = null;
-  if (activeMode === "season-complete") {
+  if (seasonComplete) {
     const [{ data: correctPicks }, { data: profiles }] = await Promise.all([
       supabase.from("picks").select("user_id").eq("is_correct", true),
       supabase.from("profiles").select("id, display_name"),

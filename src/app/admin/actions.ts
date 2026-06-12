@@ -234,6 +234,23 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
 }
 
 // ---------------------------------------------------------------------------
+// Season config — mark the season as complete or reopen it
+// ---------------------------------------------------------------------------
+export async function setSeasonComplete(complete: boolean) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("season_config")
+    .upsert({ id: 1, season_complete: complete }, { onConflict: "id" });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Team logo — persists the public Storage URL after the client uploads the file
 // ---------------------------------------------------------------------------
 export async function updateTeamLogoUrl(teamId: string, logoUrl: string | null) {

@@ -6,25 +6,28 @@ import AddFixtureForm from "./AddFixtureForm";
 import BulkImportForm from "./BulkImportForm";
 import EnterResultsForm from "./EnterResultsForm";
 import TeamManagementPanel from "./TeamManagementPanel";
+import SeasonPanel from "./SeasonPanel";
 
 const STORAGE_KEY = "cmk_admin_authed";
 const ADMIN_PASSWORD = "admin123";
 
-type Tab = "add" | "bulk" | "results" | "teams";
+type Tab = "add" | "bulk" | "results" | "teams" | "season";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
   { id: "bulk", label: "Bulk Import" },
   { id: "results", label: "Enter Results" },
   { id: "teams", label: "Teams" },
+  { id: "season", label: "Season" },
 ];
 
 type Props = {
   teams: Team[];
   pendingFixtures: Fixture[];
+  seasonComplete: boolean;
 };
 
-export default function AdminShell({ teams, pendingFixtures }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete }: Props) {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [pwError, setPwError] = useState(false);
@@ -133,6 +136,9 @@ export default function AdminShell({ teams, pendingFixtures }: Props) {
         )}
         {activeTab === "teams" && (
           <TeamManagementPanel initialTeams={teams} />
+        )}
+        {activeTab === "season" && (
+          <SeasonPanel seasonComplete={seasonComplete} />
         )}
       </div>
     </div>

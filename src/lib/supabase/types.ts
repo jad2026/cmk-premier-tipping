@@ -43,6 +43,11 @@ export type Profile = {
   updated_at: string | null;
 };
 
+export type SeasonConfig = {
+  id: 1;
+  season_complete: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Database schema — must satisfy @supabase/supabase-js GenericSchema so that
 // the client's insert/update/upsert types resolve correctly.
@@ -81,6 +86,12 @@ export type Database = {
         Row: Profile;
         Insert: { id: string } & Partial<Omit<Profile, "id">>;
         Update: Partial<Profile>;
+        Relationships: [];
+      };
+      season_config: {
+        Row: SeasonConfig;
+        Insert: Partial<SeasonConfig>;
+        Update: Partial<SeasonConfig>;
         Relationships: [];
       };
     };
