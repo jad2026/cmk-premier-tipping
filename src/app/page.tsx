@@ -16,13 +16,13 @@ export default async function HomePage() {
     <div className="space-y-8">
 
       {/* ── Hero (with flanking club badges on md+) ───────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-[4.5rem_1fr_4.5rem] items-stretch gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-[5.5rem_1fr_5.5rem] items-stretch gap-3">
 
         {/* Left column — 4 badges, hidden on mobile */}
         <div className="hidden md:flex flex-col justify-around items-center py-8">
           {teams?.slice(0, 4).map((team) => (
             <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-              <TeamBadge team={team} size="lg" />
+              <TeamBadge team={team} size="xl" />
             </div>
           ))}
         </div>
@@ -72,7 +72,7 @@ export default async function HomePage() {
         <div className="hidden md:flex flex-col justify-around items-center py-8">
           {teams?.slice(4, 8).map((team) => (
             <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-              <TeamBadge team={team} size="lg" />
+              <TeamBadge team={team} size="xl" />
             </div>
           ))}
         </div>
@@ -154,30 +154,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── The Clubs ──────────────────────────────────────────────────────── */}
-      {teams && teams.length > 0 && (
-        <section>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-            <h2 className="text-base font-bold text-brand uppercase tracking-wide">
-              The Clubs
-            </h2>
-          </div>
 
-          <div className="card px-6 py-6">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
-              {teams.map((team) => (
-                <div key={team.id} className="flex flex-col items-center gap-2.5">
-                  <TeamBadge team={team} size="xl" />
-                  <span className="text-xs font-medium text-gray-600 text-center leading-snug">
-                    {team.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
