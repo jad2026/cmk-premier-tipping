@@ -108,7 +108,7 @@ export default async function HomePage() {
       for (const p of correctPicks) {
         tally.set(p.user_id, (tally.get(p.user_id) ?? 0) + 1);
       }
-      const topUserId = [...tally.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const topUserId = Array.from(tally.entries()).sort((a, b) => b[1] - a[1])[0][0];
       const profile = profiles?.find((p) => p.id === topUserId);
       winner = profile?.display_name?.trim() || `Player ${topUserId.slice(0, 5).toUpperCase()}`;
     }
