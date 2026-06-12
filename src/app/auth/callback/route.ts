@@ -8,8 +8,15 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.user) {
+      const displayName = data.user.user_metadata?.display_name as string | undefined;
+      if (displayName?.trim()) {
+        await supabase.from("profiles").upsert(
+          { id: data.user.id, display_name: displayName.trim() },
+          { onConflict: "id" }
+        );
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

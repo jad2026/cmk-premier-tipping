@@ -8,6 +8,7 @@ export default function SignupPage() {
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,11 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName.trim() } },
+    });
     setLoading(false);
     if (error) {
       setError(error.message);
@@ -81,6 +86,21 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min. 6 characters"
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              Display Name
+            </label>
+            <input
+              type="text"
+              required
+              minLength={2}
+              maxLength={40}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Name shown on the leaderboard"
               className="input"
             />
           </div>
