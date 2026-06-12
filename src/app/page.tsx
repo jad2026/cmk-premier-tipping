@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -15,6 +16,17 @@ export default async function HomePage() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
+        {/* Background image */}
+        <Image
+          src="/hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover pointer-events-none"
+        />
+        {/* Dark navy overlay for text readability */}
+        <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
         {/* Radial glow */}
