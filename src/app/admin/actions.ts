@@ -154,8 +154,23 @@ export async function saveResults(
     if (scoreErr) errors.push(`Score ${fixtureId}: ${scoreErr.message}`);
   }
 
+  // ── Step 3: auto-complete season if all fixtures now have results ────────
+  const { data: incomplete } = await supabase
+    .from("fixtures")
+    .select("id")
+    .is("result_team_id", null)
+    .limit(1);
+
+  if (incomplete && incomplete.length === 0) {
+    console.log("[saveResults] All fixtures have results — marking season complete");
+    await supabase
+      .from("season_config")
+      .upsert({ id: 1, season_complete: true }, { onConflict: "id" });
+  }
+
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
+  revalidatePath("/");
   return { errors };
 }
 
