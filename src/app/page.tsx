@@ -81,31 +81,23 @@ export default async function HomePage() {
   });
 
   // ── Active round logic ────────────────────────────────────────────────────
-  // season_complete flag takes priority over everything else.
   const seasonComplete = seasonConfig?.season_complete ?? false;
 
-  const openRound = rounds.find((r) => r.status === "open");
-  // Next round: lowest-numbered closed round that has fixtures scheduled
+  // First open round that still has at least one fixture without a result
+  const activeOpenRound = rounds.find(
+    (r) => r.status === "open" && r.total > 0 && r.resultsIn < r.total
+  );
+  // First closed round that has fixtures but no results yet (coming soon)
   const nextUpcoming = rounds.find((r) => r.status === "upcoming" && r.total > 0);
 
   let activeRound: RoundInfo | null = null;
-  let activeMode: "open" | "open-complete" | "coming-soon" | "season-complete" | "none" = "none";
+  let activeMode: "open" | "coming-soon" | "season-complete" | "none" = "none";
 
   if (seasonComplete) {
     activeMode = "season-complete";
-  } else if (openRound) {
-    const allResultsIn = openRound.total > 0 && openRound.resultsIn === openRound.total;
-    if (allResultsIn && nextUpcoming) {
-      activeRound = nextUpcoming;
-      activeMode = "coming-soon";
-    } else if (allResultsIn) {
-      // Open but all done, no next round
-      activeRound = openRound;
-      activeMode = "open-complete";
-    } else {
-      activeRound = openRound;
-      activeMode = "open";
-    }
+  } else if (activeOpenRound) {
+    activeRound = activeOpenRound;
+    activeMode = "open";
   } else if (nextUpcoming) {
     activeRound = nextUpcoming;
     activeMode = "coming-soon";
@@ -198,21 +190,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {activeMode === "open-complete" && activeRound && (
-        <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <span className="flex w-10 h-10 items-center justify-center rounded-full bg-brand-gold/15 text-xl shrink-0">✅</span>
-            <div>
-              <p className="eyebrow mb-0.5">Round Complete</p>
-              <h2 className="text-lg font-bold text-brand leading-tight">{activeRound.gameweek.label}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">All results are in for this round.</p>
-            </div>
-          </div>
-          <Link href="/leaderboard" className="btn-primary shrink-0">View Leaderboard</Link>
-        </section>
-      )}
-
-      {activeMode === "coming-soon" && activeRound && (
+{activeMode === "coming-soon" && activeRound && (
         <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <span className="flex w-10 h-10 items-center justify-center rounded-full bg-blue-50 text-xl shrink-0">📅</span>
