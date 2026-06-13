@@ -8,8 +8,7 @@ export default function SignupPage() {
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [done, setDone] = useState(false);
+  const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -17,46 +16,40 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    const trimmedTeamName = teamName.trim();
+
+    // Check for duplicate team name (case-insensitive)
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("display_name", trimmedTeamName)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      setError("That team name is already taken. Please choose another.");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName.trim() } },
+      options: { data: { display_name: trimmedTeamName } },
     });
     if (error) {
       setLoading(false);
       setError(error.message);
       return;
     }
-    // Save display name to profiles immediately (no email confirmation step)
     if (data.user) {
       await supabase.from("profiles").upsert(
-        { id: data.user.id, display_name: displayName.trim() },
+        { id: data.user.id, display_name: trimmedTeamName },
         { onConflict: "id" }
       );
     }
     setLoading(false);
     window.location.href = "/tips";
-  }
-
-  if (done) {
-    return (
-      <div className="max-w-md mx-auto mt-10 sm:mt-16">
-        <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-          <span className="text-3xl block mb-2 select-none">✉️</span>
-          <h1 className="text-xl font-bold text-white tracking-tight">Check your email</h1>
-        </div>
-        <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-8 text-center">
-          <p className="text-gray-600 text-sm leading-relaxed">
-            We sent a confirmation link to{" "}
-            <strong className="text-gray-800">{email}</strong>.<br />
-            Click it to activate your account and start tipping!
-          </p>
-          <Link href="/login" className="btn-primary mt-6 w-full">
-            Back to sign in
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -99,16 +92,16 @@ export default function SignupPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Display Name
+              Team Name
             </label>
             <input
               type="text"
               required
               minLength={2}
               maxLength={40}
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Name shown on the leaderboard"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="Your team name on the leaderboard"
               className="input"
             />
           </div>
