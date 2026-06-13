@@ -10,10 +10,18 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.user) {
-      const displayName = data.user.user_metadata?.display_name as string | undefined;
-      if (displayName?.trim()) {
+      const meta = data.user.user_metadata ?? {};
+      const displayName = (meta.display_name as string | undefined)?.trim();
+      const firstName = (meta.first_name as string | undefined)?.trim();
+      const lastName = (meta.last_name as string | undefined)?.trim();
+      if (displayName || firstName || lastName) {
         await supabase.from("profiles").upsert(
-          { id: data.user.id, display_name: displayName.trim() },
+          {
+            id: data.user.id,
+            ...(displayName && { display_name: displayName }),
+            ...(firstName && { first_name: firstName }),
+            ...(lastName && { last_name: lastName }),
+          },
           { onConflict: "id" }
         );
       }

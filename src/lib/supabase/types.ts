@@ -40,6 +40,8 @@ export type Pick = {
 export type Profile = {
   id: string;
   display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   updated_at: string | null;
 };
 

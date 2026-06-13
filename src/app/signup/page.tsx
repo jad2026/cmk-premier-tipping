@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const supabase = createClient();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -19,7 +21,7 @@ export default function SignupPage() {
 
     const trimmedTeamName = teamName.trim();
 
-    // Check for duplicate team name (case-insensitive)
+    // Case-insensitive duplicate team name check
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
@@ -35,26 +37,39 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: trimmedTeamName } },
+      options: {
+        data: {
+          display_name: trimmedTeamName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        },
+      },
     });
+
     if (error) {
       setLoading(false);
       setError(error.message);
       return;
     }
+
     if (data.user) {
       await supabase.from("profiles").upsert(
-        { id: data.user.id, display_name: trimmedTeamName },
+        {
+          id: data.user.id,
+          display_name: trimmedTeamName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        },
         { onConflict: "id" }
       );
     }
+
     setLoading(false);
     window.location.href = "/tips";
   }
 
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-16">
-      {/* Brand bar */}
       <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
         <span className="text-3xl block mb-2 select-none">🏉</span>
         <h1 className="text-xl font-bold text-white tracking-tight">Club Rugby Tipping</h1>
@@ -63,6 +78,38 @@ export default function SignupPage() {
 
       <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                First Name
+              </label>
+              <input
+                type="text"
+                required
+                minLength={1}
+                maxLength={50}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Jane"
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                Last Name
+              </label>
+              <input
+                type="text"
+                required
+                minLength={1}
+                maxLength={50}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Smith"
+                className="input"
+              />
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
               Email

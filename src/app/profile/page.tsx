@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+type ProfileData = {
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+};
+
 export default function ProfilePage() {
   const supabase = createClient();
   const router = useRouter();
+  const [email, setEmail] = useState<string>("");
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [teamName, setTeamName] = useState("");
-  const [existingName, setExistingName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,23 +24,22 @@ export default function ProfilePage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-      const { data: profile } = await supabase
+      if (!user) { router.push("/login"); return; }
+      setEmail(user.email ?? "");
+
+      const { data } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("first_name, last_name, display_name")
         .eq("id", user.id)
         .single();
-      const name = profile?.display_name?.trim() || null;
-      setExistingName(name);
+
+      setProfile(data ?? { first_name: null, last_name: null, display_name: null });
       setLoading(false);
     }
     load();
   }, [supabase, router]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSaveTeamName(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -43,7 +49,6 @@ export default function ProfilePage() {
 
     const trimmed = teamName.trim();
 
-    // Case-insensitive duplicate check
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
@@ -63,7 +68,7 @@ export default function ProfilePage() {
     if (saveErr) {
       setError(saveErr.message);
     } else {
-      setExistingName(trimmed);
+      setProfile((p) => p ? { ...p, display_name: trimmed } : p);
       setSuccess(true);
     }
     setSaving(false);
@@ -77,31 +82,50 @@ export default function ProfilePage() {
     );
   }
 
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
+
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-16">
       <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
         <span className="text-3xl block mb-2 select-none">🏉</span>
         <h1 className="text-xl font-bold text-white tracking-tight">My Profile</h1>
-        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">Team name</p>
+        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">Account details</p>
       </div>
 
-      <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
-        {existingName ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Team Name</p>
-              <div className="input bg-gray-50 text-gray-700 cursor-not-allowed">{existingName}</div>
-            </div>
-            <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-              <p className="text-sm text-blue-700">Your team name is set and cannot be changed. Contact an admin if you need to update it.</p>
+      <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7 space-y-5">
+
+        {/* Name row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">First Name</p>
+            <div className="input bg-gray-50 text-gray-700 cursor-default">
+              {profile?.first_name || <span className="text-gray-400">—</span>}
             </div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                Team Name
-              </label>
+          <div>
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Last Name</p>
+            <div className="input bg-gray-50 text-gray-700 cursor-default">
+              {profile?.last_name || <span className="text-gray-400">—</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Email</p>
+          <div className="input bg-gray-50 text-gray-700 cursor-default">{email}</div>
+        </div>
+
+        {/* Team Name */}
+        <div>
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Team Name</p>
+          {profile?.display_name ? (
+            <>
+              <div className="input bg-gray-50 text-gray-700 cursor-default">{profile.display_name}</div>
+              <p className="mt-1.5 text-xs text-gray-400">Your team name cannot be changed. Contact an admin if needed.</p>
+            </>
+          ) : (
+            <form onSubmit={handleSaveTeamName} className="space-y-3">
               <input
                 type="text"
                 required
@@ -112,33 +136,27 @@ export default function ProfilePage() {
                 placeholder="Your team name on the leaderboard"
                 className="input"
               />
-            </div>
-            {error && (
-              <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-            {success && (
-              <div className="rounded-xl bg-green-50 border border-green-100 px-4 py-3">
-                <p className="text-sm text-green-700">Team name saved!</p>
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-primary w-full mt-2"
-            >
-              {saving ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save Team Name"
+              {error && (
+                <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
               )}
-            </button>
-          </form>
-        )}
+              {success && (
+                <div className="rounded-xl bg-green-50 border border-green-100 px-4 py-3">
+                  <p className="text-sm text-green-700">Team name saved!</p>
+                </div>
+              )}
+              <button type="submit" disabled={saving} className="btn-primary w-full">
+                {saving ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving…
+                  </>
+                ) : "Save Team Name"}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
