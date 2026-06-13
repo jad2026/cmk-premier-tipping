@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type FixtureResult = {
@@ -174,16 +172,26 @@ function buildHtml(p: ResultsEmailPayload): string {
 // ── Send ───────────────────────────────────────────────────────────────────────
 
 export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("[resultsEmail] RESEND_API_KEY not set — skipping email");
+    return;
+  }
+
   const from = process.env.RESEND_FROM_EMAIL ?? "Club Rugby Tipping <noreply@cmktipping.com>";
 
-  const { error } = await resend.emails.send({
-    from,
-    to: payload.to,
-    subject: `${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`,
-    html: buildHtml(payload),
-  });
-
-  if (error) {
-    console.error(`[resultsEmail] Failed to send to ${payload.to}:`, error);
+  try {
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from,
+      to: payload.to,
+      subject: `${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`,
+      html: buildHtml(payload),
+    });
+    if (error) {
+      console.error(`[resultsEmail] Failed to send to ${payload.to}:`, error);
+    }
+  } catch (e) {
+    console.error(`[resultsEmail] Unexpected error sending to ${payload.to}:`, e);
   }
 }
