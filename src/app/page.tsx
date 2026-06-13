@@ -33,8 +33,8 @@ function fmtDeadline(iso: string) {
 }
 
 function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
-  if (gw.is_open) return "open";
   if (fixtures.length > 0 && fixtures.every((f) => f.result_team_id !== null)) return "completed";
+  if (gw.is_open) return "open";
   return "upcoming";
 }
 
