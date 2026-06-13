@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
 
 // ---------------------------------------------------------------------------
 // Add fixture (creates gameweek row if it doesn't exist yet)
@@ -168,10 +169,150 @@ export async function saveResults(
       .upsert({ id: 1, season_complete: true }, { onConflict: "id" });
   }
 
+  // ── Step 4: send results emails to all users ─────────────────────────────
+  // Run async but don't block the response — email failures don't affect scoring.
+  sendResultsEmailsForGameweeks(
+    Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)))
+  ).catch((e) => console.error("[saveResults] Email dispatch error:", e));
+
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
   revalidatePath("/");
   return { errors };
+}
+
+// ── Results email dispatcher ──────────────────────────────────────────────────
+// Fetches all data for the given gameweeks and sends one email per user.
+
+async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
+  if (!process.env.RESEND_API_KEY || gameweekIds.length === 0) return;
+
+  const supabase = await createClient();
+
+  for (const gwId of gameweekIds) {
+    // Fetch gameweek label
+    const { data: gw } = await supabase
+      .from("gameweeks")
+      .select("label")
+      .eq("id", gwId)
+      .single();
+    if (!gw) continue;
+
+    // Fetch all fixtures for this gameweek
+    const { data: fixtures } = await supabase
+      .from("fixtures")
+      .select("id, result_team_id, home_team_id, away_team_id, match_date")
+      .eq("gameweek_id", gwId)
+      .order("match_date");
+    if (!fixtures || fixtures.length === 0) continue;
+
+    // Only send if all fixtures in this round have results
+    if (fixtures.some((f) => f.result_team_id === null)) continue;
+
+    // Fetch all picks for these fixtures
+    const fixtureIds = fixtures.map((f) => f.id);
+    const { data: picks } = await supabase
+      .from("picks")
+      .select("user_id, fixture_id, picked_team_id, is_correct, auto_picked")
+      .in("fixture_id", fixtureIds);
+    if (!picks) continue;
+
+    // Fetch all teams for name lookup
+    const { data: teams } = await supabase.from("teams").select("id, name");
+    const teamName = (id: string | null) => teams?.find((t) => t.id === id)?.name ?? "?";
+
+    // Fetch leaderboard: total correct per user across all rounds
+    const { data: allCorrect } = await supabase
+      .from("picks")
+      .select("user_id, is_correct")
+      .eq("is_correct", true);
+
+    const seasonTally = new Map<string, number>();
+    for (const p of allCorrect ?? []) {
+      seasonTally.set(p.user_id, (seasonTally.get(p.user_id) ?? 0) + 1);
+    }
+
+    // Build sorted leaderboard for position lookup
+    const leaderboardEntries = Array.from(seasonTally.entries())
+      .sort((a, b) => b[1] - a[1]);
+
+    const positionOf = (userId: string): number => {
+      const score = seasonTally.get(userId) ?? 0;
+      const rank = leaderboardEntries.findIndex(([, s]) => s <= score);
+      return rank === -1 ? leaderboardEntries.length + 1 : rank + 1;
+    };
+
+    // Fetch all user emails + profiles
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, display_name");
+
+    // Fetch auth users via admin API is not available server-side without service key;
+    // instead rely on profiles having email — but profiles don't store email.
+    // We use the supabase admin client pattern: list users from auth.users via RPC
+    // isn't available, so we fall back to a join on picks to get user IDs, then
+    // fetch emails via the auth admin API if service key is available.
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+      console.warn("[resultsEmail] SUPABASE_SERVICE_ROLE_KEY not set — skipping email dispatch");
+      continue;
+    }
+
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Get all user IDs who have picks in this round
+    const userIds = Array.from(new Set(picks.map((p) => p.user_id)));
+
+    for (const userId of userIds) {
+      const { data: userData } = await admin.auth.admin.getUserById(userId);
+      const email = userData?.user?.email;
+      if (!email) continue;
+
+      const profile = profiles?.find((p) => p.id === userId);
+      const displayName = profile?.display_name?.trim() || `Player ${userId.slice(0, 5).toUpperCase()}`;
+
+      const userPicks = picks.filter((p) => p.user_id === userId);
+      const roundCorrect = userPicks.filter((p) => p.is_correct).length;
+      const roundTotal = userPicks.length;
+
+      const fixtureResults = fixtures.map((f) => ({
+        homeTeam: teamName(f.home_team_id),
+        awayTeam: teamName(f.away_team_id),
+        winner: f.result_team_id ? teamName(f.result_team_id) : null,
+      }));
+
+      const userPickRows = userPicks.map((pk) => {
+        const fixture = fixtures.find((f) => f.id === pk.fixture_id)!;
+        return {
+          homeTeam: teamName(fixture?.home_team_id ?? null),
+          awayTeam: teamName(fixture?.away_team_id ?? null),
+          pickedTeam: teamName(pk.picked_team_id),
+          isCorrect: pk.is_correct ?? false,
+          autoPicked: pk.auto_picked ?? false,
+        };
+      });
+
+      const payload: ResultsEmailPayload = {
+        to: email,
+        roundLabel: gw.label,
+        fixtures: fixtureResults,
+        picks: userPickRows,
+        correct: roundCorrect,
+        total: roundTotal,
+        leaderboardPosition: positionOf(userId),
+        totalPlayers: leaderboardEntries.length,
+        seasonCorrect: seasonTally.get(userId) ?? 0,
+      };
+
+      await sendResultsEmail(payload);
+      console.log(`[resultsEmail] Sent ${gw.label} results to ${email} (${displayName})`);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
