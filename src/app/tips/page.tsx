@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import TipsForm from "./TipsForm";
@@ -19,6 +20,27 @@ export default async function TipsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: seasonConfig } = await supabase
+    .from("season_config")
+    .select("season_complete")
+    .eq("id", 1)
+    .single();
+
+  if (seasonConfig?.season_complete) {
+    return (
+      <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
+        <span className="text-4xl mb-4 block">🏆</span>
+        <h1 className="text-xl font-bold text-brand mb-2">Competition Ended</h1>
+        <p className="text-gray-500 text-sm mb-6">
+          The competition has ended. Thanks for playing!
+        </p>
+        <Link href="/leaderboard" className="btn-primary inline-flex">
+          View Final Standings
+        </Link>
+      </div>
+    );
+  }
 
   const { data: gameweeks } = await supabase
     .from("gameweeks")
