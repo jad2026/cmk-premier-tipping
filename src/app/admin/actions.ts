@@ -567,7 +567,15 @@ export async function fetchResultsHistory(): Promise<{ data: RoundHistoryRow[]; 
 // Start new season — archives current data, clears tables, resets config
 // ---------------------------------------------------------------------------
 export async function startNewSeason(seasonName: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { error: "SUPABASE_SERVICE_ROLE_KEY not set — cannot perform bulk deletes" };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   // Fetch everything to archive
   const [
@@ -577,11 +585,11 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
     { data: profiles },
     { data: allCorrect },
   ] = await Promise.all([
-    supabase.from("gameweeks").select("*"),
-    supabase.from("fixtures").select("*"),
-    supabase.from("picks").select("*"),
-    supabase.from("profiles").select("id, display_name"),
-    supabase.from("picks").select("user_id").eq("is_correct", true),
+    admin.from("gameweeks").select("*"),
+    admin.from("fixtures").select("*"),
+    admin.from("picks").select("*"),
+    admin.from("profiles").select("id, display_name"),
+    admin.from("picks").select("user_id").eq("is_correct", true),
   ]);
 
   // Determine winner from this season
@@ -600,7 +608,7 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
   const year = new Date().getFullYear();
 
   // Archive into seasons table
-  const { error: archiveErr } = await supabase.from("seasons").insert({
+  const { error: archiveErr } = await admin.from("seasons").insert({
     name: seasonName,
     year,
     winner_name: winnerName,
@@ -613,17 +621,18 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
   if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
 
   // Clear active data in dependency order (picks → fixtures → gameweeks)
-  const { error: picksErr } = await supabase.from("picks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  // Uses service role client to bypass RLS which would otherwise restrict deletes to own rows
+  const { error: picksErr } = await admin.from("picks").delete().gte("created_at", "1970-01-01");
   if (picksErr) return { error: `Clear picks failed: ${picksErr.message}` };
 
-  const { error: fixErr } = await supabase.from("fixtures").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: fixErr } = await admin.from("fixtures").delete().gte("created_at", "1970-01-01");
   if (fixErr) return { error: `Clear fixtures failed: ${fixErr.message}` };
 
-  const { error: gwErr } = await supabase.from("gameweeks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: gwErr } = await admin.from("gameweeks").delete().gte("created_at", "1970-01-01");
   if (gwErr) return { error: `Clear gameweeks failed: ${gwErr.message}` };
 
   // Reset season_config
-  await supabase.from("season_config").upsert({ id: 1, season_complete: false }, { onConflict: "id" });
+  await admin.from("season_config").upsert({ id: 1, season_complete: false }, { onConflict: "id" });
 
   revalidatePath("/admin");
   revalidatePath("/");
