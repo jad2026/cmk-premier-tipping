@@ -59,7 +59,7 @@ export default async function HomePage() {
       supabase.from("gameweeks").select("*").order("number"),
       supabase.from("teams").select("*").order("name"),
       supabase.from("fixtures").select("id, gameweek_id, result_team_id"),
-      supabase.from("season_config").select("season_complete").eq("id", 1).single(),
+      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
     ]);
 
   // Build per-round info
@@ -82,6 +82,7 @@ export default async function HomePage() {
 
   // ── Active round logic ────────────────────────────────────────────────────
   const seasonComplete = seasonConfig?.season_complete ?? false;
+  const seasonName = seasonConfig?.season_name ?? `${new Date().getFullYear()} Season`;
 
   // First open round that still has at least one fixture without a result
   const activeOpenRound = rounds.find(
@@ -173,6 +174,15 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* ── Season name strip ────────────────────────────────────────────────── */}
+      {!seasonComplete && (
+        <div className="text-center">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-brand/8 border border-brand/15 text-brand text-sm font-semibold tracking-wide">
+            {seasonName}
+          </span>
+        </div>
+      )}
 
       {/* ── Active round card ─────────────────────────────────────────────────── */}
       {activeMode === "open" && activeRound && (
@@ -279,24 +289,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      {activeMode === "no-fixtures" && (
-        <section className="card-md px-8 py-10 text-center">
-          <span className="text-5xl block mb-4 select-none">🏉</span>
-          <h2 className="text-xl font-bold text-brand mb-2">Welcome to the 2026 Season!</h2>
-          <p className="text-gray-500 text-sm max-w-xs mx-auto">
-            Fixtures are being set up — check back soon to start tipping.
-          </p>
-        </section>
-      )}
-
-      {activeMode === "none" && (
-        <section className="card px-6 py-5 text-center">
-          <p className="text-gray-500 text-sm">No rounds are currently open for tipping. Check back soon!</p>
-        </section>
-      )}
-
-      {/* ── All rounds ────────────────────────────────────────────────────────── */}
-      {rounds.length > 0 && hasAnyFixtures && !seasonComplete && (
+      {/* ── All rounds — only when a round is actively open ───────────────────── */}
+      {activeMode === "open" && rounds.length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />

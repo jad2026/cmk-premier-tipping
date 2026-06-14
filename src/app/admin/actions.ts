@@ -420,6 +420,23 @@ export async function setSeasonComplete(complete: boolean) {
 }
 
 // ---------------------------------------------------------------------------
+// Season config — update the season name
+// ---------------------------------------------------------------------------
+export async function setSeasonName(name: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("season_config")
+    .upsert({ id: 1, season_name: name }, { onConflict: "id" });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Participants — list all registered users with email, joined date, rounds count
 // Requires service role key to access auth.users
 // ---------------------------------------------------------------------------

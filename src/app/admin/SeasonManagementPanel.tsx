@@ -3,15 +3,19 @@
 import { useEffect, useState, useTransition } from "react";
 import {
   setSeasonComplete,
+  setSeasonName,
   startNewSeason,
   fetchPastSeasons,
   type PastSeasonRow,
 } from "./actions";
 
-type Props = { seasonComplete: boolean };
+type Props = { seasonComplete: boolean; seasonName: string };
 
-export default function SeasonManagementPanel({ seasonComplete: initial }: Props) {
+export default function SeasonManagementPanel({ seasonComplete: initial, seasonName: initialName }: Props) {
   const [isComplete, setIsComplete] = useState(initial);
+  const [currentSeasonName, setCurrentSeasonName] = useState(initialName);
+  const [nameInput, setNameInput] = useState(initialName);
+  const [nameFeedback, setNameFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [newSeasonName, setNewSeasonName] = useState(`${new Date().getFullYear()} Season`);
   const [confirm, setConfirm] = useState(false);
   const [pastSeasons, setPastSeasons] = useState<PastSeasonRow[]>([]);
@@ -24,6 +28,21 @@ export default function SeasonManagementPanel({ seasonComplete: initial }: Props
       setPastSeasons(data);
     });
   }, []);
+
+  function handleSaveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setNameFeedback(null);
+    startTransition(async () => {
+      const { error } = await setSeasonName(trimmed);
+      if (error) {
+        setNameFeedback({ ok: false, msg: error });
+      } else {
+        setCurrentSeasonName(trimmed);
+        setNameFeedback({ ok: true, msg: "Season name updated." });
+      }
+    });
+  }
 
   function toggleComplete(complete: boolean) {
     setFeedback(null);
@@ -67,6 +86,39 @@ export default function SeasonManagementPanel({ seasonComplete: initial }: Props
 
   return (
     <div className="space-y-8 max-w-xl">
+
+      {/* ── Season name ──────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Season Name</h2>
+          <p className="text-xs text-gray-500 mt-1">Displayed on the home page below the hero banner.</p>
+        </div>
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={nameInput}
+            onChange={(e) => { setNameInput(e.target.value); setNameFeedback(null); }}
+            className="input flex-1 max-w-xs"
+            placeholder="e.g. 2026 CMK Premier Season"
+          />
+          <button
+            onClick={handleSaveName}
+            disabled={isPending || nameInput.trim() === currentSeasonName || !nameInput.trim()}
+            className="btn-primary shrink-0"
+          >
+            {isPending ? "Saving…" : "Save"}
+          </button>
+        </div>
+        {nameFeedback && (
+          <p className={`text-sm rounded-xl px-4 py-3 ${
+            nameFeedback.ok
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-100 text-red-700"
+          }`}>
+            {nameFeedback.msg}
+          </p>
+        )}
+      </section>
 
       {/* ── Current season status ─────────────────────────────────────────── */}
       <section className="space-y-4">

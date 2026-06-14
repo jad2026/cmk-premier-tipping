@@ -31,9 +31,10 @@ type Props = {
   teams: Team[];
   pendingFixtures: Fixture[];
   seasonComplete: boolean;
+  seasonName: string;
 };
 
-export default function AdminShell({ teams, pendingFixtures, seasonComplete }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName }: Props) {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [pwError, setPwError] = useState(false);
@@ -149,7 +150,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete }: P
         {activeTab === "participants" && <ParticipantsPanel />}
         {activeTab === "history" && <ResultsHistoryPanel />}
         {activeTab === "season-mgmt" && (
-          <SeasonManagementPanel seasonComplete={seasonComplete} />
+          <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />
         )}
       </div>
     </div>

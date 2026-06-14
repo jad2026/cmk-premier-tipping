@@ -18,7 +18,7 @@ export default async function AdminPage() {
         )
         .is("result_team_id", null)
         .order("match_date"),
-      supabase.from("season_config").select("season_complete").eq("id", 1).single(),
+      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
     ]);
 
   return (
@@ -26,6 +26,7 @@ export default async function AdminPage() {
       teams={teams ?? []}
       pendingFixtures={fixtures ?? []}
       seasonComplete={seasonConfig?.season_complete ?? false}
+      seasonName={seasonConfig?.season_name ?? "2026 Season"}
     />
   );
 }

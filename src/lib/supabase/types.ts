@@ -48,6 +48,7 @@ export type Profile = {
 export type SeasonConfig = {
   id: 1;
   season_complete: boolean;
+  season_name: string;
 };
 
 export type Season = {
