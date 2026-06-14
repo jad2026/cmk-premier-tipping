@@ -170,10 +170,11 @@ export async function saveResults(
   }
 
   // ── Step 4: send results emails to all users ─────────────────────────────
-  // Run async but don't block the response — email failures don't affect scoring.
-  sendResultsEmailsForGameweeks(
-    Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)))
-  ).catch((e) => console.error("[saveResults] Email dispatch error:", e));
+  const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));
+  console.log(`[saveResults] Step 4 reached — triggering emails for gameweeks: ${emailGameweekIds.join(", ") || "(none)"}`);
+  sendResultsEmailsForGameweeks(emailGameweekIds).catch((e) =>
+    console.error("[saveResults] Unhandled email dispatch error:", e instanceof Error ? e.stack : e)
+  );
 
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
@@ -185,8 +186,16 @@ export async function saveResults(
 // Fetches all data for the given gameweeks and sends one email per user.
 
 async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
-  if (!process.env.RESEND_API_KEY || gameweekIds.length === 0) return;
+  if (gameweekIds.length === 0) {
+    console.log("[resultsEmail] No gameweek IDs — skipping");
+    return;
+  }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[resultsEmail] RESEND_API_KEY not set — skipping email dispatch");
+    return;
+  }
 
+  console.log(`[resultsEmail] Starting dispatch for gameweeks: ${gameweekIds.join(", ")}`);
   const supabase = await createClient();
 
   for (const gwId of gameweekIds) {
@@ -196,7 +205,7 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
       .select("label")
       .eq("id", gwId)
       .single();
-    if (!gw) continue;
+    if (!gw) { console.warn(`[resultsEmail] Gameweek ${gwId} not found — skipping`); continue; }
 
     // Fetch all fixtures for this gameweek
     const { data: fixtures } = await supabase
@@ -204,10 +213,14 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
       .select("id, result_team_id, home_team_id, away_team_id, match_date")
       .eq("gameweek_id", gwId)
       .order("match_date");
-    if (!fixtures || fixtures.length === 0) continue;
+    if (!fixtures || fixtures.length === 0) { console.warn(`[resultsEmail] No fixtures for ${gw.label} — skipping`); continue; }
 
     // Only send if all fixtures in this round have results
-    if (fixtures.some((f) => f.result_team_id === null)) continue;
+    if (fixtures.some((f) => f.result_team_id === null)) {
+      console.log(`[resultsEmail] ${gw.label} has incomplete results — skipping email`);
+      continue;
+    }
+    console.log(`[resultsEmail] ${gw.label} is fully scored — proceeding`);
 
     // Fetch all picks for these fixtures
     const fixtureIds = fixtures.map((f) => f.id);
@@ -247,14 +260,9 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
       .from("profiles")
       .select("id, display_name");
 
-    // Fetch auth users via admin API is not available server-side without service key;
-    // instead rely on profiles having email — but profiles don't store email.
-    // We use the supabase admin client pattern: list users from auth.users via RPC
-    // isn't available, so we fall back to a join on picks to get user IDs, then
-    // fetch emails via the auth admin API if service key is available.
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceKey) {
-      console.warn("[resultsEmail] SUPABASE_SERVICE_ROLE_KEY not set — skipping email dispatch");
+      console.warn("[resultsEmail] SUPABASE_SERVICE_ROLE_KEY not set — cannot look up user emails, skipping");
       continue;
     }
 
@@ -267,11 +275,13 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
 
     // Get all user IDs who have picks in this round
     const userIds = Array.from(new Set(picks.map((p) => p.user_id)));
+    console.log(`[resultsEmail] ${gw.label} — sending to ${userIds.length} user(s)`);
 
     for (const userId of userIds) {
-      const { data: userData } = await admin.auth.admin.getUserById(userId);
+      const { data: userData, error: userErr } = await admin.auth.admin.getUserById(userId);
+      if (userErr) { console.error(`[resultsEmail] Failed to fetch user ${userId}:`, userErr.message); continue; }
       const email = userData?.user?.email;
-      if (!email) continue;
+      if (!email) { console.warn(`[resultsEmail] No email for user ${userId} — skipping`); continue; }
 
       const profile = profiles?.find((p) => p.id === userId);
       const displayName = profile?.display_name?.trim() || `Player ${userId.slice(0, 5).toUpperCase()}`;
