@@ -171,10 +171,13 @@ export async function saveResults(
 
   // ── Step 4: send results emails to all users ─────────────────────────────
   const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));
-  console.log(`[saveResults] Step 4 reached — triggering emails for gameweeks: ${emailGameweekIds.join(", ") || "(none)"}`);
-  sendResultsEmailsForGameweeks(emailGameweekIds).catch((e) =>
-    console.error("[saveResults] Unhandled email dispatch error:", e instanceof Error ? e.stack : e)
-  );
+  console.log("[saveResults] About to send emails");
+  try {
+    await sendResultsEmailsForGameweeks(emailGameweekIds);
+    console.log("[saveResults] Emails sent successfully");
+  } catch (err) {
+    console.error("[saveResults] Email error:", err);
+  }
 
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
