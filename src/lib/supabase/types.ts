@@ -50,6 +50,18 @@ export type SeasonConfig = {
   season_complete: boolean;
 };
 
+export type Season = {
+  id: string;
+  name: string;
+  year: number;
+  archived_at: string;
+  winner_name: string | null;
+  total_participants: number;
+  gameweeks_json: unknown;
+  fixtures_json: unknown;
+  picks_json: unknown;
+};
+
 // ---------------------------------------------------------------------------
 // Database schema — must satisfy @supabase/supabase-js GenericSchema so that
 // the client's insert/update/upsert types resolve correctly.
@@ -94,6 +106,12 @@ export type Database = {
         Row: SeasonConfig;
         Insert: Partial<SeasonConfig>;
         Update: Partial<SeasonConfig>;
+        Relationships: [];
+      };
+      seasons: {
+        Row: Season;
+        Insert: Omit<Season, "id" | "archived_at"> & { id?: string; archived_at?: string };
+        Update: Partial<Season>;
         Relationships: [];
       };
     };

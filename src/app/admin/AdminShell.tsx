@@ -7,18 +7,24 @@ import BulkImportForm from "./BulkImportForm";
 import EnterResultsForm from "./EnterResultsForm";
 import TeamManagementPanel from "./TeamManagementPanel";
 import SeasonPanel from "./SeasonPanel";
+import ParticipantsPanel from "./ParticipantsPanel";
+import ResultsHistoryPanel from "./ResultsHistoryPanel";
+import SeasonManagementPanel from "./SeasonManagementPanel";
 
 const STORAGE_KEY = "cmk_admin_authed";
 const ADMIN_PASSWORD = "admin123";
 
-type Tab = "add" | "bulk" | "results" | "teams" | "season";
+type Tab = "add" | "bulk" | "results" | "teams" | "season" | "participants" | "history" | "season-mgmt";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
   { id: "bulk", label: "Bulk Import" },
   { id: "results", label: "Enter Results" },
   { id: "teams", label: "Teams" },
+  { id: "participants", label: "Participants" },
+  { id: "history", label: "Results History" },
   { id: "season", label: "Season" },
+  { id: "season-mgmt", label: "Season Management" },
 ];
 
 type Props = {
@@ -139,6 +145,11 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete }: P
         )}
         {activeTab === "season" && (
           <SeasonPanel seasonComplete={seasonComplete} />
+        )}
+        {activeTab === "participants" && <ParticipantsPanel />}
+        {activeTab === "history" && <ResultsHistoryPanel />}
+        {activeTab === "season-mgmt" && (
+          <SeasonManagementPanel seasonComplete={seasonComplete} />
         )}
       </div>
     </div>

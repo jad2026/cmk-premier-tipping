@@ -420,6 +420,236 @@ export async function setSeasonComplete(complete: boolean) {
 }
 
 // ---------------------------------------------------------------------------
+// Participants — list all registered users with email, joined date, rounds count
+// Requires service role key to access auth.users
+// ---------------------------------------------------------------------------
+export type ParticipantRow = {
+  id: string;
+  email: string;
+  displayName: string;
+  joinedAt: string;
+  roundsSubmitted: number;
+  totalCorrect: number;
+};
+
+export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; error: string | null }> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { data: [], error: "SUPABASE_SERVICE_ROLE_KEY not set" };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const supabase = await createClient();
+
+  const [{ data: { users }, error: usersErr }, { data: profiles }, { data: picks }, { data: fixtures }] =
+    await Promise.all([
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+      supabase.from("profiles").select("id, display_name"),
+      supabase.from("picks").select("user_id, fixture_id, is_correct"),
+      supabase.from("fixtures").select("id, gameweek_id"),
+    ]);
+
+  if (usersErr) return { data: [], error: usersErr.message };
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+  const fixtureGwMap = new Map((fixtures ?? []).map((f) => [f.id, f.gameweek_id]));
+
+  // Count distinct gameweeks per user
+  const roundsByUser = new Map<string, Set<string>>();
+  const correctByUser = new Map<string, number>();
+  for (const p of picks ?? []) {
+    const gwId = fixtureGwMap.get(p.fixture_id);
+    if (gwId) {
+      if (!roundsByUser.has(p.user_id)) roundsByUser.set(p.user_id, new Set());
+      roundsByUser.get(p.user_id)!.add(gwId);
+    }
+    if (p.is_correct) correctByUser.set(p.user_id, (correctByUser.get(p.user_id) ?? 0) + 1);
+  }
+
+  const data: ParticipantRow[] = (users ?? []).map((u) => ({
+    id: u.id,
+    email: u.email ?? "",
+    displayName: profileMap.get(u.id)?.trim() || `Player ${u.id.slice(0, 5).toUpperCase()}`,
+    joinedAt: u.created_at,
+    roundsSubmitted: roundsByUser.get(u.id)?.size ?? 0,
+    totalCorrect: correctByUser.get(u.id) ?? 0,
+  }));
+
+  data.sort((a, b) => b.totalCorrect - a.totalCorrect);
+  return { data, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Results history — all scored rounds with fixture results and pick summaries
+// ---------------------------------------------------------------------------
+export type FixtureHistoryRow = {
+  fixtureId: string;
+  homeTeam: string;
+  awayTeam: string;
+  winner: string | null;
+  totalPicks: number;
+  correctPicks: number;
+};
+
+export type RoundHistoryRow = {
+  gameweekId: string;
+  label: string;
+  fixtures: FixtureHistoryRow[];
+};
+
+export async function fetchResultsHistory(): Promise<{ data: RoundHistoryRow[]; error: string | null }> {
+  const supabase = await createClient();
+
+  const [{ data: gameweeks }, { data: fixtures }, { data: teams }, { data: picks }] =
+    await Promise.all([
+      supabase.from("gameweeks").select("id, label, number").order("number"),
+      supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id").not("result_team_id", "is", null),
+      supabase.from("teams").select("id, name"),
+      supabase.from("picks").select("fixture_id, is_correct"),
+    ]);
+
+  const teamName = (id: string | null) => teams?.find((t) => t.id === id)?.name ?? "?";
+  const gwMap = new Map((gameweeks ?? []).map((g) => [g.id, g]));
+
+  // Group fixtures by gameweek, only those with results
+  const byGw = new Map<string, FixtureHistoryRow[]>();
+  for (const f of fixtures ?? []) {
+    const fixturePicksData = (picks ?? []).filter((p) => p.fixture_id === f.id);
+    const row: FixtureHistoryRow = {
+      fixtureId: f.id,
+      homeTeam: teamName(f.home_team_id),
+      awayTeam: teamName(f.away_team_id),
+      winner: f.result_team_id ? teamName(f.result_team_id) : null,
+      totalPicks: fixturePicksData.length,
+      correctPicks: fixturePicksData.filter((p) => p.is_correct).length,
+    };
+    if (!byGw.has(f.gameweek_id)) byGw.set(f.gameweek_id, []);
+    byGw.get(f.gameweek_id)!.push(row);
+  }
+
+  const data: RoundHistoryRow[] = Array.from(byGw.entries())
+    .map(([gwId, fixRows]) => ({
+      gameweekId: gwId,
+      label: gwMap.get(gwId)?.label ?? gwId,
+      fixtures: fixRows,
+    }))
+    .sort((a, b) => {
+      const na = gwMap.get(a.gameweekId)?.number ?? 0;
+      const nb = gwMap.get(b.gameweekId)?.number ?? 0;
+      return nb - na;
+    });
+
+  return { data, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Start new season — archives current data, clears tables, resets config
+// ---------------------------------------------------------------------------
+export async function startNewSeason(seasonName: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  // Fetch everything to archive
+  const [
+    { data: gameweeks },
+    { data: fixtures },
+    { data: picks },
+    { data: profiles },
+    { data: allCorrect },
+  ] = await Promise.all([
+    supabase.from("gameweeks").select("*"),
+    supabase.from("fixtures").select("*"),
+    supabase.from("picks").select("*"),
+    supabase.from("profiles").select("id, display_name"),
+    supabase.from("picks").select("user_id").eq("is_correct", true),
+  ]);
+
+  // Determine winner from this season
+  const tally = new Map<string, number>();
+  for (const p of allCorrect ?? []) {
+    tally.set(p.user_id, (tally.get(p.user_id) ?? 0) + 1);
+  }
+  let winnerName: string | null = null;
+  if (tally.size > 0) {
+    const [topId] = Array.from(tally.entries()).sort((a, b) => b[1] - a[1])[0];
+    const profile = profiles?.find((p) => p.id === topId);
+    winnerName = profile?.display_name?.trim() || `Player ${topId.slice(0, 5).toUpperCase()}`;
+  }
+
+  const uniqueParticipants = new Set((picks ?? []).map((p) => p.user_id)).size;
+  const year = new Date().getFullYear();
+
+  // Archive into seasons table
+  const { error: archiveErr } = await supabase.from("seasons").insert({
+    name: seasonName,
+    year,
+    winner_name: winnerName,
+    total_participants: uniqueParticipants,
+    gameweeks_json: gameweeks ?? [],
+    fixtures_json: fixtures ?? [],
+    picks_json: picks ?? [],
+  });
+
+  if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
+
+  // Clear active data in dependency order (picks → fixtures → gameweeks)
+  const { error: picksErr } = await supabase.from("picks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (picksErr) return { error: `Clear picks failed: ${picksErr.message}` };
+
+  const { error: fixErr } = await supabase.from("fixtures").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (fixErr) return { error: `Clear fixtures failed: ${fixErr.message}` };
+
+  const { error: gwErr } = await supabase.from("gameweeks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (gwErr) return { error: `Clear gameweeks failed: ${gwErr.message}` };
+
+  // Reset season_config
+  await supabase.from("season_config").upsert({ id: 1, season_complete: false }, { onConflict: "id" });
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/leaderboard");
+  revalidatePath("/tips");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Fetch past seasons archive
+// ---------------------------------------------------------------------------
+export type PastSeasonRow = {
+  id: string;
+  name: string;
+  year: number;
+  archivedAt: string;
+  winnerName: string | null;
+  totalParticipants: number;
+};
+
+export async function fetchPastSeasons(): Promise<{ data: PastSeasonRow[]; error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("seasons")
+    .select("id, name, year, archived_at, winner_name, total_participants")
+    .order("archived_at", { ascending: false });
+
+  if (error) return { data: [], error: error.message };
+
+  return {
+    data: (data ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      year: s.year,
+      archivedAt: s.archived_at,
+      winnerName: s.winner_name,
+      totalParticipants: s.total_participants,
+    })),
+    error: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Team logo — persists the public Storage URL after the client uploads the file
 // ---------------------------------------------------------------------------
 export async function updateTeamLogoUrl(teamId: string, logoUrl: string | null) {
