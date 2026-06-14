@@ -22,6 +22,7 @@ export type Fixture = {
   match_date: string;
   venue: string | null;
   result_team_id: string | null;
+  is_draw: boolean;
   home_team?: Team;
   away_team?: Team;
   result_team?: Team | null;
@@ -31,7 +32,8 @@ export type Pick = {
   id: string;
   user_id: string;
   fixture_id: string;
-  picked_team_id: string;
+  picked_team_id: string | null;
+  picked_draw: boolean;
   is_correct: boolean | null;
   auto_picked: boolean;
   picked_team?: Team;
@@ -119,7 +121,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       upsert_pick: {
-        Args: { p_fixture_id: string; p_picked_team_id: string };
+        Args: { p_fixture_id: string; p_picked_team_id?: string | null; p_picked_draw?: boolean };
         Returns: undefined;
       };
       auto_fill_missing_picks: {
@@ -127,7 +129,7 @@ export type Database = {
         Returns: number;
       };
       score_fixture_picks: {
-        Args: { p_fixture_id: string; p_result_team_id: string | null };
+        Args: { p_fixture_id: string; p_result_team_id?: string | null; p_is_draw?: boolean };
         Returns: number;
       };
     };

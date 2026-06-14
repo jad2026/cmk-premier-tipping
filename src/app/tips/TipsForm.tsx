@@ -14,9 +14,14 @@ type Props = {
 export default function TipsForm({ rounds }: Props) {
   const supabase = createClient();
 
+  // picks maps fixture_id → team_id or "draw"
   const [picks, setPicks] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      rounds.flatMap((r) => r.existingPicks.map((p) => [p.fixture_id, p.picked_team_id]))
+      rounds.flatMap((r) =>
+        r.existingPicks
+          .filter((p) => p.picked_team_id !== null || p.picked_draw)
+          .map((p) => [p.fixture_id, p.picked_draw ? "draw" : p.picked_team_id!])
+      )
     )
   );
   const [saved, setSaved] = useState(false);
@@ -29,29 +34,34 @@ export default function TipsForm({ rounds }: Props) {
     return now > new Date(deadline);
   }
 
-  function selectTeam(fixtureId: string, teamId: string, deadline: string, resultLocked: boolean) {
+  function isFixtureResulted(fixture: Fixture) {
+    return fixture.result_team_id !== null || fixture.is_draw;
+  }
+
+  function selectPick(fixtureId: string, value: string, deadline: string, resultLocked: boolean) {
     if (isRoundDeadlinePassed(deadline) || resultLocked) return;
-    setPicks((prev) => ({ ...prev, [fixtureId]: teamId }));
+    setPicks((prev) => ({ ...prev, [fixtureId]: value }));
     setSaved(false);
   }
 
   function handleSave() {
     setError(null);
     startTransition(async () => {
-      // Only save picks for unlocked fixtures
       const allFixtures = rounds.flatMap((r) =>
         r.fixtures.map((f) => ({ fixture: f, deadline: r.deadline }))
       );
       const saveable = Object.entries(picks).filter(([fixtureId]) => {
         const entry = allFixtures.find(({ fixture }) => fixture.id === fixtureId);
         if (!entry) return false;
-        return !isRoundDeadlinePassed(entry.deadline) && entry.fixture.result_team_id === null;
+        return !isRoundDeadlinePassed(entry.deadline) && !isFixtureResulted(entry.fixture);
       });
 
-      for (const [fixtureId, pickedTeamId] of saveable) {
+      for (const [fixtureId, value] of saveable) {
+        const isDraw = value === "draw";
         const { error: rpcError } = await supabase.rpc("upsert_pick", {
           p_fixture_id: fixtureId,
-          p_picked_team_id: pickedTeamId,
+          p_picked_team_id: isDraw ? null : value,
+          p_picked_draw: isDraw,
         });
         if (rpcError) {
           setError(rpcError.message);
@@ -64,12 +74,12 @@ export default function TipsForm({ rounds }: Props) {
 
   const allFixtures = rounds.flatMap((r) => r.fixtures);
   const hasAnyPickable = rounds.some(
-    (r) => !isRoundDeadlinePassed(r.deadline) && r.fixtures.some((f) => f.result_team_id === null)
+    (r) => !isRoundDeadlinePassed(r.deadline) && r.fixtures.some((f) => !isFixtureResulted(f))
   );
-  const totalPickable = allFixtures.filter((f) => f.result_team_id === null).length;
+  const totalPickable = allFixtures.filter((f) => !isFixtureResulted(f)).length;
   const pickedCount = Object.keys(picks).filter((fid) => {
     const f = allFixtures.find((x) => x.id === fid);
-    return f && f.result_team_id === null;
+    return f && !isFixtureResulted(f);
   }).length;
 
   if (allFixtures.length === 0) {
@@ -126,8 +136,8 @@ export default function TipsForm({ rounds }: Props) {
                   index={index}
                   picks={picks}
                   isPastDeadline={isPastDeadline}
-                  onSelect={(teamId) =>
-                    selectTeam(fixture.id, teamId, round.deadline, fixture.result_team_id !== null)
+                  onSelect={(value) =>
+                    selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
                   }
                 />
               ))}
@@ -186,14 +196,15 @@ function FixtureCard({
   index: number;
   picks: Record<string, string>;
   isPastDeadline: boolean;
-  onSelect: (teamId: string) => void;
+  onSelect: (value: string) => void;
 }) {
   const home = fixture.home_team!;
   const away = fixture.away_team!;
   const picked = picks[fixture.id];
   const homePicked = picked === home.id;
   const awayPicked = picked === away.id;
-  const resultLocked = fixture.result_team_id !== null;
+  const drawPicked = picked === "draw";
+  const resultLocked = fixture.result_team_id !== null || fixture.is_draw;
   const isLocked = resultLocked || isPastDeadline;
 
   return (
@@ -250,73 +261,122 @@ function FixtureCard({
         </div>
       </div>
 
-      {/* Pick buttons */}
-      <div className="grid grid-cols-2 gap-px bg-gray-100 border-t border-gray-100">
-        {[home, away].map((team) => {
-          const isSelected = picked === team.id;
+      {/* Pick buttons — home | draw | away */}
+      <div className="grid grid-cols-3 gap-px bg-gray-100 border-t border-gray-100">
+        {/* Home button */}
+        {(() => {
+          const isSelected = homePicked;
           return (
             <button
-              key={team.id}
-              onClick={() => onSelect(team.id)}
+              onClick={() => onSelect(home.id)}
               disabled={isLocked}
-              className={`relative flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
-                isSelected && resultLocked
-                  ? "bg-gray-100 text-gray-500"
-                  : isSelected
-                  ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
-                  : resultLocked
-                  ? "bg-white text-gray-300"
-                  : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 active:scale-[0.99] disabled:opacity-50"
+              className={`relative flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
+                isSelected && resultLocked ? "bg-gray-100 text-gray-500"
+                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : resultLocked ? "bg-white text-gray-300"
+                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 active:scale-[0.99] disabled:opacity-50"
               }`}
             >
+              {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
+              <TeamBadge team={home} size="xs" />
+              <span className="truncate">{home.short_name || home.name}</span>
               {isSelected && !resultLocked && (
-                <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />
-              )}
-              <TeamBadge team={team} size="xs" />
-              <span className="truncate">{team.short_name || team.name}</span>
-              {isSelected && !resultLocked && (
-                <span className="ml-auto shrink-0 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                <span className="shrink-0 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </span>
               )}
               {isSelected && resultLocked && (
-                <span className="ml-auto shrink-0 w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5 text-gray-500" viewBox="0 0 10 10" fill="none">
-                    <rect x="2" y="5" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M3.5 5V3.5a1.5 1.5 0 0 1 3 0V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
+                <span className="shrink-0 w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-gray-500" viewBox="0 0 10 10" fill="none"><rect x="2" y="5" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.2" /><path d="M3.5 5V3.5a1.5 1.5 0 0 1 3 0V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
                 </span>
               )}
             </button>
           );
-        })}
+        })()}
+
+        {/* Draw button */}
+        {(() => {
+          const isSelected = drawPicked;
+          return (
+            <button
+              onClick={() => onSelect("draw")}
+              disabled={isLocked}
+              className={`relative flex flex-col items-center justify-center gap-0.5 py-3.5 px-2 text-xs font-bold uppercase tracking-widest transition-all duration-150 disabled:cursor-not-allowed ${
+                isSelected && resultLocked ? "bg-gray-100 text-gray-500"
+                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : resultLocked ? "bg-white text-gray-300"
+                : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 active:scale-[0.99] disabled:opacity-50"
+              }`}
+            >
+              {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
+              <span className="text-base leading-none">🤝</span>
+              <span>Draw</span>
+              {isSelected && !resultLocked && (
+                <span className="w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center mt-0.5">
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </span>
+              )}
+            </button>
+          );
+        })()}
+
+        {/* Away button */}
+        {(() => {
+          const isSelected = awayPicked;
+          return (
+            <button
+              onClick={() => onSelect(away.id)}
+              disabled={isLocked}
+              className={`relative flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
+                isSelected && resultLocked ? "bg-gray-100 text-gray-500"
+                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : resultLocked ? "bg-white text-gray-300"
+                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 active:scale-[0.99] disabled:opacity-50"
+              }`}
+            >
+              {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
+              <span className="truncate">{away.short_name || away.name}</span>
+              <TeamBadge team={away} size="xs" />
+              {isSelected && !resultLocked && (
+                <span className="shrink-0 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </span>
+              )}
+              {isSelected && resultLocked && (
+                <span className="shrink-0 w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-gray-500" viewBox="0 0 10 10" fill="none"><rect x="2" y="5" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.2" /><path d="M3.5 5V3.5a1.5 1.5 0 0 1 3 0V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+                </span>
+              )}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Footer banner */}
       {resultLocked ? (
         <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center gap-2">
-          {picked ? (
+          {drawPicked ? (
+            <p className="text-xs text-gray-500">Your pick: <span className="font-semibold text-gray-700">🤝 Draw</span></p>
+          ) : picked ? (
             <>
               <TeamBadge team={homePicked ? home : away} size="xs" />
               <p className="text-xs text-gray-500">
-                Your pick:{" "}
-                <span className="font-semibold text-gray-700">
-                  {homePicked ? home.name : away.name}
-                </span>
+                Your pick: <span className="font-semibold text-gray-700">{homePicked ? home.name : away.name}</span>
               </p>
             </>
           ) : (
             <p className="text-xs text-gray-400 italic">No pick submitted for this fixture.</p>
           )}
         </div>
+      ) : drawPicked ? (
+        <div className="px-5 py-2.5 bg-brand-gold/8 border-t border-brand-gold/20 flex items-center gap-2">
+          <p className="text-xs font-medium text-brand-gold-dark">You&apos;re tipping <span className="font-bold">🤝 Draw</span></p>
+        </div>
       ) : (homePicked || awayPicked) ? (
         <div className="px-5 py-2.5 bg-brand-gold/8 border-t border-brand-gold/20 flex items-center gap-2">
           <TeamBadge team={homePicked ? home : away} size="xs" />
           <p className="text-xs font-medium text-brand-gold-dark">
-            You&apos;re tipping{" "}
-            <span className="font-bold">{homePicked ? home.name : away.name}</span>
+            You&apos;re tipping <span className="font-bold">{homePicked ? home.name : away.name}</span>
           </p>
         </div>
       ) : null}

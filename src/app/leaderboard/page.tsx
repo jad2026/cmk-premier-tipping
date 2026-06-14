@@ -13,10 +13,11 @@ type RichPick = {
   id: string;
   user_id: string;
   fixture_id: string;
-  picked_team_id: string;
+  picked_team_id: string | null;
+  picked_draw: boolean;
   is_correct: boolean | null;
   auto_picked: boolean;
-  picked_team: Team;
+  picked_team: Team | null;
 };
 
 type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
@@ -91,13 +92,21 @@ function PickChip({
       ? "bg-red-50 border-red-100 text-red-700 opacity-80"
       : "bg-white border-gray-200 text-gray-600";
 
+  const pickLabel = pick.picked_draw ? "Draw" : pick.picked_team?.name ?? "—";
+  const title = `${name} picked ${pickLabel}${pick.auto_picked ? " (auto)" : ""}`;
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full border text-xs font-medium ${chipCls}`}
-      title={`${name} picked ${pick.picked_team.name}${pick.auto_picked ? " (auto)" : ""}`}
+      title={title}
     >
-      <TeamBadge team={pick.picked_team} size="xs" />
+      {pick.picked_draw ? (
+        <span className="text-sm leading-none">🤝</span>
+      ) : pick.picked_team ? (
+        <TeamBadge team={pick.picked_team} size="xs" />
+      ) : null}
       <span>{name}</span>
+      {pick.picked_draw && <span className="text-gray-400 text-[10px]">Draw</span>}
       {hasResult && (
         <span className={state === "correct" ? "text-green-500 font-bold" : "text-red-400"}>
           {state === "correct" ? "✓" : "✗"}
@@ -125,8 +134,8 @@ function FixtureCard({
   teamMap: Map<string, Team>;
   profileMap: Map<string, string | null>;
 }) {
-  const hasResult = fixture.result_team_id !== null;
-  const resultTeam = hasResult ? teamMap.get(fixture.result_team_id!) : null;
+  const hasResult = fixture.result_team_id !== null || fixture.is_draw;
+  const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
 
   const sorted = [...picks].sort((a, b) => {
     const stateOrder = (p: RichPick) => (!hasResult ? 1 : p.is_correct ? 0 : 2);
@@ -169,7 +178,11 @@ function FixtureCard({
               </span>
             )}
           </p>
-          {hasResult && resultTeam ? (
+          {fixture.is_draw ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
+              🤝 Draw
+            </span>
+          ) : hasResult && resultTeam ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
               <span
                 className="w-2 h-2 rounded-full ring-1 ring-black/10 shrink-0"
@@ -348,7 +361,7 @@ export default async function LeaderboardPage() {
     supabase.from("profiles").select("id, display_name"),
     supabase.from("teams").select("*"),
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
-    supabase.from("fixtures").select("gameweek_id").not("result_team_id", "is", null),
+    supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
     supabase.from("season_config").select("season_complete").eq("id", 1).single(),
   ]);
 
@@ -381,7 +394,7 @@ export default async function LeaderboardPage() {
     if (weekFixtures.length > 0) {
       const { data: picksRaw } = await supabase
         .from("picks")
-        .select("id, user_id, fixture_id, picked_team_id, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+        .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
         .in("fixture_id", weekFixtures.map((f) => f.id));
 
       for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
@@ -447,7 +460,7 @@ export default async function LeaderboardPage() {
     if (allFixtureIds.length > 0) {
       const { data: summaryPicksRaw } = await supabase
         .from("picks")
-        .select("id, user_id, fixture_id, picked_team_id, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+        .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
         .in("fixture_id", allFixtureIds);
 
       for (const pick of (summaryPicksRaw ?? []) as unknown as RichPick[]) {

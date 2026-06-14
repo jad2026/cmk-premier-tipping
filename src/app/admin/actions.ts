@@ -64,6 +64,7 @@ export async function addFixture(formData: FormData) {
     match_date: new Date(matchDate).toISOString(),
     venue,
     result_team_id: null,
+    is_draw: false,
   });
 
   if (fixtureError) {
@@ -87,7 +88,7 @@ export async function addFixture(formData: FormData) {
 //   SECURITY DEFINER function to update is_correct on all picks in one shot,
 //   bypassing the per-user RLS that would block the admin session.
 //
-// A result of "draw" → result_team_id = NULL → all picks marked incorrect.
+// A result of "draw" → is_draw = true on fixture, picks with picked_draw = true are correct.
 // ---------------------------------------------------------------------------
 export async function saveResults(
   results: { fixtureId: string; resultTeamId: string | null }[]
@@ -132,12 +133,13 @@ export async function saveResults(
 
   // ── Step 2: set result and score picks ───────────────────────────────────
   for (const { fixtureId, resultTeamId } of toProcess) {
-    const dbResultTeamId = resultTeamId === "draw" ? null : resultTeamId;
+    const isDraw = resultTeamId === "draw";
+    const dbResultTeamId = isDraw ? null : resultTeamId;
 
     // Persist the result on the fixture row
     const { error: fixErr } = await supabase
       .from("fixtures")
-      .update({ result_team_id: dbResultTeamId })
+      .update({ result_team_id: dbResultTeamId, is_draw: isDraw })
       .eq("id", fixtureId);
 
     if (fixErr) {
@@ -150,16 +152,19 @@ export async function saveResults(
     const { error: scoreErr } = await supabase.rpc("score_fixture_picks", {
       p_fixture_id: fixtureId,
       p_result_team_id: dbResultTeamId,
+      p_is_draw: isDraw,
     });
 
     if (scoreErr) errors.push(`Score ${fixtureId}: ${scoreErr.message}`);
   }
 
   // ── Step 3: auto-complete season if all fixtures now have results ────────
+  // A fixture is unresolved when result_team_id is null AND is_draw is false
   const { data: incomplete } = await supabase
     .from("fixtures")
     .select("id")
     .is("result_team_id", null)
+    .eq("is_draw", false)
     .limit(1);
 
   if (incomplete && incomplete.length === 0) {
@@ -388,6 +393,7 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
       match_date: new Date(`${row.matchDate}T15:00:00+12:00`).toISOString(),
       venue: row.venue,
       result_team_id: null,
+      is_draw: false,
     });
 
     if (insErr) {
