@@ -10,16 +10,18 @@ import SeasonPanel from "./SeasonPanel";
 import ParticipantsPanel from "./ParticipantsPanel";
 import ResultsHistoryPanel from "./ResultsHistoryPanel";
 import SeasonManagementPanel from "./SeasonManagementPanel";
+import ManageRoundsPanel from "./ManageRoundsPanel";
 
 const STORAGE_KEY = "cmk_admin_authed";
 const ADMIN_PASSWORD = "admin123";
 
-type Tab = "add" | "bulk" | "results" | "teams" | "season" | "participants" | "history" | "season-mgmt";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "season" | "participants" | "history" | "season-mgmt";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
   { id: "bulk", label: "Bulk Import" },
   { id: "results", label: "Enter Results" },
+  { id: "rounds", label: "Manage Rounds" },
   { id: "teams", label: "Teams" },
   { id: "participants", label: "Participants" },
   { id: "history", label: "Results History" },
@@ -141,6 +143,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         {activeTab === "results" && (
           <EnterResultsForm fixtures={pendingFixtures} teams={teams} />
         )}
+        {activeTab === "rounds" && <ManageRoundsPanel />}
         {activeTab === "teams" && (
           <TeamManagementPanel initialTeams={teams} />
         )}

@@ -403,6 +403,86 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
 }
 
 // ---------------------------------------------------------------------------
+// Rounds management — fetch all rounds with their fixture/result status
+// ---------------------------------------------------------------------------
+export type RoundRow = {
+  id: string;
+  number: number;
+  label: string;
+  deadline: string;
+  is_open: boolean;
+  totalFixtures: number;
+  resultedFixtures: number;
+};
+
+export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: gameweeks, error: gwErr } = await supabase
+    .from("gameweeks")
+    .select("*")
+    .order("number");
+
+  if (gwErr) return { data: [], error: gwErr.message };
+
+  const { data: fixtures, error: fixErr } = await supabase
+    .from("fixtures")
+    .select("id, gameweek_id, result_team_id");
+
+  if (fixErr) return { data: [], error: fixErr.message };
+
+  const totalByGw = new Map<string, number>();
+  const resultedByGw = new Map<string, number>();
+  for (const f of fixtures ?? []) {
+    totalByGw.set(f.gameweek_id, (totalByGw.get(f.gameweek_id) ?? 0) + 1);
+    if (f.result_team_id) {
+      resultedByGw.set(f.gameweek_id, (resultedByGw.get(f.gameweek_id) ?? 0) + 1);
+    }
+  }
+
+  const data: RoundRow[] = (gameweeks ?? []).map((gw) => ({
+    id: gw.id,
+    number: gw.number,
+    label: gw.label,
+    deadline: gw.deadline,
+    is_open: gw.is_open,
+    totalFixtures: totalByGw.get(gw.id) ?? 0,
+    resultedFixtures: resultedByGw.get(gw.id) ?? 0,
+  }));
+
+  return { data, error: null };
+}
+
+// Opens a round (closes any other open round first) or closes a round
+export async function setRoundOpen(roundId: string, open: boolean): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  if (open) {
+    // Close any currently open round first
+    const { error: closeErr } = await supabase
+      .from("gameweeks")
+      .update({ is_open: false })
+      .eq("is_open", true)
+      .neq("id", roundId);
+
+    if (closeErr) return { error: `Failed to close existing open round: ${closeErr.message}` };
+  }
+
+  const { error } = await supabase
+    .from("gameweeks")
+    .update({ is_open: open })
+    .eq("id", roundId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/tips");
+  revalidatePath("/leaderboard");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Season config — mark the season as complete or reopen it
 // ---------------------------------------------------------------------------
 export async function setSeasonComplete(complete: boolean) {
