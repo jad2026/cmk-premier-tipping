@@ -42,27 +42,32 @@ export default async function TipsPage() {
     );
   }
 
-  const { data: gameweeks } = await supabase
-    .from("gameweeks")
-    .select("*")
-    .eq("is_open", true)
-    .order("number");
+  // Check if any fixtures exist at all (to distinguish fresh season from no-open-rounds)
+  const { count: fixtureCount } = await supabase
+    .from("fixtures")
+    .select("id", { count: "exact", head: true });
 
-  if (!gameweeks || gameweeks.length === 0) {
+  if (!fixtureCount) {
     return (
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
         <span className="text-4xl mb-4 block">🏉</span>
-        <h1 className="text-xl font-bold text-brand mb-2">No Open Round</h1>
+        <h1 className="text-xl font-bold text-brand mb-2">Fixtures Coming Soon</h1>
         <p className="text-gray-500 text-sm">
-          There are no rounds open for tipping right now. Check back soon!
+          The season is being set up — check back soon to start tipping!
         </p>
       </div>
     );
   }
 
-  // Fetch all fixtures for all open gameweeks in parallel
+  const { data: openGameweeks } = await supabase
+    .from("gameweeks")
+    .select("*")
+    .eq("is_open", true)
+    .order("number");
+
+  // Fetch fixtures for all open gameweeks in parallel
   const fixtureResults = await Promise.all(
-    gameweeks.map((gw) =>
+    (openGameweeks ?? []).map((gw) =>
       supabase
         .from("fixtures")
         .select(
@@ -73,9 +78,33 @@ export default async function TipsPage() {
     )
   );
 
-  const allFixtureIds = fixtureResults.flatMap(
-    (r) => r.data?.map((f) => f.id) ?? []
-  );
+  // Only include rounds that have at least one fixture without a result entered
+  const gameweeks = (openGameweeks ?? []).filter((_, i) => {
+    const fixtures = fixtureResults[i].data ?? [];
+    return fixtures.length > 0 && fixtures.some((f) => f.result_team_id === null);
+  });
+
+  if (gameweeks.length === 0) {
+    return (
+      <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
+        <span className="text-4xl mb-4 block">🏉</span>
+        <h1 className="text-xl font-bold text-brand mb-2">No Rounds Open for Tipping</h1>
+        <p className="text-gray-500 text-sm mb-6">
+          There are no rounds currently open. Check back soon for the next round!
+        </p>
+        <Link href="/leaderboard" className="btn-primary inline-flex">View Leaderboard</Link>
+      </div>
+    );
+  }
+
+  // Build active rounds from filtered gameweeks, carrying their fixture data
+  const activeRounds = gameweeks.map((gw) => {
+    const idx = (openGameweeks ?? []).findIndex((g) => g.id === gw.id);
+    const fixtures = (fixtureResults[idx]?.data ?? []) as Fixture[];
+    return { gw, fixtures };
+  });
+
+  const allFixtureIds = activeRounds.flatMap((r) => r.fixtures.map((f) => f.id));
 
   const { data: allPicks } = allFixtureIds.length > 0
     ? await supabase
@@ -89,19 +118,16 @@ export default async function TipsPage() {
     (allPicks ?? []).map((p) => [p.fixture_id, p])
   );
 
-  const rounds: RoundData[] = gameweeks.map((gw, i) => {
-    const fixtures = (fixtureResults[i].data ?? []) as Fixture[];
-    return {
-      id: gw.id,
-      number: gw.number,
-      label: gw.label,
-      deadline: gw.deadline,
-      fixtures,
-      existingPicks: fixtures
-        .map((f) => picksMap.get(f.id))
-        .filter((p): p is Pick => p !== undefined),
-    };
-  });
+  const rounds: RoundData[] = activeRounds.map(({ gw, fixtures }) => ({
+    id: gw.id,
+    number: gw.number,
+    label: gw.label,
+    deadline: gw.deadline,
+    fixtures,
+    existingPicks: fixtures
+      .map((f) => picksMap.get(f.id))
+      .filter((p): p is Pick => p !== undefined),
+  }));
 
   const totalCount = rounds.reduce((s, r) => s + r.fixtures.length, 0);
   const pickedCount = rounds.reduce((s, r) => s + r.existingPicks.length, 0);

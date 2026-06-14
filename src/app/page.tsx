@@ -90,11 +90,15 @@ export default async function HomePage() {
   // First closed round that has fixtures but no results yet (coming soon)
   const nextUpcoming = rounds.find((r) => r.status === "upcoming" && r.total > 0);
 
+  const hasAnyFixtures = (allFixtures ?? []).length > 0;
+
   let activeRound: RoundInfo | null = null;
-  let activeMode: "open" | "picks-closed" | "coming-soon" | "season-complete" | "none" = "none";
+  let activeMode: "open" | "picks-closed" | "coming-soon" | "season-complete" | "no-fixtures" | "none" = "none";
 
   if (seasonComplete) {
     activeMode = "season-complete";
+  } else if (!hasAnyFixtures) {
+    activeMode = "no-fixtures";
   } else if (activeOpenRound) {
     activeRound = activeOpenRound;
     activeMode = new Date(activeOpenRound.gameweek.deadline) > new Date() ? "open" : "picks-closed";
@@ -275,6 +279,16 @@ export default async function HomePage() {
         </section>
       )}
 
+      {activeMode === "no-fixtures" && (
+        <section className="card-md px-8 py-10 text-center">
+          <span className="text-5xl block mb-4 select-none">🏉</span>
+          <h2 className="text-xl font-bold text-brand mb-2">Welcome to the 2026 Season!</h2>
+          <p className="text-gray-500 text-sm max-w-xs mx-auto">
+            Fixtures are being set up — check back soon to start tipping.
+          </p>
+        </section>
+      )}
+
       {activeMode === "none" && (
         <section className="card px-6 py-5 text-center">
           <p className="text-gray-500 text-sm">No rounds are currently open for tipping. Check back soon!</p>
@@ -282,7 +296,7 @@ export default async function HomePage() {
       )}
 
       {/* ── All rounds ────────────────────────────────────────────────────────── */}
-      {rounds.length > 0 && !seasonComplete && (
+      {rounds.length > 0 && hasAnyFixtures && !seasonComplete && (
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
