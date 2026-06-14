@@ -91,13 +91,13 @@ export default async function HomePage() {
   const nextUpcoming = rounds.find((r) => r.status === "upcoming" && r.total > 0);
 
   let activeRound: RoundInfo | null = null;
-  let activeMode: "open" | "coming-soon" | "season-complete" | "none" = "none";
+  let activeMode: "open" | "picks-closed" | "coming-soon" | "season-complete" | "none" = "none";
 
   if (seasonComplete) {
     activeMode = "season-complete";
   } else if (activeOpenRound) {
     activeRound = activeOpenRound;
-    activeMode = "open";
+    activeMode = new Date(activeOpenRound.gameweek.deadline) > new Date() ? "open" : "picks-closed";
   } else if (nextUpcoming) {
     activeRound = nextUpcoming;
     activeMode = "coming-soon";
@@ -187,6 +187,20 @@ export default async function HomePage() {
             </div>
           </div>
           <Link href="/tips" className="btn-primary shrink-0">Submit Tips</Link>
+        </section>
+      )}
+
+      {activeMode === "picks-closed" && activeRound && (
+        <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <span className="flex w-10 h-10 items-center justify-center rounded-full bg-orange-50 text-xl shrink-0">🔒</span>
+            <div>
+              <p className="eyebrow mb-0.5">Picks Closed</p>
+              <h2 className="text-lg font-bold text-brand leading-tight">{activeRound.gameweek.label}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Results will be entered soon.</p>
+            </div>
+          </div>
+          <Link href="/leaderboard" className="btn-ghost shrink-0">Leaderboard</Link>
         </section>
       )}
 
