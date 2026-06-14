@@ -178,7 +178,7 @@ export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<vo
     return;
   }
 
-  const from = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
 
   try {
     const resend = new Resend(apiKey);
