@@ -221,27 +221,56 @@ export default async function HomePage() {
       )}
 
       {activeMode === "season-complete" && (
-        <section className="card-md overflow-hidden">
-          <div className="bg-gradient-to-r from-brand to-brand-light px-6 py-4 flex items-center gap-3">
-            <span className="text-2xl">🏆</span>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">Season Complete</p>
-              <p className="text-white font-bold text-lg leading-tight">Competition Finished!</p>
-            </div>
-          </div>
-          <div className="px-6 py-5">
+        <section className="relative rounded-3xl overflow-hidden shadow-card-lg text-center">
+          {/* Background */}
+          <div className="absolute inset-0 bg-brand-dark" />
+          <div className="absolute inset-0 bg-hero-pattern opacity-30 pointer-events-none" />
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[32rem] h-[32rem] rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-brand-light/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-brand-light/20 blur-3xl pointer-events-none" />
+
+          <div className="relative px-8 sm:px-16 py-16 sm:py-20">
+            {/* Trophy */}
+            <div className="text-7xl sm:text-8xl mb-6 select-none leading-none">🏆</div>
+
+            {/* Label */}
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-brand-gold/70 mb-3">
+              Season Complete
+            </p>
+
+            {/* Heading */}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-8">
+              2026 Tipping Champion
+            </h1>
+
             {winner ? (
-              <p className="text-gray-700">
-                Congratulations to{" "}
-                <span className="font-bold text-brand">{winner}</span>{" "}
-                — our 2026 tipping champion! Thanks to everyone who played this season.
-              </p>
+              <>
+                {/* Winner name */}
+                <p
+                  className="font-extrabold text-brand-gold leading-none mb-5 break-words"
+                  style={{ fontSize: "clamp(3rem, 10vw, 5.5rem)" }}
+                >
+                  {winner}
+                </p>
+
+                {/* Congratulations */}
+                <p className="text-white/70 text-base sm:text-lg max-w-md mx-auto mb-10">
+                  Congratulations! 🎉 Thanks to everyone who played this season.
+                </p>
+              </>
             ) : (
-              <p className="text-gray-700">
+              <p className="text-white/70 text-base sm:text-lg max-w-md mx-auto mb-10">
                 The 2026 tipping competition has finished. Thanks to everyone who played!
               </p>
             )}
-            <Link href="/leaderboard" className="btn-primary mt-4 inline-flex">View Final Standings</Link>
+
+            {/* CTA */}
+            <Link
+              href="/leaderboard"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-white font-bold text-base shadow-lg transition-all duration-150 active:scale-[0.98]"
+            >
+              View Final Standings →
+            </Link>
           </div>
         </section>
       )}
@@ -253,7 +282,7 @@ export default async function HomePage() {
       )}
 
       {/* ── All rounds ────────────────────────────────────────────────────────── */}
-      {rounds.length > 0 && (
+      {rounds.length > 0 && !seasonComplete && (
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
