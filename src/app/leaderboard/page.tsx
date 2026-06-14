@@ -209,16 +209,6 @@ function FixtureCard({
 // ── Leaderboard table ─────────────────────────────────────────────────────────
 
 function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; seasonComplete: boolean }) {
-  if (rows.length === 0) {
-    return (
-      <div className="card px-6 py-12 text-center">
-        <span className="text-4xl mb-3 block">📋</span>
-        <p className="font-medium text-gray-600">No picks recorded yet</p>
-        <p className="text-sm text-gray-400 mt-1">Check back after the first round!</p>
-      </div>
-    );
-  }
-
   // Build rank medals from distinct score levels so ties share the same medal
   const distinctScores = Array.from(new Set(rows.map((e) => e.correct))).filter((s) => s > 0).sort((a, b) => b - a);
   const medalForScore = new Map<number, "gold" | "silver" | "bronze">();
@@ -402,8 +392,10 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // Overall leaderboard
-  const lbMap = new Map<string, { correct: number; total: number }>();
+  // Overall leaderboard — seed from profiles so all registered users appear even with 0 picks
+  const lbMap = new Map<string, { correct: number; total: number }>(
+    (profiles ?? []).map((p: Profile) => [p.id, { correct: 0, total: 0 }])
+  );
   for (const pick of allPicksRaw ?? []) {
     const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0 };
     e.total += 1;
@@ -423,6 +415,8 @@ export default async function LeaderboardPage() {
         b.total - a.total ||
         a.displayName.localeCompare(b.displayName)
     );
+
+  const noRoundsPlayed = leaderboard.length > 0 && leaderboard.every((e) => e.total === 0);
 
   // ── Season summary data (only when season is complete) ───────────────────
   let summaryGameweeks: Gameweek[] = [];
@@ -486,7 +480,21 @@ export default async function LeaderboardPage() {
           title={seasonComplete ? "Final Standings" : "Overall Standings"}
           badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
         />
-        <LeaderboardTable rows={leaderboard} seasonComplete={seasonComplete} />
+        {noRoundsPlayed && (
+          <div className="rounded-xl bg-blue-50 border border-blue-200 px-5 py-3.5 flex items-center gap-3">
+            <span className="text-xl shrink-0">🏉</span>
+            <p className="text-sm text-blue-800 font-medium">No rounds played yet — scores will appear here once the first round is complete.</p>
+          </div>
+        )}
+        {leaderboard.length === 0 ? (
+          <div className="card px-6 py-12 text-center">
+            <span className="text-4xl mb-3 block">📋</span>
+            <p className="font-medium text-gray-600">No participants yet</p>
+            <p className="text-sm text-gray-400 mt-1">Registered users will appear here once they sign up.</p>
+          </div>
+        ) : (
+          <LeaderboardTable rows={leaderboard} seasonComplete={seasonComplete} />
+        )}
       </section>
 
       {/* ── 2. This Week ────────────────────────────────────────────────── */}
