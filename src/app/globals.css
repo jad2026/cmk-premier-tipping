@@ -10,7 +10,66 @@
   }
 
   body {
-    @apply bg-[#f0f3f7] text-gray-900;
+    @apply text-gray-900;
+    position: relative;
+    /* Rugby field — mown alternating stripes with pitch line markings */
+    background-color: #2a5e2a;
+    background-image:
+      /* Dark overlay to keep content readable */
+      linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.52)),
+      /* Halfway line */
+      linear-gradient(to right,
+        transparent calc(50% - 1px),
+        rgba(255,255,255,0.5) calc(50% - 1px),
+        rgba(255,255,255,0.5) calc(50% + 1px),
+        transparent calc(50% + 1px)
+      ),
+      /* 22m lines */
+      linear-gradient(to right,
+        transparent calc(22% - 1px),
+        rgba(255,255,255,0.32) calc(22% - 1px),
+        rgba(255,255,255,0.32) calc(22% + 1px),
+        transparent calc(22% + 1px)
+      ),
+      linear-gradient(to right,
+        transparent calc(78% - 1px),
+        rgba(255,255,255,0.32) calc(78% - 1px),
+        rgba(255,255,255,0.32) calc(78% + 1px),
+        transparent calc(78% + 1px)
+      ),
+      /* Try lines */
+      linear-gradient(to right,
+        transparent calc(5% - 1px),
+        rgba(255,255,255,0.45) calc(5% - 1px),
+        rgba(255,255,255,0.45) calc(5% + 1px),
+        transparent calc(5% + 1px)
+      ),
+      linear-gradient(to right,
+        transparent calc(95% - 1px),
+        rgba(255,255,255,0.45) calc(95% - 1px),
+        rgba(255,255,255,0.45) calc(95% + 1px),
+        transparent calc(95% + 1px)
+      ),
+      /* Dead-ball lines / sidelines */
+      linear-gradient(to right, rgba(255,255,255,0.5) 2px, transparent 2px),
+      linear-gradient(to left,  rgba(255,255,255,0.5) 2px, transparent 2px),
+      /* Mown alternating stripes */
+      repeating-linear-gradient(
+        90deg,
+        #2a5e2a 0px, #2a5e2a 80px,
+        #2e6830 80px, #2e6830 160px
+      );
+    background-attachment: fixed;
+    background-size:
+      100% 100%, /* overlay */
+      100% 100%, /* halfway */
+      100% 100%, /* 22m left */
+      100% 100%, /* 22m right */
+      100% 100%, /* try left */
+      100% 100%, /* try right */
+      100% 100%, /* sideline left */
+      100% 100%, /* sideline right */
+      160px 100%; /* stripes */
   }
 }
 
