@@ -53,6 +53,20 @@ export type SeasonConfig = {
   season_name: string;
 };
 
+export type League = {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type LeagueMember = {
+  league_id: string;
+  user_id: string;
+  joined_at: string;
+};
+
 export type Season = {
   id: string;
   name: string;
@@ -115,6 +129,18 @@ export type Database = {
         Row: Season;
         Insert: Omit<Season, "id" | "archived_at"> & { id?: string; archived_at?: string };
         Update: Partial<Season>;
+        Relationships: [];
+      };
+      leagues: {
+        Row: League;
+        Insert: Omit<League, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<League>;
+        Relationships: [];
+      };
+      league_members: {
+        Row: LeagueMember;
+        Insert: LeagueMember;
+        Update: Partial<LeagueMember>;
         Relationships: [];
       };
     };

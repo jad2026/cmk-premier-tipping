@@ -56,6 +56,7 @@ export default function Navbar() {
               { href: "/", label: "Home" },
               { href: "/tips", label: "Tips" },
               { href: "/leaderboard", label: "Leaderboard" },
+              ...(user ? [{ href: "/leagues", label: "Leagues" }] : []),
               ...(user ? [{ href: "/profile", label: "Profile" }] : []),
               { href: "/admin", label: "Admin" },
             ].map(({ href, label }) => (
