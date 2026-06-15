@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-barlow)", "ui-sans-serif", "system-ui", "sans-serif"],
+        heading: ["var(--font-barlow-condensed)", "var(--font-barlow)", "ui-sans-serif", "sans-serif"],
+      },
       colors: {
         brand: {
           DEFAULT: "#1a3a5c",
