@@ -102,38 +102,40 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand">Admin</h1>
+        <h1 className="text-2xl font-bold text-white">Admin</h1>
         <button
           onClick={() => {
             sessionStorage.removeItem(STORAGE_KEY);
             setAuthed(false);
           }}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-xs text-white/50 hover:text-white/80 transition-colors"
         >
           Lock
         </button>
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === tab.id
-                ? "border-brand text-brand"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            {tab.label}
-            {tab.id === "results" && pendingFixtures.length > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-gold text-white text-[10px] font-bold">
-                {pendingFixtures.length}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="bg-brand rounded-xl overflow-x-auto">
+        <div className="flex min-w-max">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                activeTab === tab.id
+                  ? "border-brand-gold text-brand-gold"
+                  : "border-transparent text-white/70 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {tab.label}
+              {tab.id === "results" && pendingFixtures.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-gold text-white text-[10px] font-bold">
+                  {pendingFixtures.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab panels */}

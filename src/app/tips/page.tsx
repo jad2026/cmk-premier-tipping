@@ -140,13 +140,13 @@ export default async function TipsPage() {
           <p className="eyebrow mb-1">
             {rounds.length === 1 ? `Round ${rounds[0].number}` : `${rounds.length} Open Rounds`}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-brand">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Submit Your Tips
           </h1>
           {rounds.length === 1 && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-white/70 mt-1">
               Deadline:{" "}
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-white">
                 {new Date(rounds[0].deadline).toLocaleString("en-NZ", {
                   timeZone: "Pacific/Auckland",
                   weekday: "short",

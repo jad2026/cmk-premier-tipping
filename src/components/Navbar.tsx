@@ -62,10 +62,10 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                className={`relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                className={`relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 ${
                   isActive(href)
                     ? "text-brand-gold"
-                    : "text-blue-100/80 hover:text-white hover:bg-white/10"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 }`}
               >
                 {label}

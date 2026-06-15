@@ -178,7 +178,7 @@ export default async function HomePage() {
       {/* ── Season name strip ────────────────────────────────────────────────── */}
       {!seasonComplete && (
         <div className="text-center">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-brand/8 border border-brand/15 text-brand text-sm font-semibold tracking-wide">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm font-semibold tracking-wide">
             {seasonName}
           </span>
         </div>
@@ -294,7 +294,7 @@ export default async function HomePage() {
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-            <h2 className="text-base font-bold text-brand uppercase tracking-wide">All Rounds</h2>
+            <h2 className="text-base font-bold text-white uppercase tracking-wide">All Rounds</h2>
           </div>
           <div className="card overflow-hidden divide-y divide-gray-50">
             {rounds.map(({ gameweek: gw, status, total, resultsIn }) => (
