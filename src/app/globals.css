@@ -12,74 +12,22 @@
   body {
     @apply text-gray-900;
     min-height: 100vh;
-    background-color: #2d5a1b;
-    background-image:
-      /* White horizontal field markings (top-down view) */
-      /* Sidelines — top and bottom edges */
-      linear-gradient(
-        to bottom,
-        rgba(255,255,255,0.9) 3px,
-        transparent 3px,
-        transparent calc(100% - 3px),
-        rgba(255,255,255,0.9) calc(100% - 3px)
-      ),
-      /* Try lines — 8% from each end */
-      linear-gradient(
-        to bottom,
-        transparent calc(8% - 1.5px),
-        rgba(255,255,255,0.8) calc(8% - 1.5px),
-        rgba(255,255,255,0.8) calc(8% + 1.5px),
-        transparent calc(8% + 1.5px),
-        transparent calc(92% - 1.5px),
-        rgba(255,255,255,0.8) calc(92% - 1.5px),
-        rgba(255,255,255,0.8) calc(92% + 1.5px),
-        transparent calc(92% + 1.5px)
-      ),
-      /* 22m lines — 30% from each end */
-      linear-gradient(
-        to bottom,
-        transparent calc(22% - 1px),
-        rgba(255,255,255,0.65) calc(22% - 1px),
-        rgba(255,255,255,0.65) calc(22% + 1px),
-        transparent calc(22% + 1px),
-        transparent calc(78% - 1px),
-        rgba(255,255,255,0.65) calc(78% - 1px),
-        rgba(255,255,255,0.65) calc(78% + 1px),
-        transparent calc(78% + 1px)
-      ),
-      /* Halfway line */
-      linear-gradient(
-        to bottom,
-        transparent calc(50% - 1.5px),
-        rgba(255,255,255,0.85) calc(50% - 1.5px),
-        rgba(255,255,255,0.85) calc(50% + 1.5px),
-        transparent calc(50% + 1.5px)
-      ),
-      /* Alternating vertical mown stripes */
-      repeating-linear-gradient(
-        to right,
-        #2d5a1b 0px,
-        #2d5a1b 80px,
-        #336820 80px,
-        #336820 160px
-      );
-    background-attachment: fixed;
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 160px 100%;
+    background-color: #f3f4f6;
   }
 }
 
 @layer components {
   /* ── Card primitives ───────────────────────────────────────────────────── */
   .card {
-    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-card border border-white/60;
+    @apply bg-white rounded-2xl shadow-card border border-gray-100;
   }
   .card-md {
-    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-card-md border border-white/60;
+    @apply bg-white rounded-2xl shadow-card-md border border-gray-100;
   }
 
   /* ── Section label (small ALL-CAPS eyebrow) ──────────────────────────── */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-widest text-white/70;
+    @apply text-xs font-semibold uppercase tracking-widest text-brand-gold;
   }
 
   /* ── Primary button ───────────────────────────────────────────────────── */

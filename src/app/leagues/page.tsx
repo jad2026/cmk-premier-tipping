@@ -16,7 +16,7 @@ export default async function LeaguesPage() {
     <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <p className="eyebrow mb-1">Competition</p>
-        <h1 className="text-2xl font-bold tracking-tight text-white">My Leagues</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand">My Leagues</h1>
       </div>
       <LeaguesClient initialLeagues={leagues} />
     </div>

@@ -294,7 +294,7 @@ export default async function HomePage() {
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-            <h2 className="text-base font-bold text-white uppercase tracking-wide">All Rounds</h2>
+            <h2 className="text-base font-bold text-brand uppercase tracking-wide">All Rounds</h2>
           </div>
           <div className="card overflow-hidden divide-y divide-gray-50">
             {rounds.map(({ gameweek: gw, status, total, resultsIn }) => (

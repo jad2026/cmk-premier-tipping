@@ -327,7 +327,7 @@ function SectionHeading({ title, sub, badge }: { title: string; sub?: string; ba
       <div>
         <div className="flex items-center gap-2.5 mb-0.5">
           <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-          <h2 className="text-lg font-bold text-white tracking-tight">{title}</h2>
+          <h2 className="text-lg font-bold text-brand tracking-tight">{title}</h2>
         </div>
         {sub && <p className="text-xs text-gray-400 ml-3.5">{sub}</p>}
       </div>
@@ -478,7 +478,7 @@ export default async function LeaderboardPage() {
       <div className="flex items-start gap-3 flex-wrap">
         <div>
           <p className="eyebrow mb-1">2026 Season</p>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Leaderboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
         </div>
         {seasonComplete && (
           <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 border border-brand-gold/30 text-brand-gold-dark text-xs font-semibold uppercase tracking-wide">

@@ -34,9 +34,9 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <p className="eyebrow mb-1">League Leaderboard</p>
-          <h1 className="text-2xl font-bold tracking-tight text-white">{league.name}</h1>
-          <p className="text-white/60 text-sm mt-1">
-            Invite code: <span className="font-mono font-bold text-white">{league.invite_code}</span>
+          <h1 className="text-2xl font-bold tracking-tight text-brand">{league.name}</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Invite code: <span className="font-mono font-bold text-gray-800">{league.invite_code}</span>
           </p>
         </div>
         <Link href="/leagues" className="btn-ghost text-sm">← All Leagues</Link>

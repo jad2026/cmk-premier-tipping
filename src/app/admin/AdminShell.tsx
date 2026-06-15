@@ -102,13 +102,13 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Admin</h1>
+        <h1 className="text-2xl font-bold text-brand">Admin</h1>
         <button
           onClick={() => {
             sessionStorage.removeItem(STORAGE_KEY);
             setAuthed(false);
           }}
-          className="text-xs text-white/50 hover:text-white/80 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
           Lock
         </button>
