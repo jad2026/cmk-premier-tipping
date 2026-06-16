@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
+import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 
 // ---------------------------------------------------------------------------
 // Add fixture (creates gameweek row if it doesn't exist yet)
@@ -281,6 +282,9 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Fetch email sponsors once per round
+    const emailSponsors = await fetchActiveSponsors("email");
+
     // Get all user IDs who have picks in this round
     const userIds = Array.from(new Set(picks.map((p) => p.user_id)));
     console.log(`[resultsEmail] ${gw.label} — sending to ${userIds.length} user(s)`);
@@ -325,6 +329,7 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
         leaderboardPosition: positionOf(userId),
         totalPlayers: leaderboardEntries.length,
         seasonCorrect: seasonTally.get(userId) ?? 0,
+        sponsors: emailSponsors,
       };
 
       await sendResultsEmail(payload);

@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { Sponsor } from "@/lib/supabase/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,12 +27,13 @@ export type ResultsEmailPayload = {
   leaderboardPosition: number;
   totalPlayers: number;
   seasonCorrect: number;
+  sponsors?: Sponsor[];
 };
 
 // ── HTML template ──────────────────────────────────────────────────────────────
 
 function buildHtml(p: ResultsEmailPayload): string {
-  const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonCorrect } = p;
+  const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonCorrect, sponsors = [] } = p;
 
   const fixtureRows = fixtures
     .map(
@@ -155,9 +157,31 @@ function buildHtml(p: ResultsEmailPayload): string {
           </td>
         </tr>
 
+        <!-- Sponsors -->
+        ${sponsors.length > 0 ? `
+        <tr>
+          <td style="padding:20px 32px;border-top:1px solid #f0f0f0;text-align:center;">
+            <p style="margin:0 0 12px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#d1d5db;">Our Sponsors</p>
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+              <tr>
+                ${sponsors.map((s) => `
+                  <td style="padding:0 12px;vertical-align:middle;">
+                    ${s.website_url
+                      ? `<a href="${s.website_url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">`
+                      : ""}
+                    ${s.logo_url
+                      ? `<img src="${s.logo_url}" alt="${s.name}" height="32" style="display:block;max-height:32px;max-width:100px;object-fit:contain;" />`
+                      : `<span style="font-size:13px;font-weight:700;color:#1e3a5f;">${s.name}</span>`}
+                    ${s.website_url ? `</a>` : ""}
+                  </td>`).join("")}
+              </tr>
+            </table>
+          </td>
+        </tr>` : ""}
+
         <!-- Footer -->
         <tr>
-          <td style="padding:24px 32px;text-align:center;border-top:1px solid #f0f0f0;margin-top:8px;">
+          <td style="padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:12px;color:#9ca3af;">Club Rugby Tipping · You're receiving this because you have an account.</p>
           </td>
         </tr>

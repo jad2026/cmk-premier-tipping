@@ -11,11 +11,12 @@ import ParticipantsPanel from "./ParticipantsPanel";
 import ResultsHistoryPanel from "./ResultsHistoryPanel";
 import SeasonManagementPanel from "./SeasonManagementPanel";
 import ManageRoundsPanel from "./ManageRoundsPanel";
+import SponsorsPanel from "./SponsorsPanel";
 
 const STORAGE_KEY = "cmk_admin_authed";
 const ADMIN_PASSWORD = "admin123";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "season" | "participants" | "history" | "season-mgmt";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "season-mgmt" | "sponsors";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
@@ -27,6 +28,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "history", label: "Results History" },
   { id: "season", label: "Season" },
   { id: "season-mgmt", label: "Season Management" },
+  { id: "sponsors", label: "Sponsors" },
 ];
 
 type Props = {
@@ -157,6 +159,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         {activeTab === "season-mgmt" && (
           <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />
         )}
+        {activeTab === "sponsors" && <SponsorsPanel />}
       </div>
     </div>
   );

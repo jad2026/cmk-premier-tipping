@@ -54,6 +54,19 @@ export type SeasonConfig = {
   season_name: string;
 };
 
+export type SponsorLocation = "home" | "leaderboard" | "email" | "all";
+
+export type Sponsor = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  website_url: string | null;
+  display_location: SponsorLocation;
+  is_active: boolean;
+  order_position: number;
+  created_at: string;
+};
+
 export type League = {
   id: string;
   name: string;
@@ -142,6 +155,12 @@ export type Database = {
         Row: LeagueMember;
         Insert: LeagueMember;
         Update: Partial<LeagueMember>;
+        Relationships: [];
+      };
+      sponsors: {
+        Row: Sponsor;
+        Insert: Omit<Sponsor, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Sponsor>;
         Relationships: [];
       };
     };
