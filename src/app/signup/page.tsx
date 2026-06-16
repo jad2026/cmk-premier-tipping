@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { triggerWelcomeEmail } from "./actions";
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -61,6 +62,11 @@ export default function SignupPage() {
           last_name: lastName.trim(),
         },
         { onConflict: "id" }
+      );
+
+      // Fire welcome email in background — don't block redirect on email delivery
+      triggerWelcomeEmail(email, firstName.trim(), trimmedTeamName).catch(
+        (err) => console.error("[signup] welcome email failed:", err)
       );
     }
 
