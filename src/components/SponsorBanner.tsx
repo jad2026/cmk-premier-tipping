@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import type { Sponsor } from "@/lib/supabase/types";
 
@@ -6,55 +9,95 @@ type Props = {
   variant?: "large" | "small";
 };
 
+function SponsorItem({ s, isLarge }: { s: Sponsor; isLarge: boolean }) {
+  const logoHeight = isLarge ? 150 : 40;
+
+  const inner = s.logo_url ? (
+    <div style={{ height: logoHeight, width: isLarge ? 300 : 140 }} className="relative">
+      <Image
+        src={s.logo_url}
+        alt={s.name}
+        fill
+        className="object-contain"
+        sizes={isLarge ? "300px" : "140px"}
+      />
+    </div>
+  ) : (
+    <span className={`font-bold ${isLarge ? "text-white text-2xl" : "text-brand text-sm"}`}>
+      {s.name}
+    </span>
+  );
+
+  const cls = `flex items-center justify-center ${isLarge ? "px-10" : "px-4"}`;
+
+  return s.website_url ? (
+    <a
+      href={s.website_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${cls} opacity-70 hover:opacity-100 transition-opacity shrink-0`}
+      title={s.name}
+    >
+      {inner}
+    </a>
+  ) : (
+    <div className={`${cls} opacity-70 shrink-0`} title={s.name}>
+      {inner}
+    </div>
+  );
+}
+
 export default function SponsorBanner({ sponsors, variant = "large" }: Props) {
+  const [paused, setPaused] = useState(false);
+
   if (sponsors.length === 0) return null;
 
   const isLarge = variant === "large";
 
-  const logoHeight = isLarge ? 120 : 40;
-  const logoWidth = isLarge ? 240 : 100;
+  // Small variant: static card
+  if (!isLarge) {
+    return (
+      <div className="card px-5 py-4">
+        <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          Our Sponsors
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-6">
+          {sponsors.map((s) => <SponsorItem key={s.id} s={s} isLarge={false} />)}
+        </div>
+      </div>
+    );
+  }
+
+  // Large variant: scrolling marquee on dark navy
+  const trackStyle: React.CSSProperties = {
+    animation: "sponsor-scroll 20s linear infinite",
+    animationPlayState: paused ? "paused" : "running",
+  };
 
   return (
-    <div className={`card ${isLarge ? "px-8 py-8" : "px-5 py-4"}`}>
-      <p className={`text-center font-semibold uppercase tracking-widest text-gray-400 ${isLarge ? "text-[11px] mb-6" : "text-[10px] mb-3"}`}>
+    <div className="rounded-2xl bg-brand overflow-hidden py-6">
+      <p className="text-center text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40 mb-5">
         Our Sponsors
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-8">
-        {sponsors.map((s) => {
-          const inner = s.logo_url ? (
-            <Image
-              src={s.logo_url}
-              alt={s.name}
-              width={logoWidth}
-              height={logoHeight}
-              className="object-contain"
-              style={{ maxHeight: logoHeight, width: "auto" }}
-            />
-          ) : (
-            <span className={`font-bold text-brand ${isLarge ? "text-xl" : "text-sm"}`}>
-              {s.name}
-            </span>
-          );
 
-          const wrapperCls = `flex items-center justify-center ${isLarge ? "px-6 py-4" : "px-3 py-2"}`;
-
-          return s.website_url ? (
-            <a
-              key={s.id}
-              href={s.website_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${wrapperCls} opacity-80 hover:opacity-100 transition-opacity`}
-              title={s.name}
-            >
-              {inner}
-            </a>
-          ) : (
-            <div key={s.id} className={`${wrapperCls} opacity-80`} title={s.name}>
-              {inner}
-            </div>
-          );
-        })}
+      <div
+        className="flex"
+        style={{
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+          maskImage:
+            "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+        }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* Two copies for seamless loop */}
+        <div className="flex items-center shrink-0" style={trackStyle}>
+          {sponsors.map((s) => <SponsorItem key={s.id} s={s} isLarge />)}
+        </div>
+        <div className="flex items-center shrink-0" style={trackStyle} aria-hidden>
+          {sponsors.map((s) => <SponsorItem key={s.id} s={s} isLarge />)}
+        </div>
       </div>
     </div>
   );
