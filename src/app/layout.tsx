@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 
 const barlow = Barlow({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
         <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
           {children}
         </main>
+        <GlobalSponsorBanner />
       </body>
     </html>
   );

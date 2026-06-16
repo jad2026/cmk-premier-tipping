@@ -40,6 +40,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Expose pathname to server components via a request header
+  supabaseResponse.headers.set("x-pathname", request.nextUrl.pathname);
+
   return supabaseResponse;
 }
 

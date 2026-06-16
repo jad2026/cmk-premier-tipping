@@ -2,8 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TeamBadge from "@/components/TeamBadge";
 import Avatar from "@/components/Avatar";
-import SponsorBanner from "@/components/SponsorBanner";
-import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -356,7 +354,6 @@ export default async function LeaderboardPage() {
     { data: closedGameweeks },
     { data: fixturesWithResults },
     { data: seasonConfig },
-    lbSponsors,
   ] = await Promise.all([
     supabase
       .from("gameweeks")
@@ -369,7 +366,6 @@ export default async function LeaderboardPage() {
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
     supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
     supabase.from("season_config").select("season_complete").eq("id", 1).single(),
-    fetchActiveSponsors("leaderboard"),
   ]);
 
   const seasonComplete = seasonConfig?.season_complete ?? false;
@@ -497,9 +493,6 @@ export default async function LeaderboardPage() {
           </span>
         )}
       </div>
-
-      {/* ── Sponsors ─────────────────────────────────────────────────── */}
-      {lbSponsors.length > 0 && <SponsorBanner sponsors={lbSponsors} variant="small" />}
 
       {/* ── 1. Overall Standings ────────────────────────────────────────── */}
       <section className="space-y-4">

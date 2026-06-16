@@ -3,8 +3,6 @@ import Image from "next/image";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import TeamBadge from "@/components/TeamBadge";
-import SponsorBanner from "@/components/SponsorBanner";
-import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
@@ -56,13 +54,12 @@ export default async function HomePage() {
     }
   );
 
-  const [{ data: gameweeks }, { data: teams }, { data: allFixtures }, { data: seasonConfig }, homeSponsors] =
+  const [{ data: gameweeks }, { data: teams }, { data: allFixtures }, { data: seasonConfig }] =
     await Promise.all([
       supabase.from("gameweeks").select("*").order("number"),
       supabase.from("teams").select("*").order("name"),
       supabase.from("fixtures").select("id, gameweek_id, result_team_id"),
       supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
-      fetchActiveSponsors("home"),
     ]);
 
   // Build per-round info
@@ -177,9 +174,6 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
-
-      {/* ── Sponsors ─────────────────────────────────────────────────────────── */}
-      {homeSponsors.length > 0 && <SponsorBanner sponsors={homeSponsors} variant="large" />}
 
       {/* ── Season name strip ────────────────────────────────────────────────── */}
       {!seasonComplete && (
