@@ -272,9 +272,9 @@ function FixtureCard({
               disabled={isLocked}
               className={`relative flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
                 isSelected && resultLocked ? "bg-gray-100 text-gray-500"
-                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : isSelected ? "bg-brand text-white active:scale-[0.99]"
                 : resultLocked ? "bg-white text-gray-300"
-                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 active:scale-[0.99] disabled:opacity-50"
+                : "bg-white text-gray-600 hover:bg-gray-200 hover:text-gray-900 active:scale-[0.99] disabled:opacity-50"
               }`}
             >
               {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
@@ -303,9 +303,9 @@ function FixtureCard({
               disabled={isLocked}
               className={`relative flex flex-col items-center justify-center gap-0.5 py-3.5 px-2 text-xs font-bold uppercase tracking-widest transition-all duration-150 disabled:cursor-not-allowed ${
                 isSelected && resultLocked ? "bg-gray-100 text-gray-500"
-                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : isSelected ? "bg-brand text-white active:scale-[0.99]"
                 : resultLocked ? "bg-white text-gray-300"
-                : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 active:scale-[0.99] disabled:opacity-50"
+                : "bg-white text-gray-500 hover:bg-gray-200 hover:text-gray-900 active:scale-[0.99] disabled:opacity-50"
               }`}
             >
               {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
@@ -329,9 +329,9 @@ function FixtureCard({
               disabled={isLocked}
               className={`relative flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
                 isSelected && resultLocked ? "bg-gray-100 text-gray-500"
-                : isSelected ? "bg-brand-gold/10 text-brand-gold active:scale-[0.99]"
+                : isSelected ? "bg-brand text-white active:scale-[0.99]"
                 : resultLocked ? "bg-white text-gray-300"
-                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 active:scale-[0.99] disabled:opacity-50"
+                : "bg-white text-gray-600 hover:bg-gray-200 hover:text-gray-900 active:scale-[0.99] disabled:opacity-50"
               }`}
             >
               {isSelected && !resultLocked && <span className="absolute inset-x-0 top-0 h-0.5 bg-brand-gold rounded-b-sm" />}
