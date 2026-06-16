@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TeamBadge from "@/components/TeamBadge";
+import Avatar from "@/components/Avatar";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
-type Profile = { id: string; display_name: string | null };
+type Profile = { id: string; display_name: string | null; avatar_url: string | null };
 
 type RichPick = {
   id: string;
@@ -28,6 +29,7 @@ type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
 type LeaderboardEntry = {
   user_id: string;
   displayName: string;
+  avatarUrl: string | null;
   correct: number;
   total: number;
 };
@@ -277,7 +279,8 @@ function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; 
                   <span className="text-sm text-gray-400 tabular-nums font-medium">{displayRank}</span>
                 )}
               </div>
-              <div className="px-4 py-4">
+              <div className="px-4 py-3 flex items-center gap-2.5">
+                <Avatar url={entry.avatarUrl} name={entry.displayName} size={32} />
                 <span className={`text-sm ${isGold ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
                   {entry.displayName}
                 </span>
@@ -358,7 +361,7 @@ export default async function LeaderboardPage() {
       .eq("is_open", true)
       .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
     supabase.from("picks").select("user_id, is_correct"),
-    supabase.from("profiles").select("id, display_name"),
+    supabase.from("profiles").select("id, display_name, avatar_url"),
     supabase.from("teams").select("*"),
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
     supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
@@ -370,6 +373,9 @@ export default async function LeaderboardPage() {
   const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
   const profileMap = new Map<string, string | null>(
     (profiles ?? []).map((p: Profile) => [p.id, p.display_name])
+  );
+  const avatarMap = new Map<string, string | null>(
+    (profiles ?? []).map((p: Profile) => [p.id, p.avatar_url])
   );
 
   // Gameweek IDs that have at least one result
@@ -420,6 +426,7 @@ export default async function LeaderboardPage() {
     .map(([user_id, stats]) => ({
       user_id,
       displayName: resolveDisplayName(user_id, profileMap),
+      avatarUrl: avatarMap.get(user_id) ?? null,
       ...stats,
     }))
     .sort(
