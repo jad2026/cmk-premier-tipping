@@ -86,6 +86,8 @@ export async function GET(request: Request) {
     const firstName = profile?.first_name?.trim() || "";
     const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
 
+    if (sent > 0) await new Promise((r) => setTimeout(r, 500));
+
     await sendReminderEmail({
       to: email,
       firstName,
