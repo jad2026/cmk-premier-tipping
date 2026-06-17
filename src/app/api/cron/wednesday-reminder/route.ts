@@ -6,10 +6,13 @@ import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // Verify Vercel cron secret to prevent unauthorized calls
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Verify Vercel cron secret when set (not enforced in local dev)
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   if (!process.env.RESEND_API_KEY) {
