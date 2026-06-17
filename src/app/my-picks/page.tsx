@@ -201,7 +201,20 @@ export default async function MyPicksPage() {
                     const pickedTeam = pickedTeamId
                       ? (fixture.home_team.id === pickedTeamId ? fixture.home_team : fixture.away_team)
                       : null;
-                    const isCorrect = pick?.is_correct ?? null;
+
+                    // Derive correctness from the fixture result directly so it
+                    // shows even when is_correct hasn't been written yet by the
+                    // scoring function (e.g. result entered while round is still open).
+                    let isCorrect: boolean | null = null;
+                    if (pick && hasResult) {
+                      if (fixture.is_draw) {
+                        isCorrect = pickedDraw;
+                      } else {
+                        isCorrect = pickedTeamId === fixture.result_team_id;
+                      }
+                    } else if (pick?.is_correct !== null && pick?.is_correct !== undefined) {
+                      isCorrect = pick.is_correct;
+                    }
                     const autoPicked = pick?.auto_picked ?? false;
 
                     const resultLabel = fixture.is_draw
