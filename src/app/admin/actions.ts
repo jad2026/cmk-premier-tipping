@@ -811,3 +811,69 @@ export async function updateTeamLogoUrl(teamId: string, logoUrl: string | null) 
   revalidatePath("/");
   return { error: null };
 }
+
+// ---------------------------------------------------------------------------
+// Team CRUD
+// ---------------------------------------------------------------------------
+
+function revalidateTeamPaths() {
+  revalidatePath("/admin");
+  revalidatePath("/tips");
+  revalidatePath("/leaderboard");
+  revalidatePath("/");
+}
+
+export async function createTeam(
+  name: string,
+  shortName: string,
+  colour: string,
+  logoUrl: string | null
+): Promise<{ data: { id: string } | null; error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("teams")
+    .insert({ name: name.trim(), short_name: shortName.trim(), colour, logo_url: logoUrl })
+    .select("id")
+    .single();
+
+  if (error) return { data: null, error: error.message };
+  revalidateTeamPaths();
+  return { data, error: null };
+}
+
+export async function updateTeam(
+  teamId: string,
+  name: string,
+  shortName: string,
+  colour: string,
+  logoUrl: string | null
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("teams")
+    .update({ name: name.trim(), short_name: shortName.trim(), colour, logo_url: logoUrl })
+    .eq("id", teamId);
+
+  if (error) return { error: error.message };
+  revalidateTeamPaths();
+  return { error: null };
+}
+
+export async function deleteTeam(teamId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  // Guard: refuse if the team appears in any fixture
+  const { count } = await supabase
+    .from("fixtures")
+    .select("id", { count: "exact", head: true })
+    .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`);
+
+  if (count && count > 0) {
+    return { error: `Cannot delete — this team is used in ${count} fixture${count === 1 ? "" : "s"}.` };
+  }
+
+  const { error } = await supabase.from("teams").delete().eq("id", teamId);
+  if (error) return { error: error.message };
+  revalidateTeamPaths();
+  return { error: null };
+}
