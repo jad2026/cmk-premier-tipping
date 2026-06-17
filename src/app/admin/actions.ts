@@ -101,8 +101,20 @@ export async function saveResults(
   const toProcess = results.filter((r) => r.resultTeamId);
   if (toProcess.length === 0) return { errors };
 
+  // Service role client — needed to write picks rows owned by other users
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    errors.push("SUPABASE_SERVICE_ROLE_KEY not set — cannot score picks");
+    return { errors };
+  }
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
   // ── Step 1: auto-fill missing picks ─────────────────────────────────────
-  // Look up the gameweek(s) for the fixtures we're about to score
   const fixtureIds = toProcess.map((r) => r.fixtureId);
 
   const { data: fixtureMeta, error: metaErr } = await supabase
@@ -132,12 +144,11 @@ export async function saveResults(
     }
   }
 
-  // ── Step 2: set result and score picks ───────────────────────────────────
+  // ── Step 2: set result on each fixture ───────────────────────────────────
   for (const { fixtureId, resultTeamId } of toProcess) {
     const isDraw = resultTeamId === "draw";
     const dbResultTeamId = isDraw ? null : resultTeamId;
 
-    // Persist the result on the fixture row
     const { error: fixErr } = await supabase
       .from("fixtures")
       .update({ result_team_id: dbResultTeamId, is_draw: isDraw })
@@ -145,18 +156,33 @@ export async function saveResults(
 
     if (fixErr) {
       errors.push(`Fixture ${fixtureId}: ${fixErr.message}`);
-      continue;
     }
+  }
 
-    // Score all picks for this fixture via SECURITY DEFINER function
-    // (bypasses the per-user RLS policy on picks)
-    const { error: scoreErr } = await supabase.rpc("score_fixture_picks", {
-      p_fixture_id: fixtureId,
-      p_result_team_id: dbResultTeamId,
-      p_is_draw: isDraw,
-    });
+  // ── Step 2b: score all picks directly via service role ───────────────────
+  // Done after all results are saved so auto-filled picks are included.
+  for (const { fixtureId, resultTeamId } of toProcess) {
+    const isDraw = resultTeamId === "draw";
+    const dbResultTeamId = isDraw ? null : resultTeamId;
 
-    if (scoreErr) errors.push(`Score ${fixtureId}: ${scoreErr.message}`);
+    if (isDraw) {
+      // Draw: picks with picked_draw = true are correct, rest are wrong
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        admin.from("picks").update({ is_correct: true }).eq("fixture_id", fixtureId).eq("picked_draw", true),
+        admin.from("picks").update({ is_correct: false }).eq("fixture_id", fixtureId).eq("picked_draw", false),
+      ]);
+      if (e1) errors.push(`Score draw-correct ${fixtureId}: ${e1.message}`);
+      if (e2) errors.push(`Score draw-wrong ${fixtureId}: ${e2.message}`);
+    } else {
+      // Win: picks matching result_team_id are correct, all others wrong
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        admin.from("picks").update({ is_correct: true }).eq("fixture_id", fixtureId).eq("picked_team_id", dbResultTeamId),
+        admin.from("picks").update({ is_correct: false }).eq("fixture_id", fixtureId).neq("picked_team_id", dbResultTeamId),
+      ]);
+      if (e1) errors.push(`Score correct ${fixtureId}: ${e1.message}`);
+      if (e2) errors.push(`Score wrong ${fixtureId}: ${e2.message}`);
+    }
+    console.log(`[saveResults] Scored picks for fixture ${fixtureId} (isDraw=${isDraw}, result=${dbResultTeamId ?? "draw"})`);
   }
 
   // ── Step 3: auto-complete season if all fixtures now have results ────────
