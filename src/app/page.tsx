@@ -134,13 +134,21 @@ export default async function HomePage() {
     <div className="space-y-8">
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-[5.5rem_1fr_5.5rem] items-stretch gap-3">
-        <div className="hidden md:flex flex-col justify-around items-center py-8">
-          {teams?.slice(0, 4).map((team) => (
-            <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-              <TeamBadge team={team} size="xl" />
-            </div>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-stretch gap-3">
+        {/* Left sidebar — 2 columns × 4 rows */}
+        <div className="hidden md:grid grid-cols-2 gap-2 py-6 content-around">
+          {Array.from({ length: 8 }).map((_, i) => {
+            const team = teams?.[i];
+            return team ? (
+              <div key={team.id} className="flex items-center justify-center opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
+                <TeamBadge team={team} size="md" />
+              </div>
+            ) : (
+              <div key={i} className="flex items-center justify-center">
+                <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/20 text-sm select-none">🏉</span>
+              </div>
+            );
+          })}
         </div>
 
         <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
@@ -169,12 +177,20 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <div className="hidden md:flex flex-col justify-around items-center py-8">
-          {teams?.slice(4, 8).map((team) => (
-            <div key={team.id} className="opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-              <TeamBadge team={team} size="xl" />
-            </div>
-          ))}
+        {/* Right sidebar — 2 columns × 4 rows */}
+        <div className="hidden md:grid grid-cols-2 gap-2 py-6 content-around">
+          {Array.from({ length: 8 }).map((_, i) => {
+            const team = teams?.[8 + i];
+            return team ? (
+              <div key={team.id} className="flex items-center justify-center opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
+                <TeamBadge team={team} size="md" />
+              </div>
+            ) : (
+              <div key={i} className="flex items-center justify-center">
+                <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/20 text-sm select-none">🏉</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
