@@ -66,7 +66,7 @@ export default async function MyPicksPage() {
   const [
     { data: gameweeks },
     { data: fixturesRaw },
-    { data: picksRaw },
+    { data: picksRaw, error: picksError },
     { data: allPicksForRank },
     { data: profilesForRank },
   ] = await Promise.all([
@@ -77,11 +77,15 @@ export default async function MyPicksPage() {
       .order("match_date"),
     supabase
       .from("picks")
-      .select("fixture_id, picked_team_id, picked_draw, is_correct, auto_picked")
+      .select("*")
       .eq("user_id", user.id),
     supabase.from("picks").select("user_id, is_correct").eq("is_correct", true),
     supabase.from("profiles").select("id, display_name"),
   ]);
+
+  if (picksError) {
+    console.error("[my-picks] picks query error:", picksError);
+  }
 
   const fixtures = (fixturesRaw ?? []) as unknown as FixtureRow[];
   const picks = (picksRaw ?? []) as PickRow[];
