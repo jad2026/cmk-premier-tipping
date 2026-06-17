@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import TeamBadge from "@/components/TeamBadge";
+import Avatar from "@/components/Avatar";
 import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
@@ -110,10 +111,11 @@ export default async function HomePage() {
 
   // ── Top player (season complete banner only) ─────────────────────────────
   let winner: string | null = null;
+  let winnerAvatarUrl: string | null = null;
   if (seasonComplete) {
     const [{ data: correctPicks }, { data: profiles }] = await Promise.all([
       supabase.from("picks").select("user_id").eq("is_correct", true),
-      supabase.from("profiles").select("id, display_name"),
+      supabase.from("profiles").select("id, display_name, avatar_url"),
     ]);
 
     if (correctPicks && correctPicks.length > 0) {
@@ -124,6 +126,7 @@ export default async function HomePage() {
       const topUserId = Array.from(tally.entries()).sort((a, b) => b[1] - a[1])[0][0];
       const profile = profiles?.find((p) => p.id === topUserId);
       winner = profile?.display_name?.trim() || `Player ${topUserId.slice(0, 5).toUpperCase()}`;
+      winnerAvatarUrl = profile?.avatar_url ?? null;
     }
   }
 
@@ -259,10 +262,22 @@ export default async function HomePage() {
 
             {winner ? (
               <>
+                {/* Winner avatar */}
+                <div className="flex justify-center mb-5">
+                  <div className="rounded-full ring-4 ring-brand-gold shadow-[0_0_32px_rgba(201,168,76,0.4)]">
+                    <Avatar
+                      url={winnerAvatarUrl}
+                      name={winner}
+                      size={120}
+                      goldFallback
+                    />
+                  </div>
+                </div>
+
                 {/* Winner name */}
                 <p
                   className="font-extrabold text-brand-gold leading-none mb-5 break-words"
-                  style={{ fontSize: "clamp(3rem, 10vw, 5.5rem)" }}
+                  style={{ fontSize: "clamp(2rem, 8vw, 4.5rem)" }}
                 >
                   {winner}
                 </p>
