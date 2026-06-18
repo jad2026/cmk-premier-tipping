@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 
 const barlow = Barlow({
@@ -32,7 +33,10 @@ export default function RootLayout({
     <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
       <body className={`${barlow.className} min-h-screen`}>
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+          <GlobalTeamMarquee />
+        </div>
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {children}
         </main>
         <GlobalSponsorBanner />

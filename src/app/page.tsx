@@ -3,7 +3,6 @@ import Image from "next/image";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import Avatar from "@/components/Avatar";
-import TeamMarquee from "@/components/TeamMarquee";
 import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
@@ -132,9 +131,6 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
-
-      {/* ── Team marquee ──────────────────────────────────────────────────────── */}
-      {teams && teams.length > 0 && <TeamMarquee teams={teams} />}
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
