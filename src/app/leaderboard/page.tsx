@@ -365,10 +365,11 @@ export default async function LeaderboardPage() {
     supabase.from("teams").select("*"),
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
     supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
-    supabase.from("season_config").select("season_complete").eq("id", 1).single(),
+    supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
   ]);
 
   const seasonComplete = seasonConfig?.season_complete ?? false;
+  const seasonName = seasonConfig?.season_name ?? `${new Date().getFullYear()} Season`;
 
   const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
   const profileMap = new Map<string, string | null>(
@@ -484,7 +485,7 @@ export default async function LeaderboardPage() {
       {/* ── Page title ──────────────────────────────────────────────────── */}
       <div className="flex items-start gap-3 flex-wrap">
         <div>
-          <p className="eyebrow mb-1">2026 Season</p>
+          <p className="eyebrow mb-1">{seasonName}</p>
           <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
         </div>
         {seasonComplete && (
