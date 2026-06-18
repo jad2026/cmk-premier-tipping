@@ -36,18 +36,27 @@ export default function Navbar() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
           {/* Brand / logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 group"
-          >
-            {/* Rugby ball icon */}
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-base select-none group-hover:bg-brand-gold/30 transition-colors">
-              🏉
-            </span>
-            <span className="font-bold text-white text-[15px] tracking-tight leading-none">
-              Club Rugby<br />
-              <span className="font-normal text-brand-gold text-[11px] tracking-widest uppercase">Tipping</span>
-            </span>
+          <Link href="/" className="flex items-center gap-2.5 group select-none">
+            {/* SVG Rugby ball */}
+            <div className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-brand-gold/15 border border-brand-gold/25 group-hover:bg-brand-gold/25 transition-colors">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                {/* Ball outline */}
+                <ellipse cx="11" cy="11" rx="9.5" ry="5.8" transform="rotate(-35 11 11)" stroke="#C9A84C" strokeWidth="1.5" fill="none"/>
+                {/* Centre seam */}
+                <line x1="4.5" y1="11" x2="17.5" y2="11" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.6"/>
+                {/* Stitching top */}
+                <path d="M8 7.8 C9.5 8.5 12.5 8.5 14 7.8" stroke="white" strokeWidth="0.9" strokeLinecap="round" fill="none" opacity="0.55"/>
+                {/* Stitching bottom */}
+                <path d="M8 14.2 C9.5 13.5 12.5 13.5 14 14.2" stroke="white" strokeWidth="0.9" strokeLinecap="round" fill="none" opacity="0.55"/>
+                {/* Highlight */}
+                <ellipse cx="8.5" cy="9.5" rx="1.8" ry="0.9" transform="rotate(-35 8.5 9.5)" fill="white" opacity="0.12"/>
+              </svg>
+            </div>
+            {/* Text lockup */}
+            <div className="leading-none">
+              <div className="text-[15px] font-extrabold text-white tracking-tight">Club Rugby</div>
+              <div className="text-[10px] font-semibold text-brand-gold tracking-[0.22em] uppercase mt-0.5">Tipping</div>
+            </div>
           </Link>
 
           {/* Nav links */}
