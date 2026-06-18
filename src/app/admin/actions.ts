@@ -723,21 +723,23 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
 
   const uniqueParticipants = new Set((picks ?? []).map((p) => p.user_id)).size;
   const totalRounds = (gameweeks ?? []).length;
+  const hasData = totalRounds > 0 || (fixtures ?? []).length > 0;
   const year = new Date().getFullYear();
 
-  // Archive into seasons table
-  const { error: archiveErr } = await admin.from("seasons").insert({
-    name: seasonName,
-    year,
-    winner_name: winnerName,
-    total_participants: uniqueParticipants,
-    total_rounds: totalRounds,
-    gameweeks_json: gameweeks ?? [],
-    fixtures_json: fixtures ?? [],
-    picks_json: picks ?? [],
-  });
-
-  if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
+  // Only archive if there is actual season data to preserve
+  if (hasData) {
+    const { error: archiveErr } = await admin.from("seasons").insert({
+      name: seasonName,
+      year,
+      winner_name: winnerName,
+      total_participants: uniqueParticipants,
+      total_rounds: totalRounds,
+      gameweeks_json: gameweeks ?? [],
+      fixtures_json: fixtures ?? [],
+      picks_json: picks ?? [],
+    });
+    if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
+  }
 
   // Clear active data and reset config via a SECURITY DEFINER function
   // (avoids PostgREST bulk-delete restrictions and FK ordering issues)
