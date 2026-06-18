@@ -59,10 +59,6 @@ export default function ManageRoundsPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">
-        Only one round can be open at a time. Opening a round will automatically close any other open round.
-      </p>
-
       {actionError && (
         <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {actionError}

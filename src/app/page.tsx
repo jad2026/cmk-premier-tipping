@@ -84,10 +84,11 @@ export default async function HomePage() {
   const seasonComplete = seasonConfig?.season_complete ?? false;
   const seasonName = seasonConfig?.season_name ?? `${new Date().getFullYear()} Season`;
 
-  // First open round that still has at least one fixture without a result
-  const activeOpenRound = rounds.find(
-    (r) => r.status === "open" && r.total > 0 && r.resultsIn < r.total
-  );
+  // Earliest-deadline open round that still has at least one fixture without a result
+  const openRoundsWithResults = rounds
+    .filter((r) => r.status === "open" && r.total > 0 && r.resultsIn < r.total)
+    .sort((a, b) => new Date(a.gameweek.deadline).getTime() - new Date(b.gameweek.deadline).getTime());
+  const activeOpenRound = openRoundsWithResults[0] ?? null;
   // First closed round that has fixtures but no results yet (coming soon)
   const nextUpcoming = rounds.find((r) => r.status === "upcoming" && r.total > 0);
 

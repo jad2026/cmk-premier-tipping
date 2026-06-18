@@ -478,17 +478,6 @@ export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string |
 export async function setRoundOpen(roundId: string, open: boolean): Promise<{ error: string | null }> {
   const supabase = await createClient();
 
-  if (open) {
-    // Close any currently open round first
-    const { error: closeErr } = await supabase
-      .from("gameweeks")
-      .update({ is_open: false })
-      .eq("is_open", true)
-      .neq("id", roundId);
-
-    if (closeErr) return { error: `Failed to close existing open round: ${closeErr.message}` };
-  }
-
   const { error } = await supabase
     .from("gameweeks")
     .update({ is_open: open })
