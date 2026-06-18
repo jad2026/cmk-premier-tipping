@@ -6,7 +6,6 @@ import AddFixtureForm from "./AddFixtureForm";
 import BulkImportForm from "./BulkImportForm";
 import EnterResultsForm from "./EnterResultsForm";
 import TeamManagementPanel from "./TeamManagementPanel";
-import SeasonPanel from "./SeasonPanel";
 import ParticipantsPanel from "./ParticipantsPanel";
 import ResultsHistoryPanel from "./ResultsHistoryPanel";
 import SeasonManagementPanel from "./SeasonManagementPanel";
@@ -16,7 +15,7 @@ import SponsorsPanel from "./SponsorsPanel";
 const STORAGE_KEY = "cmk_admin_authed";
 const ADMIN_PASSWORD = "admin123";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "season-mgmt" | "sponsors";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "sponsors";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
@@ -27,7 +26,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "participants", label: "Participants" },
   { id: "history", label: "Results History" },
   { id: "season", label: "Season" },
-  { id: "season-mgmt", label: "Season Management" },
   { id: "sponsors", label: "Sponsors" },
 ];
 
@@ -152,13 +150,10 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
           <TeamManagementPanel initialTeams={teams} />
         )}
         {activeTab === "season" && (
-          <SeasonPanel seasonComplete={seasonComplete} />
+          <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />
         )}
         {activeTab === "participants" && <ParticipantsPanel />}
         {activeTab === "history" && <ResultsHistoryPanel />}
-        {activeTab === "season-mgmt" && (
-          <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />
-        )}
         {activeTab === "sponsors" && <SponsorsPanel />}
       </div>
     </div>

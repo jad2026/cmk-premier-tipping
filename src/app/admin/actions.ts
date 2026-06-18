@@ -493,6 +493,74 @@ export async function setRoundOpen(roundId: string, open: boolean): Promise<{ er
 }
 
 // ---------------------------------------------------------------------------
+// Close season — archives current data then marks season_complete = true
+// ---------------------------------------------------------------------------
+export async function closeSeason(): Promise<{ error: string | null }> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { error: "SUPABASE_SERVICE_ROLE_KEY not set" };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  // Fetch data for archive
+  const [
+    { data: gameweeks },
+    { data: fixtures },
+    { data: picks },
+    { data: profiles },
+    { data: allCorrect },
+    { data: cfg },
+  ] = await Promise.all([
+    admin.from("gameweeks").select("*"),
+    admin.from("fixtures").select("*"),
+    admin.from("picks").select("*"),
+    admin.from("profiles").select("id, display_name"),
+    admin.from("picks").select("user_id").eq("is_correct", true),
+    admin.from("season_config").select("season_name").eq("id", 1).single(),
+  ]);
+
+  const seasonName = cfg?.season_name ?? `${new Date().getFullYear()} Season`;
+  const hasData = (gameweeks ?? []).length > 0 || (fixtures ?? []).length > 0;
+
+  if (hasData) {
+    const tally = new Map<string, number>();
+    for (const p of allCorrect ?? []) tally.set(p.user_id, (tally.get(p.user_id) ?? 0) + 1);
+    let winnerName: string | null = null;
+    if (tally.size > 0) {
+      const [topId] = Array.from(tally.entries()).sort((a, b) => b[1] - a[1])[0];
+      const profile = profiles?.find((p) => p.id === topId);
+      winnerName = profile?.display_name?.trim() || `Player ${topId.slice(0, 5).toUpperCase()}`;
+    }
+
+    const { error: archiveErr } = await admin.from("seasons").insert({
+      name: seasonName,
+      year: new Date().getFullYear(),
+      winner_name: winnerName,
+      total_participants: new Set((picks ?? []).map((p) => p.user_id)).size,
+      total_rounds: (gameweeks ?? []).length,
+      gameweeks_json: gameweeks ?? [],
+      fixtures_json: fixtures ?? [],
+      picks_json: picks ?? [],
+    });
+    if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
+  }
+
+  const { error } = await admin
+    .from("season_config")
+    .upsert({ id: 1, season_complete: true }, { onConflict: "id" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/leaderboard");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Season config — mark the season as complete or reopen it
 // ---------------------------------------------------------------------------
 export async function setSeasonComplete(complete: boolean) {

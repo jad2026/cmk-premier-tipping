@@ -1,24 +1,30 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { setSeasonComplete, setSeasonName, startNewSeason, fetchPastSeasons, type PastSeasonRow } from "./actions";
+import {
+  setSeasonName,
+  closeSeason,
+  startNewSeason,
+  fetchPastSeasons,
+  type PastSeasonRow,
+} from "./actions";
 
 type Props = { seasonComplete: boolean; seasonName: string };
 
-export default function SeasonManagementPanel({ seasonName: initialName }: Props) {
+export default function SeasonManagementPanel({ seasonComplete: initial, seasonName: initialName }: Props) {
+  const [isComplete, setIsComplete] = useState(initial);
   const [nameInput, setNameInput] = useState(initialName);
   const [savedName, setSavedName] = useState(initialName);
   const [nameFeedback, setNameFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   // Close season
   const [closeConfirm, setCloseConfirm] = useState(false);
-  const [closeFeedback, setCloseFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   // Start new season
-  const [newSeasonName, setNewSeasonName] = useState(`${new Date().getFullYear() + 1} Season`);
+  const [newSeasonName, setNewSeasonName] = useState("");
   const [newSeasonStep, setNewSeasonStep] = useState<"idle" | "input" | "confirm">("idle");
-  const [newSeasonFeedback, setNewSeasonFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [pastSeasons, setPastSeasons] = useState<PastSeasonRow[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -42,41 +48,47 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
   }
 
   function handleCloseSeason() {
-    setCloseFeedback(null);
+    setFeedback(null);
     startTransition(async () => {
-      const { error } = await setSeasonComplete(true);
+      const { error } = await closeSeason();
       if (error) {
-        setCloseFeedback({ ok: false, msg: error });
+        setFeedback({ ok: false, msg: error });
       } else {
+        setIsComplete(true);
         setCloseConfirm(false);
-        setCloseFeedback({ ok: true, msg: "Season marked as complete. The winner banner is now live." });
+        setFeedback({ ok: true, msg: "Season closed. The winner banner is now live on the home page." });
+        fetchPastSeasons().then(({ data }) => setPastSeasons(data));
       }
     });
   }
 
   function handleStartNewSeason() {
-    const name = newSeasonName.trim() || `${new Date().getFullYear() + 1} Season`;
-    setNewSeasonFeedback(null);
+    const name = newSeasonName.trim() || savedName;
+    setFeedback(null);
     startTransition(async () => {
       const { error } = await startNewSeason(name);
       if (error) {
-        setNewSeasonFeedback({ ok: false, msg: error });
+        setFeedback({ ok: false, msg: error });
       } else {
+        setIsComplete(false);
         setNewSeasonStep("idle");
-        setNewSeasonFeedback({ ok: true, msg: "New season started. All data has been archived and cleared." });
+        setNewSeasonName("");
+        setSavedName(name);
+        setNameInput(name);
+        setFeedback({ ok: true, msg: "New season started. All data cleared and ready for fixture import." });
         fetchPastSeasons().then(({ data }) => setPastSeasons(data));
       }
     });
   }
 
   return (
-    <div className="space-y-10 max-w-lg">
+    <div className="space-y-8 max-w-lg">
 
       {/* ── Season Name ─────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Current Season Name</h2>
-          <p className="text-xs text-gray-500 mt-1">Displayed on the home page below the hero banner.</p>
+          <p className="text-xs text-gray-500 mt-1">Displayed on the home page and leaderboard.</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -94,40 +106,47 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
             {isPending ? "Saving…" : "Save"}
           </button>
         </div>
-        {nameFeedback && (
-          <Feedback ok={nameFeedback.ok} msg={nameFeedback.msg} />
-        )}
+        {nameFeedback && <Feedback ok={nameFeedback.ok} msg={nameFeedback.msg} />}
       </section>
 
-      {/* ── Season Actions ───────────────────────────────────────────────── */}
+      {/* ── Season Status ────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Season Actions</h2>
+        <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Season Status</h2>
 
-        <div className="flex gap-3 flex-wrap">
-          {/* Close Season */}
+        <div className={`rounded-2xl border px-5 py-4 flex items-center gap-4 ${
+          isComplete ? "bg-brand-gold/8 border-brand-gold/30" : "bg-green-50 border-green-200"
+        }`}>
+          <span className="text-2xl shrink-0">{isComplete ? "🏆" : "🟢"}</span>
+          <div>
+            <p className={`text-sm font-semibold ${isComplete ? "text-brand-gold-dark" : "text-green-800"}`}>
+              {isComplete ? "Season complete" : "Season in progress"}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {isComplete
+                ? "The winner banner is live on the home page."
+                : "Rounds are open for tipping as normal."}
+            </p>
+          </div>
+        </div>
+
+        {/* Close Season (only when in progress) */}
+        {!isComplete && !closeConfirm && (
           <button
-            onClick={() => { setCloseConfirm(true); setCloseFeedback(null); }}
+            onClick={() => { setCloseConfirm(true); setFeedback(null); }}
             disabled={isPending}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-gold hover:bg-brand-gold-dark text-white transition-colors shadow-sm"
           >
             Close Season
           </button>
+        )}
 
-          {/* Start New Season */}
-          <button
-            onClick={() => { setNewSeasonStep("input"); setNewSeasonFeedback(null); }}
-            disabled={isPending}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors shadow-sm"
-          >
-            Start New Season
-          </button>
-        </div>
-
-        {/* Close season confirmation */}
-        {closeConfirm && (
+        {!isComplete && closeConfirm && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-3">
             <p className="text-sm font-semibold text-amber-900">
-              Close the season and show the winner banner to all users?
+              Archive this season and show the winner banner to all users?
+            </p>
+            <p className="text-xs text-amber-700">
+              The current season data will be saved to the archive. Make sure all results are entered first.
             </p>
             <div className="flex gap-3">
               <button
@@ -137,34 +156,38 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
               >
                 {isPending ? "Saving…" : "Yes, close season"}
               </button>
-              <button
-                onClick={() => setCloseConfirm(false)}
-                disabled={isPending}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-              >
+              <button onClick={() => setCloseConfirm(false)} disabled={isPending}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
                 Cancel
               </button>
             </div>
           </div>
         )}
-        {closeFeedback && <Feedback ok={closeFeedback.ok} msg={closeFeedback.msg} />}
 
-        {/* Start new season — name input step */}
-        {newSeasonStep === "input" && (
+        {/* Start New Season (only when complete) */}
+        {isComplete && newSeasonStep === "idle" && (
+          <button
+            onClick={() => { setNewSeasonStep("input"); setFeedback(null); }}
+            disabled={isPending}
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors shadow-sm"
+          >
+            Start New Season
+          </button>
+        )}
+
+        {isComplete && newSeasonStep === "input" && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                New Season Name
-              </label>
-              <input
-                type="text"
-                value={newSeasonName}
-                onChange={(e) => setNewSeasonName(e.target.value)}
-                className="input max-w-xs"
-                placeholder="e.g. 2027 CMK Premier Season"
-                autoFocus
-              />
-            </div>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              New Season Name
+            </label>
+            <input
+              type="text"
+              value={newSeasonName}
+              onChange={(e) => setNewSeasonName(e.target.value)}
+              className="input max-w-xs"
+              placeholder="e.g. 2027 CMK Premier Season"
+              autoFocus
+            />
             <div className="flex gap-3">
               <button
                 onClick={() => setNewSeasonStep("confirm")}
@@ -173,24 +196,21 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
               >
                 Continue
               </button>
-              <button
-                onClick={() => setNewSeasonStep("idle")}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-              >
+              <button onClick={() => { setNewSeasonStep("idle"); setNewSeasonName(""); }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
                 Cancel
               </button>
             </div>
           </div>
         )}
 
-        {/* Start new season — confirm step */}
-        {newSeasonStep === "confirm" && (
+        {isComplete && newSeasonStep === "confirm" && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 space-y-3">
             <p className="text-sm font-semibold text-red-900">
-              Archive current season and start &ldquo;{newSeasonName}&rdquo;?
+              Start &ldquo;{newSeasonName}&rdquo; and clear all current data?
             </p>
             <p className="text-xs text-red-700">
-              ⚠️ This cannot be undone. All fixtures, results and picks will be archived then cleared.
+              ⚠️ This cannot be undone. All fixtures, results and picks will be cleared.
             </p>
             <div className="flex gap-3">
               <button
@@ -198,20 +218,19 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
                 disabled={isPending}
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors"
               >
-                {isPending ? "Archiving…" : "Yes, archive and reset"}
+                {isPending ? "Resetting…" : "Yes, start new season"}
               </button>
-              <button
-                onClick={() => setNewSeasonStep("idle")}
-                disabled={isPending}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-              >
+              <button onClick={() => setNewSeasonStep("idle")} disabled={isPending}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
                 Cancel
               </button>
             </div>
           </div>
         )}
-        {newSeasonFeedback && <Feedback ok={newSeasonFeedback.ok} msg={newSeasonFeedback.msg} />}
+
+        {feedback && <Feedback ok={feedback.ok} msg={feedback.msg} />}
       </section>
+
       {/* ── Past Seasons ─────────────────────────────────────────────────── */}
       <section className="space-y-3 border-t border-gray-100 pt-6">
         <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Past Seasons</h2>
