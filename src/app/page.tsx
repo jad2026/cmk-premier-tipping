@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import TeamBadge from "@/components/TeamBadge";
 import Avatar from "@/components/Avatar";
+import TeamMarquee from "@/components/TeamMarquee";
 import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
@@ -133,66 +133,35 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
 
+      {/* ── Team marquee ──────────────────────────────────────────────────────── */}
+      {teams && teams.length > 0 && <TeamMarquee teams={teams} />}
+
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-stretch gap-3">
-        {/* Left sidebar — 2 columns × 4 rows */}
-        <div className="hidden md:grid grid-cols-2 gap-3 py-6 px-2 content-around">
-          {Array.from({ length: 8 }).map((_, i) => {
-            const team = teams?.[i];
-            return team ? (
-              <div key={team.id} className="flex items-center justify-center opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-                <TeamBadge team={team} size="xl" />
-              </div>
-            ) : (
-              <div key={i} className="flex items-center justify-center">
-                <span className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-white/20 text-xl select-none">🏉</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
-          <Image src="/hero.jpg" alt="" fill priority
-            sizes="(min-width: 768px) calc(100vw - 12rem), 100vw"
-            className="object-cover pointer-events-none" />
-          <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
-          <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
-          <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
-          <div className="relative px-8 sm:px-12 py-14 sm:py-16 text-center">
-            <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
-              2026 Season
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
-              Club Rugby<br />
-              <span className="text-brand-gold">Tipping</span>
-            </h1>
-            <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
-              Pick the winners. Top the table. Win the glory.
-            </p>
-            <div className="flex justify-center gap-3 flex-wrap">
-              <Link href="/tips" className="btn-gold shadow-lg">Make Your Tips →</Link>
-              <Link href="/leaderboard" className="btn-ghost">Leaderboard</Link>
-            </div>
+      <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
+        <Image src="/hero.jpg" alt="" fill priority
+          sizes="100vw"
+          className="object-cover pointer-events-none" />
+        <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
+        <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
+        <div className="relative px-8 sm:px-12 py-10 sm:py-12 text-center">
+          <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
+            2026 Season
+          </span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
+            Club Rugby<br />
+            <span className="text-brand-gold">Tipping</span>
+          </h1>
+          <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
+            Pick the winners. Top the table. Win the glory.
+          </p>
+          <div className="flex justify-center gap-3 flex-wrap">
+            <Link href="/tips" className="btn-gold shadow-lg">Make Your Tips →</Link>
+            <Link href="/leaderboard" className="btn-ghost">Leaderboard</Link>
           </div>
-        </section>
-
-        {/* Right sidebar — 2 columns × 4 rows */}
-        <div className="hidden md:grid grid-cols-2 gap-3 py-6 px-2 content-around">
-          {Array.from({ length: 8 }).map((_, i) => {
-            const team = teams?.[8 + i];
-            return team ? (
-              <div key={team.id} className="flex items-center justify-center opacity-60 hover:opacity-90 transition-opacity duration-200" title={team.name}>
-                <TeamBadge team={team} size="xl" />
-              </div>
-            ) : (
-              <div key={i} className="flex items-center justify-center">
-                <span className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-white/20 text-xl select-none">🏉</span>
-              </div>
-            );
-          })}
         </div>
-      </div>
+      </section>
 
       {/* ── Season name strip ────────────────────────────────────────────────── */}
       {!seasonComplete && (
