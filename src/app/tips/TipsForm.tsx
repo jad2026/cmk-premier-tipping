@@ -56,15 +56,26 @@ export default function TipsForm({ rounds }: Props) {
         return !isRoundDeadlinePassed(entry.deadline) && !isFixtureResulted(entry.fixture);
       });
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setError("Not signed in."); return; }
+
       for (const [fixtureId, value] of saveable) {
         const isDraw = value === "draw";
-        const { error: rpcError } = await supabase.rpc("upsert_pick", {
-          p_fixture_id: fixtureId,
-          p_picked_team_id: isDraw ? null : value,
-          p_picked_draw: isDraw,
-        });
-        if (rpcError) {
-          setError(rpcError.message);
+        const { error: upsertError } = await supabase
+          .from("picks")
+          .upsert(
+            {
+              fixture_id: fixtureId,
+              user_id: user.id,
+              picked_team_id: isDraw ? null : value,
+              picked_draw: isDraw,
+              auto_picked: false,
+              is_correct: null,
+            },
+            { onConflict: "fixture_id,user_id" }
+          );
+        if (upsertError) {
+          setError(upsertError.message);
           return;
         }
       }
