@@ -159,12 +159,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Season name strip ────────────────────────────────────────────────── */}
+      {/* ── Season name banner ───────────────────────────────────────────────── */}
       {!seasonComplete && (
-        <div className="text-center">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-sm font-semibold tracking-wide">
-            {seasonName}
-          </span>
+        <div className="rounded-2xl bg-brand py-4 px-6 flex items-center justify-center gap-3">
+          <span className="text-xl select-none">🏉</span>
+          <span className="text-[20px] font-bold text-brand-gold tracking-tight">{seasonName}</span>
         </div>
       )}
 
