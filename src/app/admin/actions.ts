@@ -185,23 +185,7 @@ export async function saveResults(
     console.log(`[saveResults] Scored picks for fixture ${fixtureId} (isDraw=${isDraw}, result=${dbResultTeamId ?? "draw"})`);
   }
 
-  // ── Step 3: auto-complete season if all fixtures now have results ────────
-  // A fixture is unresolved when result_team_id is null AND is_draw is false
-  const { data: incomplete } = await supabase
-    .from("fixtures")
-    .select("id")
-    .is("result_team_id", null)
-    .eq("is_draw", false)
-    .limit(1);
-
-  if (incomplete && incomplete.length === 0) {
-    console.log("[saveResults] All fixtures have results — marking season complete");
-    await supabase
-      .from("season_config")
-      .upsert({ id: 1, season_complete: true }, { onConflict: "id" });
-  }
-
-  // ── Step 4: send results emails to all users ─────────────────────────────
+  // ── Step 3: send results emails to all users ─────────────────────────────
   const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));
   console.log("[saveResults] About to send emails");
   try {
