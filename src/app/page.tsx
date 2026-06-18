@@ -238,7 +238,7 @@ export default async function HomePage() {
 
             {/* Heading */}
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-8">
-              2026 Tipping Champion
+              {seasonName} — Tipping Champion
             </h1>
 
             {winner ? (
