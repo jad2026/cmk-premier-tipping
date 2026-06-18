@@ -739,18 +739,10 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
 
   if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
 
-  // Clear active data in dependency order (picks → fixtures → gameweeks)
-  const { error: picksErr } = await admin.from("picks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  if (picksErr) return { error: `Clear picks failed: ${picksErr.message}` };
-
-  const { error: fixErr } = await admin.from("fixtures").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  if (fixErr) return { error: `Clear fixtures failed: ${fixErr.message}` };
-
-  const { error: gwErr } = await admin.from("gameweeks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  if (gwErr) return { error: `Clear gameweeks failed: ${gwErr.message}` };
-
-  // Reset season_config
-  await admin.from("season_config").upsert({ id: 1, season_complete: false }, { onConflict: "id" });
+  // Clear active data and reset config via a SECURITY DEFINER function
+  // (avoids PostgREST bulk-delete restrictions and FK ordering issues)
+  const { error: clearErr } = await admin.rpc("clear_season_data", { new_season_name: seasonName });
+  if (clearErr) return { error: `Clear failed: ${clearErr.message}` };
 
   revalidatePath("/admin");
   revalidatePath("/");
