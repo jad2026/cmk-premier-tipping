@@ -722,6 +722,7 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
   }
 
   const uniqueParticipants = new Set((picks ?? []).map((p) => p.user_id)).size;
+  const totalRounds = (gameweeks ?? []).length;
   const year = new Date().getFullYear();
 
   // Archive into seasons table
@@ -730,6 +731,7 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
     year,
     winner_name: winnerName,
     total_participants: uniqueParticipants,
+    total_rounds: totalRounds,
     gameweeks_json: gameweeks ?? [],
     fixtures_json: fixtures ?? [],
     picks_json: picks ?? [],
@@ -738,14 +740,13 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
   if (archiveErr) return { error: `Archive failed: ${archiveErr.message}` };
 
   // Clear active data in dependency order (picks → fixtures → gameweeks)
-  // Uses service role client to bypass RLS which would otherwise restrict deletes to own rows
-  const { error: picksErr } = await admin.from("picks").delete().gte("created_at", "1970-01-01");
+  const { error: picksErr } = await admin.from("picks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (picksErr) return { error: `Clear picks failed: ${picksErr.message}` };
 
-  const { error: fixErr } = await admin.from("fixtures").delete().gte("created_at", "1970-01-01");
+  const { error: fixErr } = await admin.from("fixtures").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (fixErr) return { error: `Clear fixtures failed: ${fixErr.message}` };
 
-  const { error: gwErr } = await admin.from("gameweeks").delete().gte("created_at", "1970-01-01");
+  const { error: gwErr } = await admin.from("gameweeks").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (gwErr) return { error: `Clear gameweeks failed: ${gwErr.message}` };
 
   // Reset season_config
@@ -768,13 +769,14 @@ export type PastSeasonRow = {
   archivedAt: string;
   winnerName: string | null;
   totalParticipants: number;
+  totalRounds: number;
 };
 
 export async function fetchPastSeasons(): Promise<{ data: PastSeasonRow[]; error: string | null }> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("seasons")
-    .select("id, name, year, archived_at, winner_name, total_participants")
+    .select("id, name, year, archived_at, winner_name, total_participants, total_rounds")
     .order("archived_at", { ascending: false });
 
   if (error) return { data: [], error: error.message };
@@ -787,6 +789,7 @@ export async function fetchPastSeasons(): Promise<{ data: PastSeasonRow[]; error
       archivedAt: s.archived_at,
       winnerName: s.winner_name,
       totalParticipants: s.total_participants,
+      totalRounds: s.total_rounds ?? 0,
     })),
     error: null,
   };

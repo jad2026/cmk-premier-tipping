@@ -88,6 +88,7 @@ export type Season = {
   archived_at: string;
   winner_name: string | null;
   total_participants: number;
+  total_rounds: number;
   gameweeks_json: unknown;
   fixtures_json: unknown;
   picks_json: unknown;

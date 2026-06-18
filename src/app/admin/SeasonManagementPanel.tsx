@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { setSeasonComplete, setSeasonName, startNewSeason } from "./actions";
+import { useState, useTransition, useEffect } from "react";
+import { setSeasonComplete, setSeasonName, startNewSeason, fetchPastSeasons, type PastSeasonRow } from "./actions";
 
 type Props = { seasonComplete: boolean; seasonName: string };
 
@@ -19,7 +19,12 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
   const [newSeasonStep, setNewSeasonStep] = useState<"idle" | "input" | "confirm">("idle");
   const [newSeasonFeedback, setNewSeasonFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  const [pastSeasons, setPastSeasons] = useState<PastSeasonRow[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    fetchPastSeasons().then(({ data }) => setPastSeasons(data));
+  }, []);
 
   function handleSaveName() {
     const trimmed = nameInput.trim();
@@ -59,6 +64,7 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
       } else {
         setNewSeasonStep("idle");
         setNewSeasonFeedback({ ok: true, msg: "New season started. All data has been archived and cleared." });
+        fetchPastSeasons().then(({ data }) => setPastSeasons(data));
       }
     });
   }
@@ -205,6 +211,32 @@ export default function SeasonManagementPanel({ seasonName: initialName }: Props
           </div>
         )}
         {newSeasonFeedback && <Feedback ok={newSeasonFeedback.ok} msg={newSeasonFeedback.msg} />}
+      </section>
+      {/* ── Past Seasons ─────────────────────────────────────────────────── */}
+      <section className="space-y-3 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-bold text-brand uppercase tracking-wide">Past Seasons</h2>
+        {pastSeasons.length === 0 ? (
+          <p className="text-sm text-gray-400">No past seasons yet.</p>
+        ) : (
+          <div className="rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {pastSeasons.map((s) => (
+              <div key={s.id} className="px-5 py-3.5 flex items-center justify-between gap-4 hover:bg-gray-50/60">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{s.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {s.totalRounds} round{s.totalRounds !== 1 ? "s" : ""} · {s.totalParticipants} participant{s.totalParticipants !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {s.winnerName && (
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-gray-400">Winner</p>
+                    <p className="text-sm font-bold text-brand-gold-dark">🏆 {s.winnerName}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
