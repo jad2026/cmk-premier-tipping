@@ -168,41 +168,43 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* ── Active round card ─────────────────────────────────────────────────── */}
-      {activeMode === "open" && activeRound && (
-        <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-              <span className="flex w-10 h-10 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg">🟢</span>
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 animate-ping opacity-70" />
+      {/* ── Open round cards (one per open round) ────────────────────────────── */}
+      {!seasonComplete && openRoundsWithResults.map((r) => {
+        const deadlinePassed = new Date(r.gameweek.deadline) <= new Date();
+        return deadlinePassed ? (
+          <section key={r.gameweek.id} className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <span className="flex w-10 h-10 items-center justify-center rounded-full bg-orange-50 text-xl shrink-0">🔒</span>
+              <div>
+                <p className="eyebrow mb-0.5">Picks Closed</p>
+                <h2 className="text-lg font-bold text-brand leading-tight">{r.gameweek.label}</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Results will be entered soon.</p>
+              </div>
             </div>
-            <div>
-              <p className="eyebrow mb-0.5">Open Now</p>
-              <h2 className="text-lg font-bold text-brand leading-tight">{activeRound.gameweek.label}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Deadline: <span className="font-medium text-gray-700">{fmtDeadline(activeRound.gameweek.deadline)}</span>
-              </p>
+            <Link href="/leaderboard" className="btn-ghost shrink-0">Leaderboard</Link>
+          </section>
+        ) : (
+          <section key={r.gameweek.id} className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0">
+                <span className="flex w-10 h-10 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg">🟢</span>
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 animate-ping opacity-70" />
+              </div>
+              <div>
+                <p className="eyebrow mb-0.5">Open Now</p>
+                <h2 className="text-lg font-bold text-brand leading-tight">{r.gameweek.label}</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Deadline: <span className="font-medium text-gray-700">{fmtDeadline(r.gameweek.deadline)}</span>
+                </p>
+              </div>
             </div>
-          </div>
-          <Link href="/tips" className="btn-primary shrink-0">Submit Tips</Link>
-        </section>
-      )}
+            <Link href="/tips" className="btn-primary shrink-0">Submit Tips</Link>
+          </section>
+        );
+      })}
 
-      {activeMode === "picks-closed" && activeRound && (
-        <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <span className="flex w-10 h-10 items-center justify-center rounded-full bg-orange-50 text-xl shrink-0">🔒</span>
-            <div>
-              <p className="eyebrow mb-0.5">Picks Closed</p>
-              <h2 className="text-lg font-bold text-brand leading-tight">{activeRound.gameweek.label}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Results will be entered soon.</p>
-            </div>
-          </div>
-          <Link href="/leaderboard" className="btn-ghost shrink-0">Leaderboard</Link>
-        </section>
-      )}
-
-{activeMode === "coming-soon" && activeRound && (
+      {/* ── Coming soon (no open rounds) ─────────────────────────────────────── */}
+      {activeMode === "coming-soon" && activeRound && (
         <section className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <span className="flex w-10 h-10 items-center justify-center rounded-full bg-blue-50 text-xl shrink-0">📅</span>
