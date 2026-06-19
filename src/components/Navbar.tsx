@@ -12,7 +12,7 @@ export default function Navbar() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -57,9 +57,9 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="bg-brand sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.18)]">
+    <header className="bg-brand sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.18)]" ref={menuRef}>
       <div className="border-b-2 border-brand-gold/40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16" ref={menuRef}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group select-none shrink-0">
