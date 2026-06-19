@@ -46,6 +46,7 @@ export type Profile = {
   last_name: string | null;
   updated_at: string | null;
   avatar_url: string | null;
+  is_admin: boolean;
 };
 
 export type SeasonConfig = {

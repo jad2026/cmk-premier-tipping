@@ -11,14 +11,35 @@ export default function Navbar() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) =>
-      setUser(session?.user ?? null)
-    );
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", data.user.id)
+          .single();
+        setIsAdmin(profile?.is_admin ?? false);
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", session.user.id)
+          .single();
+        setIsAdmin(profile?.is_admin ?? false);
+      } else {
+        setIsAdmin(false);
+      }
+    });
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
@@ -53,7 +74,7 @@ export default function Navbar() {
     { href: "/leaderboard", label: "Leaderboard" },
     ...(user ? [{ href: "/leagues", label: "Leagues" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
-    { href: "/admin", label: "Admin" },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
