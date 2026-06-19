@@ -145,7 +145,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         {activeTab === "results" && (
           <EnterResultsForm fixtures={pendingFixtures} teams={teams} />
         )}
-        {activeTab === "rounds" && <ManageRoundsPanel />}
+        {activeTab === "rounds" && <ManageRoundsPanel teams={teams} />}
         {activeTab === "teams" && (
           <TeamManagementPanel initialTeams={teams} />
         )}

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { addFixture } from "./actions";
 import type { Team } from "@/lib/supabase/types";
+import FixtureListPanel from "./FixtureListPanel";
 
 const inputClass =
   "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white";
@@ -32,6 +33,7 @@ export default function AddFixtureForm({ teams }: { teams: Team[] }) {
   }
 
   return (
+    <>
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h2 className="text-lg font-bold text-brand mb-5">Add Fixture</h2>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
@@ -148,5 +150,11 @@ export default function AddFixtureForm({ teams }: { teams: Team[] }) {
         </div>
       </form>
     </section>
+
+    <div className="mt-6">
+      <h2 className="text-lg font-bold text-brand mb-4">All Fixtures</h2>
+      <FixtureListPanel teams={teams} />
+    </div>
+    </>
   );
 }

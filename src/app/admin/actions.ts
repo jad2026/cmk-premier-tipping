@@ -915,3 +915,102 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
   revalidateTeamPaths();
   return { error: null };
 }
+
+// ---------------------------------------------------------------------------
+// Fixture management — fetch, update, delete
+// ---------------------------------------------------------------------------
+
+export type FixtureAdminRow = {
+  id: string;
+  gameweek_id: string;
+  gameweek_number: number;
+  gameweek_label: string;
+  home_team_id: string;
+  away_team_id: string;
+  match_date: string;
+  venue: string | null;
+  result_team_id: string | null;
+  is_draw: boolean;
+  picks_count: number;
+};
+
+export async function fetchAllFixtures(): Promise<{ data: FixtureAdminRow[]; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: fixtures, error: fErr } = await supabase
+    .from("fixtures")
+    .select("*, gameweek:gameweeks(id, number, label)")
+    .order("match_date");
+
+  if (fErr || !fixtures) return { data: [], error: fErr?.message ?? "Failed to fetch fixtures" };
+
+  // Count picks per fixture
+  const { data: pickCounts } = await supabase
+    .from("picks")
+    .select("fixture_id");
+
+  const countMap = new Map<string, number>();
+  for (const p of pickCounts ?? []) {
+    countMap.set(p.fixture_id, (countMap.get(p.fixture_id) ?? 0) + 1);
+  }
+
+  const rows: FixtureAdminRow[] = fixtures.map((f) => {
+    const gw = (f.gameweek as unknown) as { id: string; number: number; label: string } | null;
+    return {
+      id: f.id,
+      gameweek_id: f.gameweek_id,
+      gameweek_number: gw?.number ?? 0,
+      gameweek_label: gw?.label ?? `Round ?`,
+      home_team_id: f.home_team_id,
+      away_team_id: f.away_team_id,
+      match_date: f.match_date,
+      venue: f.venue,
+      result_team_id: f.result_team_id,
+      is_draw: f.is_draw,
+      picks_count: countMap.get(f.id) ?? 0,
+    };
+  });
+
+  return { data: rows, error: null };
+}
+
+export async function updateFixture(
+  fixtureId: string,
+  fields: { home_team_id: string; away_team_id: string; match_date: string; venue: string | null }
+): Promise<{ error: string | null }> {
+  if (fields.home_team_id === fields.away_team_id) {
+    return { error: "Home and away teams must be different." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("fixtures")
+    .update({
+      home_team_id: fields.home_team_id,
+      away_team_id: fields.away_team_id,
+      match_date: new Date(fields.match_date).toISOString(),
+      venue: fields.venue || null,
+    })
+    .eq("id", fixtureId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin");
+  revalidatePath("/tips");
+  revalidatePath("/");
+  return { error: null };
+}
+
+export async function deleteFixture(fixtureId: string): Promise<{ error: string | null }> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { error: "SUPABASE_SERVICE_ROLE_KEY not set" };
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  // Delete picks first (FK constraint)
+  await admin.from("picks").delete().eq("fixture_id", fixtureId);
+  const { error } = await admin.from("fixtures").delete().eq("id", fixtureId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin");
+  revalidatePath("/tips");
+  revalidatePath("/");
+  return { error: null };
+}

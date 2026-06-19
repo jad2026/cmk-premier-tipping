@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { fetchRounds, setRoundOpen, type RoundRow } from "./actions";
+import FixtureListPanel from "./FixtureListPanel";
+import type { Team } from "@/lib/supabase/types";
 
-export default function ManageRoundsPanel() {
+export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -142,6 +144,11 @@ export default function ManageRoundsPanel() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-lg font-bold text-brand mb-4">Fixtures</h2>
+        <FixtureListPanel teams={teams} />
       </div>
     </div>
   );
