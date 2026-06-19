@@ -106,7 +106,7 @@ export default function TipsForm({ rounds }: Props) {
       {rounds.map((round) => {
         const isPastDeadline = isRoundDeadlinePassed(round.deadline);
         return (
-          <section key={round.id}>
+          <section key={round.id} id={round.label.toLowerCase().replace(/\s+/g, "-")}>
             {/* ── Round header ─────────────────────────────────────────── */}
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 flex items-center gap-3">

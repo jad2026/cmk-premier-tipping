@@ -198,7 +198,7 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-            <Link href="/tips" className="btn-primary shrink-0">Submit Tips</Link>
+            <Link href={`/tips#${r.gameweek.label.toLowerCase().replace(/\s+/g, "-")}`} className="btn-primary shrink-0">Submit Tips</Link>
           </section>
         );
       })}
