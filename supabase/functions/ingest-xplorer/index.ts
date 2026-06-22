@@ -174,15 +174,6 @@ Deno.serve(async () => {
     }
   }
 
-  let bridge = { updated: 0, skipped: 0 };
-  try {
-    const { data, error } = await supabase.rpc("bridge_xplorer_results");
-    if (error) problems.push(`bridge: ${error.message}`);
-    else if (data) bridge = data;
-  } catch (e) {
-    problems.push(`bridge: ${(e as Error).message}`);
-  }
-
   let rounds = { gameweeks_created: 0, fixtures_created: 0, rounds_opened: 0, rounds_closed: 0 };
   try {
     const { data, error } = await supabase.rpc("auto_manage_rounds");
@@ -190,6 +181,15 @@ Deno.serve(async () => {
     else if (data) rounds = data;
   } catch (e) {
     problems.push(`rounds: ${(e as Error).message}`);
+  }
+
+  let bridge = { updated: 0, skipped: 0 };
+  try {
+    const { data, error } = await supabase.rpc("bridge_xplorer_results");
+    if (error) problems.push(`bridge: ${error.message}`);
+    else if (data) bridge = data;
+  } catch (e) {
+    problems.push(`bridge: ${(e as Error).message}`);
   }
 
   return new Response(
