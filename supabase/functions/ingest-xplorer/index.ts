@@ -224,8 +224,17 @@ Deno.serve(async () => {
     problems.push(`bridge: ${(e as Error).message}`);
   }
 
+  let rounds = { gameweeks_created: 0, fixtures_created: 0, rounds_opened: 0, rounds_closed: 0 };
+  try {
+    const { data, error } = await supabase.rpc("auto_manage_rounds");
+    if (error) problems.push(`rounds: ${error.message}`);
+    else if (data) rounds = data;
+  } catch (e) {
+    problems.push(`rounds: ${(e as Error).message}`);
+  }
+
   return new Response(
-    JSON.stringify({ upserted, ladderRows, bridge, problems }, null, 2),
+    JSON.stringify({ upserted, ladderRows, bridge, rounds, problems }, null, 2),
     { headers: { "content-type": "application/json" }, status: problems.length ? 207 : 200 },
   );
 });
