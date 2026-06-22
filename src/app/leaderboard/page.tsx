@@ -34,6 +34,33 @@ type LeaderboardEntry = {
   total: number;
 };
 
+// ── Score types + helper ──────────────────────────────────────────────────────
+
+type MatchScore = { home: string; away: string };
+type RawMatchResult = {
+  home_team: string;
+  away_team: string;
+  home_score: string | null;
+  away_score: string | null;
+};
+
+function findScore(
+  fixture: { home_team: { name: string }; away_team: { name: string } },
+  results: RawMatchResult[]
+): MatchScore | null {
+  const hn = fixture.home_team.name.toLowerCase();
+  const an = fixture.away_team.name.toLowerCase();
+  for (const r of results) {
+    if (!r.home_score || !r.away_score) continue;
+    const rh = r.home_team.toLowerCase();
+    const ra = r.away_team.toLowerCase();
+    if ((rh.includes(hn) || hn.includes(rh)) && (ra.includes(an) || an.includes(ra))) {
+      return { home: r.home_score, away: r.away_score };
+    }
+  }
+  return null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function resolveDisplayName(
@@ -130,11 +157,13 @@ function FixtureCard({
   picks,
   teamMap,
   profileMap,
+  score,
 }: {
   fixture: RichFixture;
   picks: RichPick[];
   teamMap: Map<string, Team>;
   profileMap: Map<string, string | null>;
+  score: MatchScore | null;
 }) {
   const hasResult = fixture.result_team_id !== null || fixture.is_draw;
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
@@ -160,9 +189,15 @@ function FixtureCard({
               {fixture.home_team.name}
             </span>
           </div>
-          <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand/8 text-brand text-[10px] font-bold tracking-widest">
-            VS
-          </span>
+          {score ? (
+            <span className="shrink-0 px-3 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-sm font-bold tabular-nums whitespace-nowrap">
+              {score.home} – {score.away}
+            </span>
+          ) : (
+            <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand/8 text-brand text-[10px] font-bold tracking-widest">
+              VS
+            </span>
+          )}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
             <span className="text-sm font-semibold text-gray-800 leading-snug text-right line-clamp-2">
               {fixture.away_team.name}
@@ -354,6 +389,7 @@ export default async function LeaderboardPage() {
     { data: closedGameweeks },
     { data: fixturesWithResults },
     { data: seasonConfig },
+    { data: matchResultsRaw },
   ] = await Promise.all([
     supabase
       .from("gameweeks")
@@ -366,7 +402,10 @@ export default async function LeaderboardPage() {
     supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
     supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
     supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+    supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
   ]);
+
+  const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
   const seasonComplete = seasonConfig?.season_complete ?? false;
   const seasonName = seasonConfig?.season_name ?? `${new Date().getFullYear()} Season`;
@@ -544,6 +583,7 @@ export default async function LeaderboardPage() {
                 picks={weekPicksByFixture.get(fixture.id) ?? []}
                 teamMap={teamMap}
                 profileMap={profileMap}
+                score={findScore(fixture, matchResults)}
               />
             ))}
           </div>
@@ -629,6 +669,7 @@ export default async function LeaderboardPage() {
                       picks={summaryPicksByFixture.get(fixture.id) ?? []}
                       teamMap={teamMap}
                       profileMap={profileMap}
+                      score={findScore(fixture, matchResults)}
                     />
                   ))}
                 </div>
