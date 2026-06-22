@@ -5,20 +5,18 @@ const XPLORER_GQL = "https://rugby-au-cms.graphcdn.app/";
 const FIXTURES_QUERY = `
 query FixturesAndResults($comps: [CompInput], $teams: [String], $type: String, $skip: Int, $limit: Int) {
   getFixtureItems(comps: $comps, teams: $teams, type: $type, skip: $skip, limit: $limit) {
-    id
-    compId
-    compName
-    dateTime
-    round
-    roundLabel
-    season
-    status
-    venue
-    isLive
-    isBye
+    id compId compName dateTime round roundLabel season status venue isLive isBye
     homeTeam { id name teamId score }
     awayTeam { id name teamId score }
-    __typename
+  }
+}`;
+
+const ENTITY_FIXTURES_QUERY = `
+query EntityFixturesAndResults($entityId: Int, $entityType: String, $season: String, $comps: [CompInput], $teams: [String], $type: String, $skip: Int, $limit: Int) {
+  getEntityFixturesAndResults(season: $season, comps: $comps, teams: $teams, entityId: $entityId, entityType: $entityType, type: $type, limit: $limit, skip: $skip) {
+    id compId compName dateTime round roundLabel season status venue isLive isBye
+    homeTeam { id name teamId score }
+    awayTeam { id name teamId score }
   }
 }`;
 
@@ -27,58 +25,31 @@ query CompLadderQuery($comp: CompInput) {
   compLadder(comp: $comp) {
     id
     ladderPools {
-      id
-      poolName
+      id poolName
       teams {
-        id
-        name
-        crest
-        position
-        matchesPlayed
-        matchesWon
-        matchesDrawn
-        matchesLost
-        byes
-        pointsFor
-        pointsAgainst
-        pointsDifference
-        totalBonusPoints
-        totalMatchPoints
+        id name crest position matchesPlayed matchesWon matchesDrawn matchesLost byes
+        pointsFor pointsAgainst pointsDifference totalBonusPoints totalMatchPoints
       }
     }
   }
 }`;
 
+type Comp = { comp_id: string; source_type: string; name: string; entity_id?: number; entity_type?: string; season?: string };
+
 type FixtureItem = {
-  id: string;
-  compId: string;
-  compName: string | null;
-  dateTime: string | null;
-  round: string | number | null;
-  roundLabel: string | null;
-  status: string | null;
-  venue: string | null;
-  isLive: boolean | null;
-  isBye: boolean | null;
+  id: string; compId: string; compName: string | null; dateTime: string | null;
+  round: string | number | null; roundLabel: string | null; status: string | null;
+  venue: string | null; isLive: boolean | null; isBye: boolean | null;
   homeTeam: { name: string; teamId: string | null; score: string | number | null } | null;
   awayTeam: { name: string; teamId: string | null; score: string | number | null } | null;
 };
 
 type LadderTeam = {
-  id: string;
-  name: string;
-  crest: string | null;
-  position: number | null;
-  matchesPlayed: number | null;
-  matchesWon: number | null;
-  matchesDrawn: number | null;
-  matchesLost: number | null;
-  byes: number | null;
-  pointsFor: number | null;
-  pointsAgainst: number | null;
-  pointsDifference: number | null;
-  totalBonusPoints: number | null;
-  totalMatchPoints: number | null;
+  id: string; name: string; crest: string | null; position: number | null;
+  matchesPlayed: number | null; matchesWon: number | null; matchesDrawn: number | null;
+  matchesLost: number | null; byes: number | null; pointsFor: number | null;
+  pointsAgainst: number | null; pointsDifference: number | null;
+  totalBonusPoints: number | null; totalMatchPoints: number | null;
 };
 
 function deriveStatus(item: FixtureItem): "scheduled" | "live" | "final" {
@@ -104,18 +75,25 @@ async function gql(query: string, variables: unknown, opName: string) {
   return json.data;
 }
 
-async function fetchFixtures(comp: { comp_id: string; source_type: string }, type: "results" | "fixtures") {
-  const data = await gql(FIXTURES_QUERY, {
-    comps: [{ id: comp.comp_id, sourceType: comp.source_type }],
-    teams: [],
-    type,
-    skip: 0,
-    limit: 200,
-  }, "FixturesAndResults");
-  return (data?.getFixtureItems ?? []) as FixtureItem[];
+async function fetchFixtures(comp: Comp, type: "results" | "fixtures") {
+  if (comp.entity_id) {
+    const data = await gql(ENTITY_FIXTURES_QUERY, {
+      comps: [{ id: comp.comp_id, sourceType: comp.source_type, displayResult: true }],
+      teams: [], type, skip: 0, limit: 200,
+      entityId: comp.entity_id, entityType: comp.entity_type || "provincial-union",
+      season: comp.season || "2026",
+    }, "EntityFixturesAndResults");
+    return (data?.getEntityFixturesAndResults ?? []) as FixtureItem[];
+  } else {
+    const data = await gql(FIXTURES_QUERY, {
+      comps: [{ id: comp.comp_id, sourceType: comp.source_type }],
+      teams: [], type, skip: 0, limit: 200,
+    }, "FixturesAndResults");
+    return (data?.getFixtureItems ?? []) as FixtureItem[];
+  }
 }
 
-async function fetchLadder(comp: { comp_id: string; source_type: string }) {
+async function fetchLadder(comp: Comp) {
   const data = await gql(LADDER_QUERY, {
     comp: { id: comp.comp_id, sourceType: comp.source_type },
   }, "CompLadderQuery");
@@ -133,7 +111,7 @@ Deno.serve(async () => {
 
   const { data: comps, error: compErr } = await supabase
     .from("competitions")
-    .select("comp_id, source_type, name")
+    .select("comp_id, source_type, name, entity_id, entity_type, season")
     .eq("is_active", true);
 
   if (compErr) return new Response(`comp load failed: ${compErr.message}`, { status: 500 });
@@ -152,25 +130,15 @@ Deno.serve(async () => {
       const rows = items
         .filter((i) => i.homeTeam && i.awayTeam)
         .map((i) => ({
-          external_id: i.id,
-          comp_id: i.compId,
-          comp_name: i.compName,
+          external_id: i.id, comp_id: i.compId, comp_name: i.compName,
           round: i.round != null ? String(i.round) : null,
-          round_label: i.roundLabel,
-          match_date: i.dateTime,
-          venue: i.venue,
-          home_team: i.homeTeam!.name,
-          home_team_id: i.homeTeam!.teamId,
+          round_label: i.roundLabel, match_date: i.dateTime, venue: i.venue,
+          home_team: i.homeTeam!.name, home_team_id: i.homeTeam!.teamId,
           home_score: i.homeTeam!.score != null ? String(i.homeTeam!.score) : null,
-          away_team: i.awayTeam!.name,
-          away_team_id: i.awayTeam!.teamId,
+          away_team: i.awayTeam!.name, away_team_id: i.awayTeam!.teamId,
           away_score: i.awayTeam!.score != null ? String(i.awayTeam!.score) : null,
-          is_bye: !!i.isBye,
-          is_live: !!i.isLive,
-          status: i.status,
-          result_status: deriveStatus(i),
-          source: "xplorer",
-          raw: i,
+          is_bye: !!i.isBye, is_live: !!i.isLive, status: i.status,
+          result_status: deriveStatus(i), source: "xplorer", raw: i,
         }));
       if (rows.length) {
         const { error } = await supabase
@@ -186,22 +154,13 @@ Deno.serve(async () => {
     try {
       const teams = await fetchLadder(comp);
       const rows = teams.map((t) => ({
-        comp_id: comp.comp_id,
-        team_id: t.id,
-        team_name: t.name,
-        position: t.position,
-        matches_played: t.matchesPlayed,
-        matches_won: t.matchesWon,
-        matches_drawn: t.matchesDrawn,
-        matches_lost: t.matchesLost,
-        byes: t.byes,
-        points_for: t.pointsFor,
-        points_against: t.pointsAgainst,
-        points_diff: t.pointsDifference,
-        bonus_points: t.totalBonusPoints,
-        match_points: t.totalMatchPoints,
-        crest: t.crest,
-        raw: t,
+        comp_id: comp.comp_id, team_id: t.id, team_name: t.name,
+        position: t.position, matches_played: t.matchesPlayed,
+        matches_won: t.matchesWon, matches_drawn: t.matchesDrawn,
+        matches_lost: t.matchesLost, byes: t.byes,
+        points_for: t.pointsFor, points_against: t.pointsAgainst,
+        points_diff: t.pointsDifference, bonus_points: t.totalBonusPoints,
+        match_points: t.totalMatchPoints, crest: t.crest, raw: t,
       }));
       if (rows.length) {
         const { error } = await supabase
