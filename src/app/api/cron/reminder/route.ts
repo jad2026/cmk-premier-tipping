@@ -28,12 +28,16 @@ export async function GET(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Find the currently open gameweek
-  const { data: gw } = await admin
+  // Find the open gameweek with the nearest future deadline
+  const { data: gws } = await admin
     .from("gameweeks")
     .select("id, label, deadline")
     .eq("is_open", true)
-    .single();
+    .gt("deadline", new Date().toISOString())
+    .order("deadline", { ascending: true })
+    .limit(1);
+
+  const gw = gws?.[0] ?? null;
 
   if (!gw) {
     console.log("[reminder] No open gameweek — skipping");
@@ -71,34 +75,42 @@ export async function GET(request: Request) {
   }));
 
   const fixtureIds = (fixtures ?? []).map((f) => f.id);
+  const totalFixtures = fixtureIds.length;
 
-  // Find users who have NOT submitted any picks for this round
-  const { data: pickedUserRows } = await admin
+  // Count picks per user for this round
+  const { data: picksRaw } = await admin
     .from("picks")
     .select("user_id")
     .in("fixture_id", fixtureIds);
 
-  const pickedUserIds = new Set((pickedUserRows ?? []).map((p) => p.user_id));
+  const pickCountByUser = new Map<string, number>();
+  for (const p of picksRaw ?? []) {
+    pickCountByUser.set(p.user_id, (pickCountByUser.get(p.user_id) ?? 0) + 1);
+  }
 
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
   const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
 
-  const unpickedUsers = (users ?? []).filter((u) => !pickedUserIds.has(u.id));
+  // Include users who have zero or incomplete picks
+  const incompleteUsers = (users ?? []).filter(
+    (u) => (pickCountByUser.get(u.id) ?? 0) < totalFixtures
+  );
 
-  if (unpickedUsers.length === 0) {
-    return NextResponse.json({ sent: 0, message: "All users have picked" });
+  if (incompleteUsers.length === 0) {
+    return NextResponse.json({ sent: 0, message: "All users have completed their picks" });
   }
 
   const emailSponsors = await fetchActiveSponsors("email");
   let sent = 0;
 
-  for (const user of unpickedUsers) {
+  for (const user of incompleteUsers) {
     const email = user.email;
     if (!email) continue;
 
     const profile = profiles?.find((p) => p.id === user.id);
     const firstName = profile?.first_name?.trim() || "";
     const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
+    const picksCount = pickCountByUser.get(user.id) ?? 0;
 
     if (sent > 0) await new Promise((r) => setTimeout(r, 500));
 
@@ -111,9 +123,11 @@ export async function GET(request: Request) {
       fixtures: fixtureList,
       sponsors: emailSponsors,
       variant: "24h",
+      picksCount,
+      totalFixtures,
     });
     sent++;
-    console.log(`[reminder] Sent 24h reminder to ${email}`);
+    console.log(`[reminder] Sent 24h reminder to ${email} (${picksCount}/${totalFixtures} picks)`);
   }
 
   return NextResponse.json({ sent, round: gw.label, hoursUntilDeadline: hoursUntilDeadline.toFixed(1) });

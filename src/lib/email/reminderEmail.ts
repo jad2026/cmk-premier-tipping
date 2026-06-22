@@ -16,6 +16,8 @@ export type ReminderEmailPayload = {
   fixtures: ReminderFixture[];
   sponsors?: Sponsor[];
   variant: "wednesday" | "24h";
+  picksCount?: number;
+  totalFixtures?: number;
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
@@ -33,7 +35,9 @@ function formatDate(iso: string): string {
 }
 
 function buildHtml(p: ReminderEmailPayload): string {
-  const { firstName, teamName, roundLabel, deadline, fixtures, sponsors = [], variant } = p;
+  const { firstName, teamName, roundLabel, deadline, fixtures, sponsors = [], variant, picksCount = 0, totalFixtures = fixtures.length } = p;
+  const isPartial = picksCount > 0 && picksCount < totalFixtures;
+  const remaining = totalFixtures - picksCount;
   const tipsUrl = `${APP_URL}/tips`;
 
   const is24h = variant === "24h";
@@ -111,8 +115,12 @@ function buildHtml(p: ReminderEmailPayload): string {
             </p>
             <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6;">
               ${is24h
-                ? `The deadline for <strong>${roundLabel}</strong> is coming up fast — <strong style="color:#b91c1c;">you haven't made your picks yet!</strong> Don't miss out — get them in before the round closes.`
-                : `It's the middle of the week and <strong>${roundLabel}</strong> is open for picks. Your team <strong style="color:#1e3a5f;">${teamName}</strong> hasn't submitted picks yet — don't forget!`}
+                ? isPartial
+                  ? `The deadline for <strong>${roundLabel}</strong> is coming up fast — you've picked <strong style="color:#b91c1c;">${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
+                  : `The deadline for <strong>${roundLabel}</strong> is coming up fast — <strong style="color:#b91c1c;">you haven't made your picks yet!</strong> Don't miss out — get them in before the round closes.`
+                : isPartial
+                  ? `It's the middle of the week and <strong>${roundLabel}</strong> is open for picks. Your team <strong style="color:#1e3a5f;">${teamName}</strong> has picked <strong style="color:#1e3a5f;">${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
+                  : `It's the middle of the week and <strong>${roundLabel}</strong> is open for picks. Your team <strong style="color:#1e3a5f;">${teamName}</strong> hasn't submitted picks yet — don't forget!`}
             </p>
           </td>
         </tr>
@@ -163,7 +171,7 @@ function buildHtml(p: ReminderEmailPayload): string {
         <tr>
           <td style="padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:12px;color:#9ca3af;">Club Rugby Tipping</p>
-            <p style="margin:4px 0 0;font-size:11px;color:#d1d5db;">You're receiving this because you haven't made your picks yet for ${roundLabel}.</p>
+            <p style="margin:4px 0 0;font-size:11px;color:#d1d5db;">You're receiving this because you ${isPartial ? `have only completed ${picksCount} of ${totalFixtures} picks` : "haven't made your picks yet"} for ${roundLabel}.</p>
           </td>
         </tr>
 
