@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 
 type LadderRow = {
   comp_id: string;
-  comp_name: string | null;
   team_id: string;
   team_name: string;
   position: number | null;
@@ -33,23 +32,24 @@ function signed(n: number | null): string {
 export default async function LadderPage() {
   const supabase = await createClient();
 
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("ladder_standings")
     .select(
-      "comp_id, comp_name, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
+      "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
     )
-    .order("comp_id")
     .order("position", { ascending: true });
+
+  if (error) console.error("ladder_standings query error:", error);
 
   const standings = (rows ?? []) as LadderRow[];
 
   // Group by comp_id so multiple competitions each get their own table
   const comps = Array.from(
     standings.reduce((map, row) => {
-      if (!map.has(row.comp_id)) map.set(row.comp_id, { name: row.comp_name, rows: [] });
+      if (!map.has(row.comp_id)) map.set(row.comp_id, { rows: [] });
       map.get(row.comp_id)!.rows.push(row);
       return map;
-    }, new Map<string, { name: string | null; rows: LadderRow[] }>())
+    }, new Map<string, { rows: LadderRow[] }>())
   );
 
   return (
@@ -69,13 +69,13 @@ export default async function LadderPage() {
           </p>
         </div>
       ) : (
-        comps.map(([compId, { name, rows: compRows }]) => (
+        comps.map(([compId, { rows: compRows }]) => (
           <section key={compId} className="space-y-4">
             {comps.length > 1 && (
               <div className="flex items-center gap-2.5 mb-0.5">
                 <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
                 <h2 className="text-lg font-bold text-brand tracking-tight">
-                  {name ?? compId}
+                  {compId}
                 </h2>
               </div>
             )}
