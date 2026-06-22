@@ -72,6 +72,7 @@ export default function Navbar() {
     { href: "/tips", label: "Tips" },
     ...(user ? [{ href: "/my-picks", label: "My Picks" }] : []),
     { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/ladder", label: "Ladder" },
     ...(user ? [{ href: "/leagues", label: "Leagues" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),

@@ -86,9 +86,9 @@ function deriveStatus(item: FixtureItem): "scheduled" | "live" | "final" {
   const s = (item.status ?? "").toLowerCase();
   if (s.includes("full") || s.includes("final") || s.includes("ft")) return "final";
   const hs = item.homeTeam?.score;
-  const as_ = item.awayTeam?.score;
+  const as = item.awayTeam?.score;
   const hasScore = (v: unknown) => v !== null && v !== undefined && v !== "";
-  if (!item.isLive && hasScore(hs) && hasScore(as_)) return "final";
+  if (!item.isLive && hasScore(hs) && hasScore(as)) return "final";
   return "scheduled";
 }
 
@@ -215,8 +215,17 @@ Deno.serve(async () => {
     }
   }
 
+  let bridge = { updated: 0, skipped: 0 };
+  try {
+    const { data, error } = await supabase.rpc("bridge_xplorer_results");
+    if (error) problems.push(`bridge: ${error.message}`);
+    else if (data) bridge = data;
+  } catch (e) {
+    problems.push(`bridge: ${(e as Error).message}`);
+  }
+
   return new Response(
-    JSON.stringify({ upserted, ladderRows, problems }, null, 2),
+    JSON.stringify({ upserted, ladderRows, bridge, problems }, null, 2),
     { headers: { "content-type": "application/json" }, status: problems.length ? 207 : 200 },
   );
 });
