@@ -43,6 +43,13 @@ export default async function LadderPage() {
 
   const standings = (rows ?? []) as LadderRow[];
 
+  function compHeading(rows: LadderRow[]): string {
+    const names = rows.map((r) => r.team_name.toLowerCase());
+    if (names.some((n) => n.includes("women"))) return "CMK Premier Women";
+    if (names.some((n) => n.includes("men"))) return "CMK Premier Men";
+    return "CMK Premier";
+  }
+
   // Group by comp_id so multiple competitions each get their own table
   const comps = Array.from(
     standings.reduce((map, row) => {
@@ -71,14 +78,12 @@ export default async function LadderPage() {
       ) : (
         comps.map(([compId, { rows: compRows }]) => (
           <section key={compId} className="space-y-4">
-            {comps.length > 1 && (
-              <div className="flex items-center gap-2.5 mb-0.5">
-                <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-                <h2 className="text-lg font-bold text-brand tracking-tight">
-                  {compId}
-                </h2>
-              </div>
-            )}
+            <div className="flex items-center gap-2.5 mb-0.5">
+              <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
+              <h2 className="text-lg font-bold text-brand tracking-tight">
+                {compHeading(compRows)}
+              </h2>
+            </div>
 
             {/* Horizontally scrollable on mobile */}
             <div className="card overflow-hidden">
