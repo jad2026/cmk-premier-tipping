@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
@@ -31,13 +32,27 @@ function signed(n: number | null): string {
 
 export default async function LadderPage() {
   const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _compId = await getCurrentCompetitionId();
 
-  const { data: rows, error } = await supabase
-    .from("ladder_standings")
-    .select(
-      "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
-    )
-    .order("position", { ascending: true });
+  // Scope ladder to the active Xplorer competitions for this competition.
+  // When a competition_id FK is added to the competitions table this can be
+  // tightened; for now, is_active=true reliably selects the right comps.
+  const { data: activeComps } = await supabase
+    .from("competitions")
+    .select("comp_id")
+    .eq("is_active", true);
+  const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
+
+  const { data: rows, error } = activeXplorerIds.length > 0
+    ? await supabase
+        .from("ladder_standings")
+        .select(
+          "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
+        )
+        .in("comp_id", activeXplorerIds)
+        .order("position", { ascending: true })
+    : { data: [], error: null };
 
   if (error) console.error("ladder_standings query error:", error);
 

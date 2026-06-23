@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
 
@@ -242,13 +243,17 @@ export default async function RoundPage({
   if (isNaN(roundNumber)) notFound();
 
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
-  // Fetch gameweek, teams, profiles, and match scores in parallel
+  // Fetch gameweek, teams, profiles, and match scores in parallel.
+  // Filter by competition_id so "Round 1" from one competition doesn't
+  // collide with "Round 1" from another.
   const [{ data: gameweek }, { data: teams }, { data: profiles }, { data: matchResultsRaw }] =
     await Promise.all([
       supabase
         .from("gameweeks")
         .select("*")
+        .eq("competition_id", compId)
         .eq("number", roundNumber)
         .single(),
       supabase.from("teams").select("*"),

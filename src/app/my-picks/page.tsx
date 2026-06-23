@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team } from "@/lib/supabase/types";
 
@@ -58,29 +59,52 @@ function fmtDate(iso: string) {
 
 export default async function MyPicksPage() {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch everything in parallel
+  // Get competition's gameweek IDs to scope fixtures and picks
+  const { data: compGwRows } = await supabase
+    .from("gameweeks")
+    .select("id")
+    .eq("competition_id", compId);
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  // Fetch everything in parallel, scoped to this competition
   const [
     { data: gameweeks },
     { data: fixturesRaw },
-    { data: picksRaw, error: picksError },
-    { data: allPicksForRank },
     { data: profilesForRank },
   ] = await Promise.all([
-    supabase.from("gameweeks").select("id, number, label, deadline, is_open").order("number"),
     supabase
-      .from("fixtures")
-      .select("id, gameweek_id, home_team_id, away_team_id, match_date, result_team_id, is_draw, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*), result_team:teams!fixtures_result_team_id_fkey(*)")
-      .order("match_date"),
-    supabase
-      .from("picks")
-      .select("*")
-      .eq("user_id", user.id),
-    supabase.from("picks").select("user_id, is_correct").eq("is_correct", true),
+      .from("gameweeks")
+      .select("id, number, label, deadline, is_open")
+      .eq("competition_id", compId)
+      .order("number"),
+    compGwIds.length > 0
+      ? supabase
+          .from("fixtures")
+          .select("id, gameweek_id, home_team_id, away_team_id, match_date, result_team_id, is_draw, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*), result_team:teams!fixtures_result_team_id_fkey(*)")
+          .in("gameweek_id", compGwIds)
+          .order("match_date")
+      : Promise.resolve({ data: [], error: null }),
     supabase.from("profiles").select("id, display_name"),
+  ]);
+
+  const compFixtureIds = (fixturesRaw ?? []).map((f: { id: string }) => f.id);
+
+  // Picks scoped to this competition's fixtures
+  const [
+    { data: picksRaw, error: picksError },
+    { data: allPicksForRank },
+  ] = await Promise.all([
+    compFixtureIds.length > 0
+      ? supabase.from("picks").select("*").eq("user_id", user.id).in("fixture_id", compFixtureIds)
+      : Promise.resolve({ data: [], error: null }),
+    compFixtureIds.length > 0
+      ? supabase.from("picks").select("user_id, is_correct").eq("is_correct", true).in("fixture_id", compFixtureIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (picksError) {

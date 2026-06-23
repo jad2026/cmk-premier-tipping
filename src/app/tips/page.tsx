@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import TipsForm from "./TipsForm";
 import type { Fixture, Pick } from "@/lib/supabase/types";
 
@@ -15,6 +16,7 @@ export type RoundData = {
 
 export default async function TipsPage() {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const {
     data: { user },
@@ -42,10 +44,20 @@ export default async function TipsPage() {
     );
   }
 
-  // Check if any fixtures exist at all (to distinguish fresh season from no-open-rounds)
-  const { count: fixtureCount } = await supabase
-    .from("fixtures")
-    .select("id", { count: "exact", head: true });
+  // Get this competition's gameweek IDs first so we can scope fixture queries
+  const { data: compGwRows } = await supabase
+    .from("gameweeks")
+    .select("id")
+    .eq("competition_id", compId);
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  // Check if any fixtures exist for this competition
+  const { count: fixtureCount } = compGwIds.length > 0
+    ? await supabase
+        .from("fixtures")
+        .select("id", { count: "exact", head: true })
+        .in("gameweek_id", compGwIds)
+    : { count: 0 };
 
   if (!fixtureCount) {
     return (
@@ -62,6 +74,7 @@ export default async function TipsPage() {
   const { data: openGameweeks } = await supabase
     .from("gameweeks")
     .select("*")
+    .eq("competition_id", compId)
     .eq("is_open", true)
     .order("number");
 
