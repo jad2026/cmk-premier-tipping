@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -19,9 +19,18 @@ const barlowCondensed = Barlow_Condensed({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#FFB000",
+};
+
 export const metadata: Metadata = {
   title: "Club Rugby Tipping",
   description: "Rugby tipping competition — pick the winners and top the table.",
+  appleWebApp: {
+    capable: true,
+    title: "CRT Tipping",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
