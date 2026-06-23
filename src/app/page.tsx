@@ -149,7 +149,7 @@ export default async function HomePage() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <section className="relative rounded-3xl bg-brand overflow-hidden shadow-card-lg">
-        <Image src="/hero.jpg" alt="" fill priority
+        <Image src={compId === NPC_COMPETITION_ID ? "/images/npc-hero.jpg" : "/hero.jpg"} alt="" fill priority
           sizes="100vw"
           className="object-cover pointer-events-none" />
         <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
