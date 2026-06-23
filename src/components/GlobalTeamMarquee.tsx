@@ -9,7 +9,11 @@ export default async function GlobalTeamMarquee() {
   if (pathname.startsWith("/admin")) return null;
 
   const supabase = await createClient();
-  const { data: teams } = await supabase.from("teams").select("*").order("name");
+  const { data: teams } = await supabase
+    .from("teams")
+    .select("*")
+    .not("logo_url", "is", null)
+    .order("name");
 
   if (!teams || teams.length === 0) return null;
 
