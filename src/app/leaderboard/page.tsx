@@ -277,7 +277,8 @@ function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; 
 
   return (
     <div className="card overflow-hidden">
-      <div className="grid grid-cols-[3rem_1fr_6rem_5rem_5rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider">
+      {/* Sticky header — lives outside the scroll container */}
+      <div className="grid grid-cols-[3rem_1fr_6rem_5rem_5rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider sticky top-0 z-10">
         <div className="px-4 py-3.5 text-center">#</div>
         <div className="px-4 py-3.5">Tipper</div>
         <div className="px-4 py-3.5 text-right">Correct</div>
@@ -285,7 +286,11 @@ function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; 
         <div className="px-4 py-3.5 text-right pr-5">%</div>
       </div>
 
-      <div className="divide-y divide-gray-50">
+      {/* Scrollable rows */}
+      <div
+        className="divide-y divide-gray-50 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#c9a84c_#f3f4f6]"
+        style={{ maxHeight: "600px" }}
+      >
         {rows.map((entry, idx) => {
           const medal = medalForScore.get(entry.correct);
           const isGold = medal === "gold";
