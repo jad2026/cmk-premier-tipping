@@ -12,6 +12,7 @@ export type Gameweek = {
   label: string;
   deadline: string;
   is_open: boolean;
+  competition_id: string;
 };
 
 export type Fixture = {
