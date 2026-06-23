@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import Avatar from "@/components/Avatar";
-import type { Gameweek, Fixture, Database } from "@/lib/supabase/types";
+import type { Gameweek, Fixture } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
 export const dynamic = "force-dynamic";
@@ -41,26 +41,23 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    }
-  );
+  const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
-  const [{ data: gameweeks }, { data: teams }, { data: allFixtures }, { data: seasonConfig }] =
+  // Wave 1: competition-scoped gameweeks + season config
+  const [{ data: compGwRows }, { data: seasonConfig }] =
     await Promise.all([
-      supabase.from("gameweeks").select("*").order("number"),
-      supabase.from("teams").select("*").order("name"),
-      supabase.from("fixtures").select("id, gameweek_id, result_team_id"),
+      supabase.from("gameweeks").select("*").eq("competition_id", compId).order("number"),
       supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
     ]);
+
+  const gameweeks = compGwRows ?? [];
+  const compGwIds = gameweeks.map((g) => g.id);
+
+  // Wave 2: fixtures scoped to this competition's gameweeks
+  const { data: allFixtures } = compGwIds.length > 0
+    ? await supabase.from("fixtures").select("id, gameweek_id, result_team_id").in("gameweek_id", compGwIds)
+    : { data: [] };
 
   // Build per-round info
   const fixturesByGw = new Map<string, Fixture[]>();
@@ -70,7 +67,7 @@ export default async function HomePage() {
     fixturesByGw.set(f.gameweek_id, list);
   }
 
-  const rounds: RoundInfo[] = (gameweeks ?? []).map((gw) => {
+  const rounds: RoundInfo[] = gameweeks.map((gw) => {
     const fixtures = fixturesByGw.get(gw.id) ?? [];
     return {
       gameweek: gw,
@@ -113,8 +110,11 @@ export default async function HomePage() {
   let winner: string | null = null;
   let winnerAvatarUrl: string | null = null;
   if (seasonComplete) {
+    const compFixtureIds = (allFixtures ?? []).map((f) => f.id);
     const [{ data: correctPicks }, { data: profiles }] = await Promise.all([
-      supabase.from("picks").select("user_id").eq("is_correct", true),
+      compFixtureIds.length > 0
+        ? supabase.from("picks").select("user_id").eq("is_correct", true).in("fixture_id", compFixtureIds)
+        : Promise.resolve({ data: [] }),
       supabase.from("profiles").select("id, display_name, avatar_url"),
     ]);
 
