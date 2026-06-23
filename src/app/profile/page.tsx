@@ -34,23 +34,26 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push("/login"); return; }
 
-      setEmail(user.email ?? "");
-      setUserId(user.id);
+        setEmail(user.email ?? "");
+        setUserId(user.id);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, display_name, avatar_url")
-        .eq("id", user.id)
-        .single();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, display_name, avatar_url")
+          .eq("id", user.id)
+          .single();
 
-      setFirstName(profile?.first_name ?? "");
-      setLastName(profile?.last_name ?? "");
-      setExistingTeamName(profile?.display_name?.trim() || null);
-      setAvatarUrl(profile?.avatar_url ?? null);
-      setLoading(false);
+        setFirstName(profile?.first_name ?? "");
+        setLastName(profile?.last_name ?? "");
+        setExistingTeamName(profile?.display_name?.trim() || null);
+        setAvatarUrl(profile?.avatar_url ?? null);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [supabase, router]);

@@ -23,10 +23,18 @@ export async function middleware(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request: requestWithCompetition });
 
+  const isProd = process.env.NODE_ENV === "production";
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        domain: isProd ? ".clubrugbytipping.com" : undefined,
+        path: "/",
+        sameSite: "lax" as const,
+        secure: isProd,
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -48,7 +56,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedPaths = ["/tips", "/leaderboard", "/my-picks", "/admin"];
+  const protectedPaths = ["/tips", "/leaderboard", "/my-picks", "/admin", "/profile"];
   const isProtected = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p)
   );

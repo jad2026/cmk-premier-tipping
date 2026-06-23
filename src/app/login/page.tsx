@@ -22,8 +22,9 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/tips");
-      router.refresh();
+      // Hard redirect so the browser sends the freshly-set auth cookies on the
+      // next request and the middleware validates the session cleanly.
+      window.location.href = "/tips";
     }
   }
 
