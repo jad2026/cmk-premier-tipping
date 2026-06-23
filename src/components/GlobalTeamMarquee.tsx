@@ -12,7 +12,7 @@ export default async function GlobalTeamMarquee() {
   const { data: teams } = await supabase
     .from("teams")
     .select("*")
-    .not("logo_url", "is", null)
+    .not("name", "like", "%Women")
     .order("name");
 
   if (!teams || teams.length === 0) return null;
