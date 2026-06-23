@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { triggerWelcomeEmail } from "./actions";
+import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -105,7 +106,10 @@ export default function SignupPage() {
         { onConflict: "id" }
       );
 
-      // Fire welcome email in background
+      // Auto-enroll in current competition + fire welcome email in background
+      autoEnrollCurrentCompetition(userId).catch(
+        (err) => console.error("[signup] auto-enroll failed:", err)
+      );
       triggerWelcomeEmail(email, firstName.trim(), trimmedTeamName).catch(
         (err) => console.error("[signup] welcome email failed:", err)
       );

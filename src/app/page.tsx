@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import Avatar from "@/components/Avatar";
+import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Gameweek, Fixture } from "@/lib/supabase/types";
 
 // Force fresh data on every request — no caching for season state or round rollover
@@ -43,6 +44,19 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 export default async function HomePage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let isEnrolled = false;
+  if (user) {
+    const { data: participant } = await supabase
+      .from("competition_participants")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .eq("competition_id", compId)
+      .maybeSingle();
+    isEnrolled = !!participant;
+  }
 
   // Wave 1: competition-scoped gameweeks + season config
   const [{ data: compGwRows }, { data: seasonConfig }] =
@@ -166,6 +180,18 @@ export default async function HomePage() {
           <span className="text-xl select-none">🏉</span>
           <span className="text-[20px] font-bold text-brand-gold tracking-tight">{seasonName}</span>
         </div>
+      )}
+
+      {/* ── Join competition banner ─────────────────────────────────────────── */}
+      {user && !isEnrolled && !seasonComplete && (
+        <section className="card-md px-6 py-6 text-center space-y-3">
+          <span className="text-3xl block">🏉</span>
+          <h2 className="text-lg font-bold text-brand">Join This Competition</h2>
+          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            You haven&apos;t joined this competition yet. Join now to start tipping and appear on the leaderboard!
+          </p>
+          <JoinCompetitionButton />
+        </section>
       )}
 
       {/* ── Open round cards (one per open round) ────────────────────────────── */}

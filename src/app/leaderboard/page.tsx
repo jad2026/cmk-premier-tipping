@@ -396,12 +396,14 @@ export default async function LeaderboardPage() {
     { data: teams },
     { data: seasonConfig },
     { data: matchResultsRaw },
+    { data: participants },
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
     supabase.from("profiles").select("id, display_name, avatar_url"),
     supabase.from("teams").select("*"),
     supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
+    supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
   ]);
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
@@ -491,11 +493,13 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // Overall leaderboard — seed from profiles so all registered users appear even with 0 picks
+  // Overall leaderboard — seed from competition participants (not all profiles)
+  const participantIds = new Set((participants ?? []).map((p) => p.user_id));
   const lbMap = new Map<string, { correct: number; total: number }>(
-    (profiles ?? []).map((p: Profile) => [p.id, { correct: 0, total: 0 }])
+    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0 }])
   );
   for (const pick of allPicksRaw ?? []) {
+    if (!participantIds.has(pick.user_id)) continue;
     const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0 };
     e.total += 1;
     if (pick.is_correct) e.correct += 1;

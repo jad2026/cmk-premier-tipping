@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import TipsForm from "./TipsForm";
+import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Fixture, Pick } from "@/lib/supabase/types";
 
 export type RoundData = {
@@ -22,6 +23,26 @@ export default async function TipsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: participant } = await supabase
+    .from("competition_participants")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .eq("competition_id", compId)
+    .maybeSingle();
+
+  if (!participant) {
+    return (
+      <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8 space-y-4">
+        <span className="text-4xl block">🏉</span>
+        <h1 className="text-xl font-bold text-brand">Join to Start Tipping</h1>
+        <p className="text-gray-500 text-sm">
+          You need to join this competition before you can submit tips.
+        </p>
+        <JoinCompetitionButton />
+      </div>
+    );
+  }
 
   const { data: seasonConfig } = await supabase
     .from("season_config")

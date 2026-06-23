@@ -1066,3 +1066,28 @@ export async function deleteFixture(fixtureId: string): Promise<{ error: string 
   revalidatePath("/");
   return { error: null };
 }
+
+// ---------------------------------------------------------------------------
+// Backfill competition_participants for CMK — enrol all existing profiles
+// ---------------------------------------------------------------------------
+
+export async function backfillCmkParticipants() {
+  const supabase = await createClient();
+
+  const { data: profiles } = await supabase.from("profiles").select("id");
+  if (!profiles || profiles.length === 0) return { enrolled: 0 };
+
+  const rows = profiles.map((p) => ({
+    user_id: p.id,
+    competition_id: CMK_COMPETITION_ID,
+  }));
+
+  const { error } = await supabase
+    .from("competition_participants")
+    .upsert(rows, { onConflict: "user_id,competition_id", ignoreDuplicates: true });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/leaderboard");
+  return { enrolled: rows.length };
+}

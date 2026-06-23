@@ -85,6 +85,12 @@ export type LeagueMember = {
   joined_at: string;
 };
 
+export type CompetitionParticipant = {
+  user_id: string;
+  competition_id: string;
+  joined_at: string;
+};
+
 export type Season = {
   id: string;
   name: string;
@@ -160,6 +166,12 @@ export type Database = {
         Row: LeagueMember;
         Insert: LeagueMember;
         Update: Partial<LeagueMember>;
+        Relationships: [];
+      };
+      competition_participants: {
+        Row: CompetitionParticipant;
+        Insert: Omit<CompetitionParticipant, "joined_at"> & { joined_at?: string };
+        Update: Partial<CompetitionParticipant>;
         Relationships: [];
       };
       sponsors: {
