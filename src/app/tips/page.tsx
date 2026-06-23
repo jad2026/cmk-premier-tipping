@@ -26,7 +26,7 @@ export default async function TipsPage() {
   const { data: seasonConfig } = await supabase
     .from("season_config")
     .select("season_complete")
-    .eq("id", 1)
+    .eq("competition_id", compId)
     .single();
 
   if (seasonConfig?.season_complete) {

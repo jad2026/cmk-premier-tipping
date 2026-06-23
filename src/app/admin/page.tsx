@@ -26,7 +26,7 @@ export default async function AdminPage() {
     await Promise.all([
       supabase.from("teams").select("*").eq("competition_id", compId).order("name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
-      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+      supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     ]);
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);

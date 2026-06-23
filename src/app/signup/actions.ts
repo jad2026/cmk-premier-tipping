@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import { sendWelcomeEmail } from "@/lib/email/welcomeEmail";
 import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 
@@ -10,9 +11,10 @@ export async function triggerWelcomeEmail(
   teamName: string
 ): Promise<void> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const [{ data: seasonConfig }, emailSponsors] = await Promise.all([
-    supabase.from("season_config").select("season_name").eq("id", 1).single(),
+    supabase.from("season_config").select("season_name").eq("competition_id", compId).single(),
     fetchActiveSponsors("email"),
   ]);
 

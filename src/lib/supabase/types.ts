@@ -52,7 +52,8 @@ export type Profile = {
 };
 
 export type SeasonConfig = {
-  id: 1;
+  id: number;
+  competition_id: string;
   season_complete: boolean;
   season_name: string;
 };

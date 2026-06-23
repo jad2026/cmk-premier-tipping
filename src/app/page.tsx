@@ -48,7 +48,7 @@ export default async function HomePage() {
   const [{ data: compGwRows }, { data: seasonConfig }] =
     await Promise.all([
       supabase.from("gameweeks").select("*").eq("competition_id", compId).order("number"),
-      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+      supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     ]);
 
   const gameweeks = compGwRows ?? [];

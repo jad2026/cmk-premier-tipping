@@ -525,7 +525,7 @@ export async function closeSeason(): Promise<{ error: string | null }> {
     admin.from("picks").select("*"),
     admin.from("profiles").select("id, display_name"),
     admin.from("picks").select("user_id").eq("is_correct", true),
-    admin.from("season_config").select("season_name").eq("id", 1).single(),
+    admin.from("season_config").select("season_name").eq("competition_id", CMK_COMPETITION_ID).single(),
   ]);
 
   const seasonName = cfg?.season_name ?? `${new Date().getFullYear()} Season`;
@@ -556,7 +556,8 @@ export async function closeSeason(): Promise<{ error: string | null }> {
 
   const { error } = await admin
     .from("season_config")
-    .upsert({ id: 1, season_complete: true }, { onConflict: "id" });
+    .update({ season_complete: true })
+    .eq("competition_id", CMK_COMPETITION_ID);
   if (error) return { error: error.message };
 
   revalidatePath("/");
@@ -570,10 +571,12 @@ export async function closeSeason(): Promise<{ error: string | null }> {
 // ---------------------------------------------------------------------------
 export async function setSeasonComplete(complete: boolean) {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const { error } = await supabase
     .from("season_config")
-    .upsert({ id: 1, season_complete: complete }, { onConflict: "id" });
+    .update({ season_complete: complete })
+    .eq("competition_id", compId);
 
   if (error) return { error: error.message };
 
@@ -587,10 +590,12 @@ export async function setSeasonComplete(complete: boolean) {
 // ---------------------------------------------------------------------------
 export async function setSeasonName(name: string) {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const { error } = await supabase
     .from("season_config")
-    .upsert({ id: 1, season_name: name }, { onConflict: "id" });
+    .update({ season_name: name })
+    .eq("competition_id", compId);
 
   if (error) return { error: error.message };
 

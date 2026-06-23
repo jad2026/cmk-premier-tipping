@@ -400,7 +400,7 @@ export default async function LeaderboardPage() {
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
     supabase.from("profiles").select("id, display_name, avatar_url"),
     supabase.from("teams").select("*"),
-    supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+    supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
   ]);
 
@@ -441,7 +441,6 @@ export default async function LeaderboardPage() {
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
   // Overall picks — scoped to this competition's fixtures.
-  // (season_config and match_results are left unscoped as per-competition follow-ups)
   const { data: allPicksRaw } = compFixtureIds.length > 0
     ? await supabase.from("picks").select("user_id, is_correct").in("fixture_id", compFixtureIds)
     : { data: [] as { user_id: string; is_correct: boolean | null }[] };
