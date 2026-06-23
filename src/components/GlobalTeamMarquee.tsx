@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamMarquee from "@/components/TeamMarquee";
 
 export default async function GlobalTeamMarquee() {
@@ -9,9 +10,11 @@ export default async function GlobalTeamMarquee() {
   if (pathname.startsWith("/admin")) return null;
 
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data: teams } = await supabase
     .from("teams")
     .select("*")
+    .eq("competition_id", compId)
     .not("name", "like", "%Women")
     .order("name");
 

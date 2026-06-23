@@ -4,6 +4,7 @@ export type Team = {
   short_name: string;
   colour: string;
   logo_url: string | null;
+  competition_id: string;
 };
 
 export type Gameweek = {
