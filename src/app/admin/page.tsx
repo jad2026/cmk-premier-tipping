@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import AdminShell from "./AdminShell";
 
 export const dynamic = "force-dynamic";
@@ -18,20 +19,32 @@ export default async function AdminPage() {
 
   if (!profile?.is_admin) redirect("/");
 
-  const [{ data: teams }, { data: fixtures }, { data: seasonConfig }] =
+  const compId = await getCurrentCompetitionId();
+
+  // Wave 1: teams (TODO: scope to competition once teams have a competition_id FK),
+  // compGwIds for fixture scoping, and season config
+  const [{ data: teams }, { data: compGwRows }, { data: seasonConfig }] =
     await Promise.all([
       supabase.from("teams").select("*").order("name"),
-      supabase
+      supabase.from("gameweeks").select("id").eq("competition_id", compId),
+      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+    ]);
+
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  // Wave 2: pending fixtures scoped to this competition's gameweeks
+  const { data: fixtures } = compGwIds.length > 0
+    ? await supabase
         .from("fixtures")
         .select(
           `*,
            home_team:teams!fixtures_home_team_id_fkey(*),
            away_team:teams!fixtures_away_team_id_fkey(*)`
         )
+        .in("gameweek_id", compGwIds)
         .is("result_team_id", null)
-        .order("match_date"),
-      supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
-    ]);
+        .order("match_date")
+    : { data: [] };
 
   return (
     <AdminShell

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
 import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
-import { CMK_COMPETITION_ID } from "@/lib/competition";
+import { CMK_COMPETITION_ID, getCurrentCompetitionId } from "@/lib/competition";
 
 // ---------------------------------------------------------------------------
 // Add fixture (creates gameweek row if it doesn't exist yet)
@@ -440,10 +440,12 @@ export type RoundRow = {
 
 export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string | null }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const { data: gameweeks, error: gwErr } = await supabase
     .from("gameweeks")
     .select("*")
+    .eq("competition_id", compId)
     .order("number");
 
   if (gwErr) return { data: [], error: gwErr.message };
@@ -508,7 +510,8 @@ export async function closeSeason(): Promise<{ error: string | null }> {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Fetch data for archive
+  // TODO: scope archive to current competition once multi-competition support is needed.
+  // For now, closeSeason archives ALL data across all competitions intentionally.
   const [
     { data: gameweeks },
     { data: fixtures },
@@ -621,14 +624,28 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
   );
 
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
-  const [{ data: { users }, error: usersErr }, { data: profiles }, { data: picks }, { data: fixtures }] =
+  // Wave 1: users, profiles, and competition's gameweek IDs in parallel
+  const [{ data: { users }, error: usersErr }, { data: profiles }, { data: compGwRows }] =
     await Promise.all([
       admin.auth.admin.listUsers({ perPage: 1000 }),
       supabase.from("profiles").select("id, display_name"),
-      supabase.from("picks").select("user_id, fixture_id, is_correct"),
-      supabase.from("fixtures").select("id, gameweek_id"),
+      supabase.from("gameweeks").select("id").eq("competition_id", compId),
     ]);
+
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  // Wave 2: fixtures scoped to this competition
+  const { data: fixtures } = compGwIds.length > 0
+    ? await supabase.from("fixtures").select("id, gameweek_id").in("gameweek_id", compGwIds)
+    : { data: [] as { id: string; gameweek_id: string }[] };
+
+  // Wave 3: picks scoped to this competition's fixtures
+  const compFixtureIds = (fixtures ?? []).map((f) => f.id);
+  const { data: picks } = compFixtureIds.length > 0
+    ? await supabase.from("picks").select("user_id, fixture_id, is_correct").in("fixture_id", compFixtureIds)
+    : { data: [] as { user_id: string; fixture_id: string; is_correct: boolean | null }[] };
 
   if (usersErr) return { data: [], error: usersErr.message };
 
@@ -680,14 +697,30 @@ export type RoundHistoryRow = {
 
 export async function fetchResultsHistory(): Promise<{ data: RoundHistoryRow[]; error: string | null }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
-  const [{ data: gameweeks }, { data: fixtures }, { data: teams }, { data: picks }] =
+  const { data: compGwRows } = await supabase
+    .from("gameweeks")
+    .select("id")
+    .eq("competition_id", compId);
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  if (compGwIds.length === 0) return { data: [], error: null };
+
+  // Wave 1: gameweeks, fixtures with results, and teams in parallel
+  const [{ data: gameweeks }, { data: fixtures }, { data: teams }] =
     await Promise.all([
-      supabase.from("gameweeks").select("id, label, number").order("number"),
-      supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id").not("result_team_id", "is", null),
+      supabase.from("gameweeks").select("id, label, number").eq("competition_id", compId).order("number"),
+      supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id").in("gameweek_id", compGwIds).not("result_team_id", "is", null),
+      // TODO: scope teams to competition once teams have a competition_id FK
       supabase.from("teams").select("id, name"),
-      supabase.from("picks").select("fixture_id, is_correct"),
     ]);
+
+  // Wave 2: picks scoped to this competition's fixtures
+  const compFixtureIds = (fixtures ?? []).map((f) => f.id);
+  const { data: picks } = compFixtureIds.length > 0
+    ? await supabase.from("picks").select("fixture_id, is_correct").in("fixture_id", compFixtureIds)
+    : { data: [] };
 
   const teamName = (id: string | null) => teams?.find((t) => t.id === id)?.name ?? "?";
   const gwMap = new Map((gameweeks ?? []).map((g) => [g.id, g]));
@@ -737,7 +770,8 @@ export async function startNewSeason(seasonName: string): Promise<{ error: strin
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Fetch everything to archive
+  // TODO: scope archive to current competition once multi-competition support is needed.
+  // For now, startNewSeason archives and clears ALL data across all competitions intentionally.
   const [
     { data: gameweeks },
     { data: fixtures },
@@ -938,10 +972,20 @@ export type FixtureAdminRow = {
 
 export async function fetchAllFixtures(): Promise<{ data: FixtureAdminRow[]; error: string | null }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
+
+  const { data: compGwRows } = await supabase
+    .from("gameweeks")
+    .select("id")
+    .eq("competition_id", compId);
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  if (compGwIds.length === 0) return { data: [], error: null };
 
   const { data: fixtures, error: fErr } = await supabase
     .from("fixtures")
     .select("*, gameweek:gameweeks(id, number, label)")
+    .in("gameweek_id", compGwIds)
     .order("match_date");
 
   if (fErr || !fixtures) return { data: [], error: fErr?.message ?? "Failed to fetch fixtures" };
