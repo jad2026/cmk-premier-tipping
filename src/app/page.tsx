@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import Avatar from "@/components/Avatar";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Gameweek, Fixture } from "@/lib/supabase/types";
@@ -180,6 +180,26 @@ export default async function HomePage() {
           <span className="text-xl select-none">🏉</span>
           <span className="text-[20px] font-bold text-brand-gold tracking-tight">{seasonName}</span>
         </div>
+      )}
+
+      {/* ── NPC cross-promotion ────────────────────────────────────────────── */}
+      {compId !== NPC_COMPETITION_ID && (
+        <a
+          href="https://npc.clubrugbytipping.com"
+          className="card-md group relative overflow-hidden flex items-center gap-5 px-6 py-5 hover:shadow-card-lg transition-shadow"
+        >
+          <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-brand-gold/10 blur-2xl pointer-events-none" />
+          <span className="text-4xl select-none shrink-0">🏉</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-gold mb-1">Tip the NPC</p>
+            <p className="text-sm text-gray-600 leading-snug">
+              Think you know provincial rugby? Join the Bunnings NPC tipping competition and compete nationally.
+            </p>
+          </div>
+          <span className="shrink-0 text-sm font-semibold text-brand-gold group-hover:translate-x-0.5 transition-transform whitespace-nowrap">
+            Join NPC Tipping →
+          </span>
+        </a>
       )}
 
       {/* ── Join competition banner ─────────────────────────────────────────── */}
