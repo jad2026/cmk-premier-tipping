@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
 import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
+import { CMK_COMPETITION_ID } from "@/lib/competition";
 
 // ---------------------------------------------------------------------------
 // Add fixture (creates gameweek row if it doesn't exist yet)
@@ -35,6 +36,7 @@ export async function addFixture(formData: FormData) {
         // Default deadline: midday Saturday of the week the fixture falls in
         deadline: new Date(matchDate).toISOString(),
         is_open: false,
+        competition_id: CMK_COMPETITION_ID,
       },
       { onConflict: "number", ignoreDuplicates: true }
     )
@@ -376,7 +378,7 @@ export async function bulkImportFixtures(rows: BulkFixtureRow[]) {
     await supabase
       .from("gameweeks")
       .upsert(
-        { number: round, label: `Round ${round}`, deadline, is_open: false },
+        { number: round, label: `Round ${round}`, deadline, is_open: false, competition_id: CMK_COMPETITION_ID },
         { onConflict: "number", ignoreDuplicates: true }
       );
 
