@@ -31,9 +31,10 @@ type Props = {
   pendingFixtures: Fixture[];
   seasonComplete: boolean;
   seasonName: string;
+  compId: string;
 };
 
-export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("add");
 
   return (
@@ -75,7 +76,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         )}
         {activeTab === "rounds" && <ManageRoundsPanel teams={teams} />}
         {activeTab === "teams" && (
-          <TeamManagementPanel initialTeams={teams} />
+          <TeamManagementPanel initialTeams={teams} compId={compId} />
         )}
         {activeTab === "season" && (
           <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />

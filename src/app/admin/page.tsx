@@ -21,11 +21,10 @@ export default async function AdminPage() {
 
   const compId = await getCurrentCompetitionId();
 
-  // Wave 1: teams (TODO: scope to competition once teams have a competition_id FK),
-  // compGwIds for fixture scoping, and season config
+  // Wave 1: teams scoped to competition, compGwIds for fixture scoping, and season config
   const [{ data: teams }, { data: compGwRows }, { data: seasonConfig }] =
     await Promise.all([
-      supabase.from("teams").select("*").order("name"),
+      supabase.from("teams").select("*").eq("competition_id", compId).order("name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
       supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
     ]);
@@ -52,6 +51,7 @@ export default async function AdminPage() {
       pendingFixtures={fixtures ?? []}
       seasonComplete={seasonConfig?.season_complete ?? false}
       seasonName={seasonConfig?.season_name ?? "2026 Season"}
+      compId={compId}
     />
   );
 }

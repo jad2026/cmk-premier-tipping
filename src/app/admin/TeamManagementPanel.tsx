@@ -108,10 +108,12 @@ function TeamForm({
   mode,
   onDone,
   onCancel,
+  compId,
 }: {
   mode: FormMode;
   onDone: (team: Team) => void;
   onCancel: () => void;
+  compId: string;
 }) {
   const supabase = createClient();
   const isEdit = mode.kind === "edit";
@@ -194,6 +196,7 @@ function TeamForm({
         short_name: shortName.trim() || name.slice(0, 3).toUpperCase(),
         colour,
         logo_url: finalUrl,
+        competition_id: compId,
       });
     }
     setSaving(false);
@@ -271,7 +274,7 @@ function TeamForm({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export default function TeamManagementPanel({ initialTeams }: { initialTeams: Team[] }) {
+export default function TeamManagementPanel({ initialTeams, compId }: { initialTeams: Team[]; compId: string }) {
   const [teams, setTeams] = useState<Team[]>(initialTeams);
   const [mode, setMode] = useState<"list" | "add" | { kind: "edit"; team: Team }>("list");
   const [deleteTarget, setDeleteTarget] = useState<Team | null>(null);
@@ -330,10 +333,10 @@ export default function TeamManagementPanel({ initialTeams }: { initialTeams: Te
 
       {/* ── Add / Edit form ───────────────────────────────────────────── */}
       {mode === "add" && (
-        <TeamForm mode={{ kind: "add" }} onDone={handleDone} onCancel={() => setMode("list")} />
+        <TeamForm mode={{ kind: "add" }} onDone={handleDone} onCancel={() => setMode("list")} compId={compId} />
       )}
       {typeof mode === "object" && mode.kind === "edit" && (
-        <TeamForm mode={mode} onDone={handleDone} onCancel={() => setMode("list")} />
+        <TeamForm mode={mode} onDone={handleDone} onCancel={() => setMode("list")} compId={compId} />
       )}
 
       {/* ── Team list ─────────────────────────────────────────────────── */}

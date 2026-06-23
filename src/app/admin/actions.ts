@@ -904,9 +904,10 @@ export async function createTeam(
   logoUrl: string | null
 ): Promise<{ data: { id: string } | null; error: string | null }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data, error } = await supabase
     .from("teams")
-    .insert({ name: name.trim(), short_name: shortName.trim(), colour, logo_url: logoUrl })
+    .insert({ name: name.trim(), short_name: shortName.trim(), colour, logo_url: logoUrl, competition_id: compId })
     .select("id")
     .single();
 
