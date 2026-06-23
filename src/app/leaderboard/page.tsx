@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamBadge from "@/components/TeamBadge";
 import Avatar from "@/components/Avatar";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
@@ -385,30 +386,65 @@ function SectionHeading({ title, sub, badge }: { title: string; sub?: string; ba
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
+  // Wave 1 — items that don't need competition scoping, plus the competition's
+  // gameweek IDs which are required to scope everything else.
   const [
-    { data: openGameweek },
-    { data: allPicksRaw },
+    { data: compGwRows },
     { data: profiles },
     { data: teams },
-    { data: closedGameweeks },
-    { data: fixturesWithResults },
     { data: seasonConfig },
     { data: matchResultsRaw },
+  ] = await Promise.all([
+    supabase.from("gameweeks").select("id").eq("competition_id", compId),
+    supabase.from("profiles").select("id, display_name, avatar_url"),
+    supabase.from("teams").select("*"),
+    supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
+    supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
+  ]);
+
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  // Wave 2 — queries scoped to this competition via compGwIds.
+  // Also pre-fetch all fixture IDs for this competition so we can scope picks.
+  const [
+    { data: openGameweek },
+    { data: closedGameweeks },
+    { data: fixturesWithResults },
+    { data: compFixtureRows },
   ] = await Promise.all([
     supabase
       .from("gameweeks")
       .select("*")
+      .eq("competition_id", compId)
       .eq("is_open", true)
       .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
-    supabase.from("picks").select("user_id, is_correct"),
-    supabase.from("profiles").select("id, display_name, avatar_url"),
-    supabase.from("teams").select("*"),
-    supabase.from("gameweeks").select("*").eq("is_open", false).order("number"),
-    supabase.from("fixtures").select("gameweek_id").or("result_team_id.not.is.null,is_draw.eq.true"),
-    supabase.from("season_config").select("season_complete, season_name").eq("id", 1).single(),
-    supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
+    supabase
+      .from("gameweeks")
+      .select("*")
+      .eq("competition_id", compId)
+      .eq("is_open", false)
+      .order("number"),
+    compGwIds.length > 0
+      ? supabase
+          .from("fixtures")
+          .select("gameweek_id")
+          .or("result_team_id.not.is.null,is_draw.eq.true")
+          .in("gameweek_id", compGwIds)
+      : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
+    compGwIds.length > 0
+      ? supabase.from("fixtures").select("id").in("gameweek_id", compGwIds)
+      : Promise.resolve({ data: [] as { id: string }[], error: null }),
   ]);
+
+  const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
+
+  // Overall picks — scoped to this competition's fixtures.
+  // (season_config and match_results are left unscoped as per-competition follow-ups)
+  const { data: allPicksRaw } = compFixtureIds.length > 0
+    ? await supabase.from("picks").select("user_id, is_correct").in("fixture_id", compFixtureIds)
+    : { data: [] as { user_id: string; is_correct: boolean | null }[] };
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -492,6 +528,7 @@ export default async function LeaderboardPage() {
     const { data: allGws } = await supabase
       .from("gameweeks")
       .select("*")
+      .eq("competition_id", compId)
       .order("number");
 
     summaryGameweeks = allGws ?? [];
@@ -499,6 +536,7 @@ export default async function LeaderboardPage() {
     const { data: allFixturesRich } = await supabase
       .from("fixtures")
       .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
+      .in("gameweek_id", compGwIds)
       .order("match_date");
 
     const richFixtures = (allFixturesRich ?? []) as RichFixture[];
