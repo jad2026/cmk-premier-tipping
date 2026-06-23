@@ -2,14 +2,10 @@ import { headers } from "next/headers";
 
 export const CMK_COMPETITION_ID = "b3dbe30d-91ef-40c3-9680-3586c6d17ef8";
 
-// Map of hostname → competition UUID.
-// Add new subdomains here when additional competitions are onboarded.
-const HOST_TO_COMPETITION_ID: Record<string, string> = {
-  // "newclub.clubrugbytipping.com": "another-uuid-here",
-};
-
+// Reads the competition ID injected by src/middleware.ts via the
+// "x-competition-id" request header. Falls back to CMK if the header is
+// absent (e.g. direct server action calls without a middleware hop).
 export async function getCurrentCompetitionId(): Promise<string> {
   const headersList = await headers();
-  const host = (headersList.get("host") ?? "").replace(/:\d+$/, ""); // strip port
-  return HOST_TO_COMPETITION_ID[host] ?? CMK_COMPETITION_ID;
+  return headersList.get("x-competition-id") ?? CMK_COMPETITION_ID;
 }
