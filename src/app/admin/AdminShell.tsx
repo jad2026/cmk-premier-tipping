@@ -19,13 +19,13 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
   { id: "bulk", label: "Bulk Import" },
   { id: "results", label: "Enter Results" },
+  { id: "try", label: "Try of the Week" },
   { id: "rounds", label: "Manage Rounds" },
   { id: "teams", label: "Teams" },
   { id: "participants", label: "Participants" },
   { id: "history", label: "Results History" },
   { id: "season", label: "Season" },
   { id: "sponsors", label: "Sponsors" },
-  { id: "try", label: "Try of the Week" },
 ];
 
 type Props = {
