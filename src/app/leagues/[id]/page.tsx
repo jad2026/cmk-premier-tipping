@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import { fetchLeagueLeaderboard } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { league, entries } = await fetchLeagueLeaderboard(params.id);
+  const compId = await getCurrentCompetitionId();
+  const { league, entries } = await fetchLeagueLeaderboard(params.id, compId);
 
   if (!league) {
     return (

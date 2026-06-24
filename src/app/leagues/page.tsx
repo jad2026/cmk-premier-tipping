@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import { fetchMyLeagues } from "./actions";
 import LeaguesClient from "./LeaguesClient";
 
@@ -10,7 +11,8 @@ export default async function LeaguesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { leagues } = await fetchMyLeagues();
+  const compId = await getCurrentCompetitionId();
+  const { leagues } = await fetchMyLeagues(compId);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">

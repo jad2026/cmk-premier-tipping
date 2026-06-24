@@ -58,9 +58,9 @@ export async function joinLeague(invite_code: string): Promise<{ error?: string;
   return { league };
 }
 
-export async function fetchMyLeagues(): Promise<{ leagues: (League & { member_count: number })[] }> {
+export async function fetchMyLeagues(compIdOverride?: string): Promise<{ leagues: (League & { member_count: number })[] }> {
   const supabase = await createClient();
-  const compId = await getCurrentCompetitionId();
+  const compId = compIdOverride ?? await getCurrentCompetitionId();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { leagues: [] };
 
@@ -109,10 +109,11 @@ export type LeaderboardEntry = {
 };
 
 export async function fetchLeagueLeaderboard(
-  leagueId: string
+  leagueId: string,
+  compIdOverride?: string
 ): Promise<{ league: League | null; entries: LeaderboardEntry[] }> {
   const supabase = await createClient();
-  const compId = await getCurrentCompetitionId();
+  const compId = compIdOverride ?? await getCurrentCompetitionId();
 
   const { data: league } = await supabase
     .from("leagues")
