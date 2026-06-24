@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
@@ -32,15 +32,12 @@ function signed(n: number | null): string {
 
 export default async function LadderPage() {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _compId = await getCurrentCompetitionId();
+  const compId = await getCurrentCompetitionId();
 
-  // Scope ladder to the active Xplorer competitions for this competition.
-  // When a competition_id FK is added to the competitions table this can be
-  // tightened; for now, is_active=true reliably selects the right comps.
   const { data: activeComps } = await supabase
     .from("competitions")
     .select("comp_id")
+    .eq("competition_id", compId)
     .eq("is_active", true);
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
@@ -58,11 +55,14 @@ export default async function LadderPage() {
 
   const standings = (rows ?? []) as LadderRow[];
 
+  const isNpc = compId === NPC_COMPETITION_ID;
+  const compLabel = isNpc ? "Bunnings NPC" : "CMK Premier";
+
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
-    if (names.some((n) => n.includes("women"))) return "CMK Premier Women";
-    if (names.some((n) => n.includes("men"))) return "CMK Premier Men";
-    return "CMK Premier";
+    if (names.some((n) => n.includes("women"))) return `${compLabel} Women`;
+    if (names.some((n) => n.includes("men"))) return `${compLabel} Men`;
+    return compLabel;
   }
 
   // Group by comp_id so multiple competitions each get their own table
@@ -78,16 +78,16 @@ export default async function LadderPage() {
     <div className="space-y-10">
       {/* Page heading */}
       <div>
-        <p className="eyebrow mb-1">CMK Premier</p>
+        <p className="eyebrow mb-1">{compLabel}</p>
         <h1 className="text-2xl font-bold tracking-tight text-brand">Competition Ladder</h1>
       </div>
 
       {standings.length === 0 ? (
         <div className="card px-6 py-14 text-center">
           <span className="text-4xl mb-3 block">🏉</span>
-          <p className="font-medium text-gray-600">No ladder data yet</p>
+          <p className="font-medium text-gray-600">No ladder data available yet</p>
           <p className="text-sm text-gray-400 mt-1">
-            Standings will appear here once the ingest function has run.
+            Standings will appear here once competition data is available.
           </p>
         </div>
       ) : (
