@@ -28,6 +28,7 @@ export type ResultsEmailPayload = {
   totalPlayers: number;
   seasonCorrect: number;
   sponsors?: Sponsor[];
+  competitionName?: string;
 };
 
 // ── HTML template ──────────────────────────────────────────────────────────────
@@ -209,7 +210,7 @@ export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<vo
     const { error } = await resend.emails.send({
       from,
       to: payload.to,
-      subject: `${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`,
+      subject: `${payload.competitionName ? `[${payload.competitionName}] ` : ""}${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`,
       html: buildHtml(payload),
     });
     if (error) {

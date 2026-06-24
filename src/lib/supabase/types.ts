@@ -14,6 +14,7 @@ export type Gameweek = {
   deadline: string;
   is_open: boolean;
   competition_id: string;
+  results_email_sent: boolean;
 };
 
 export type Fixture = {
@@ -123,7 +124,7 @@ export type Database = {
       };
       gameweeks: {
         Row: Gameweek;
-        Insert: Omit<Gameweek, "id">;
+        Insert: Omit<Gameweek, "id" | "results_email_sent"> & { results_email_sent?: boolean };
         Update: Partial<Gameweek>;
         Relationships: [];
       };
