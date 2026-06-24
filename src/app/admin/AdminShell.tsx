@@ -46,7 +46,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
       </div>
 
       {/* Tab bar */}
-      <div className="bg-brand rounded-xl overflow-x-auto">
+      <div className="bg-brand rounded-xl overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max">
           {TABS.map((tab) => (
             <button
