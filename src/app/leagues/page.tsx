@@ -1,3 +1,4 @@
+// Force deploy - leagues scoped per competition
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
