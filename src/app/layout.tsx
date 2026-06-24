@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 
 const barlow = Barlow({
   subsets: ["latin"],
@@ -33,13 +34,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const compId = await getCurrentCompetitionId();
+  const themeClass = compId === NPC_COMPETITION_ID ? "theme-npc" : "";
+
   return (
-    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
+    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable} ${themeClass}`}>
       <body className={`${barlow.className} min-h-screen`}>
         <Navbar />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">

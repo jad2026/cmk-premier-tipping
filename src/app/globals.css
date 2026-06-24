@@ -7,6 +7,26 @@
   to   { transform: translateX(-100%); }
 }
 
+:root {
+  --brand: 26 58 92;
+  --brand-dark: 17 38 56;
+  --brand-light: 42 90 140;
+  --brand-muted: 232 237 243;
+  --brand-gold: 201 168 76;
+  --brand-gold-light: 245 233 200;
+  --brand-gold-dark: 168 137 58;
+}
+
+:root.theme-npc {
+  --brand: 26 26 46;
+  --brand-dark: 16 16 30;
+  --brand-light: 42 42 78;
+  --brand-muted: 224 232 240;
+  --brand-gold: 8 145 178;
+  --brand-gold-light: 224 247 250;
+  --brand-gold-dark: 14 116 144;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

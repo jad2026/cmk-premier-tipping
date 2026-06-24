@@ -14,13 +14,13 @@ const config: Config = {
       },
       colors: {
         brand: {
-          DEFAULT: "#1a3a5c",
-          dark:    "#112638",
-          light:   "#2a5a8c",
-          muted:   "#e8edf3",
-          gold:    "#c9a84c",
-          "gold-light": "#f5e9c8",
-          "gold-dark":  "#a8893a",
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          dark:    "rgb(var(--brand-dark) / <alpha-value>)",
+          light:   "rgb(var(--brand-light) / <alpha-value>)",
+          muted:   "rgb(var(--brand-muted) / <alpha-value>)",
+          gold:    "rgb(var(--brand-gold) / <alpha-value>)",
+          "gold-light": "rgb(var(--brand-gold-light) / <alpha-value>)",
+          "gold-dark":  "rgb(var(--brand-gold-dark) / <alpha-value>)",
         },
       },
       backgroundImage: {
