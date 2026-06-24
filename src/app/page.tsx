@@ -5,6 +5,7 @@ import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import Avatar from "@/components/Avatar";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Gameweek, Fixture } from "@/lib/supabase/types";
+import { parseVideoUrl } from "@/lib/video";
 
 // Force fresh data on every request — no caching for season state or round rollover
 export const dynamic = "force-dynamic";
@@ -58,11 +59,12 @@ export default async function HomePage() {
     isEnrolled = !!participant;
   }
 
-  // Wave 1: competition-scoped gameweeks + season config
-  const [{ data: compGwRows }, { data: seasonConfig }] =
+  // Wave 1: competition-scoped gameweeks + season config + try of the week
+  const [{ data: compGwRows }, { data: seasonConfig }, { data: activeTry }] =
     await Promise.all([
       supabase.from("gameweeks").select("*").eq("competition_id", compId).order("number"),
       supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
+      supabase.from("try_of_the_week").select("*").eq("competition_id", compId).eq("is_active", true).maybeSingle(),
     ]);
 
   const gameweeks = compGwRows ?? [];
@@ -265,6 +267,55 @@ export default async function HomePage() {
           <Link href="/leaderboard" className="btn-ghost shrink-0">Leaderboard</Link>
         </section>
       )}
+
+      {/* ── Try of the Week ────────────────────────────────────────────── */}
+      {activeTry && (() => {
+        const tryGw = gameweeks.find((gw) => gw.id === activeTry.gameweek_id);
+        const video = parseVideoUrl(activeTry.video_url);
+        return (
+          <section className="card-md overflow-hidden">
+            <div className="px-6 pt-5 pb-3 flex items-center gap-2">
+              <span className="text-xl select-none">🏉</span>
+              <h2 className="text-lg font-bold text-brand">Try of the Week</h2>
+              {tryGw && (
+                <span className="ml-auto text-xs font-medium text-gray-400">{tryGw.label}</span>
+              )}
+            </div>
+            {video.type === "youtube" ? (
+              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  src={video.embedUrl}
+                  title="Try of the Week"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            ) : (
+              <div className="px-6">
+                <a
+                  href={video.embedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-flex items-center gap-2 text-sm"
+                >
+                  ▶ Watch on {video.type === "facebook" ? "Facebook" : video.type === "instagram" ? "Instagram" : "External Site"}
+                </a>
+              </div>
+            )}
+            <div className="px-6 py-4 space-y-1">
+              {(activeTry.player_name || activeTry.team_name) && (
+                <p className="text-sm font-semibold text-gray-800">
+                  {[activeTry.player_name, activeTry.team_name].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              {activeTry.caption && (
+                <p className="text-sm text-gray-500 italic">{activeTry.caption}</p>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {activeMode === "season-complete" && (
         <section className="relative rounded-3xl overflow-hidden shadow-card-lg text-center">

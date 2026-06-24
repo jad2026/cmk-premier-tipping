@@ -94,6 +94,19 @@ export type CompetitionParticipant = {
   joined_at: string;
 };
 
+export type TryOfTheWeek = {
+  id: string;
+  competition_id: string;
+  gameweek_id: string;
+  video_url: string;
+  player_name: string | null;
+  team_name: string | null;
+  caption: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Season = {
   id: string;
   name: string;
@@ -181,6 +194,12 @@ export type Database = {
         Row: Sponsor;
         Insert: Omit<Sponsor, "id" | "created_at"> & { id?: string; created_at?: string };
         Update: Partial<Sponsor>;
+        Relationships: [];
+      };
+      try_of_the_week: {
+        Row: TryOfTheWeek;
+        Insert: Omit<TryOfTheWeek, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<TryOfTheWeek>;
         Relationships: [];
       };
     };

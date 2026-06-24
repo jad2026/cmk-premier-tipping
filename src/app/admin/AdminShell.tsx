@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Team, Fixture } from "@/lib/supabase/types";
 import AddFixtureForm from "./AddFixtureForm";
 import BulkImportForm from "./BulkImportForm";
@@ -39,8 +40,9 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold text-brand">Admin</h1>
+        <Link href="/admin/try-of-the-week" className="btn-ghost text-sm">Try of the Week →</Link>
       </div>
 
       {/* Tab bar */}

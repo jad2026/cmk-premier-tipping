@@ -27,3 +27,4 @@ next-env.d.ts
 /public/sw.js.map
 /public/workbox-*.js
 /public/worker-*.js
+.vercel
