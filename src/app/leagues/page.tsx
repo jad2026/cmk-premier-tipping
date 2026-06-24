@@ -12,6 +12,7 @@ export default async function LeaguesPage() {
   if (!user) redirect("/login");
 
   const compId = await getCurrentCompetitionId();
+  console.log("LEAGUES PAGE compId:", compId);
   const { leagues } = await fetchMyLeagues(compId);
 
   return (
