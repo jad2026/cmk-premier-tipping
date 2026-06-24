@@ -18,6 +18,7 @@ export type ReminderEmailPayload = {
   variant: "wednesday" | "24h";
   picksCount?: number;
   totalFixtures?: number;
+  competitionName?: string;
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
@@ -190,11 +191,12 @@ export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<
   }
 
   const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
-  const { roundLabel, variant } = payload;
+  const { roundLabel, variant, competitionName } = payload;
+  const compPrefix = competitionName ? `[${competitionName}] ` : "";
 
   const subject = variant === "24h"
-    ? `Last chance! ${roundLabel} closes in 24 hours`
-    : `Midweek reminder — have you made your picks for ${roundLabel}?`;
+    ? `${compPrefix}Last chance! ${roundLabel} closes in 24 hours`
+    : `${compPrefix}Midweek reminder — have you made your picks for ${roundLabel}?`;
 
   try {
     const resend = new Resend(apiKey);
