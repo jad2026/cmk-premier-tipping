@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +34,15 @@ export default async function LadderPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
+  const CMK_WOMEN_COMPETITION_ID = "952743a7-9e79-4c5b-b15c-7fe07c4ca420";
+  const tenantIds = compId === CMK_COMPETITION_ID
+    ? [CMK_COMPETITION_ID, CMK_WOMEN_COMPETITION_ID]
+    : [compId];
+
   const { data: activeComps } = await supabase
     .from("competitions")
     .select("comp_id")
-    .eq("competition_id", compId)
+    .in("id", tenantIds)
     .eq("is_active", true);
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
