@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { Team, Fixture } from "@/lib/supabase/types";
 import AddFixtureForm from "./AddFixtureForm";
 import BulkImportForm from "./BulkImportForm";
@@ -12,8 +11,9 @@ import ResultsHistoryPanel from "./ResultsHistoryPanel";
 import SeasonManagementPanel from "./SeasonManagementPanel";
 import ManageRoundsPanel from "./ManageRoundsPanel";
 import SponsorsPanel from "./SponsorsPanel";
+import TryOfTheWeekPanel from "./TryOfTheWeekPanel";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "sponsors";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "sponsors" | "try";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "add", label: "Add Fixture" },
@@ -25,6 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "history", label: "Results History" },
   { id: "season", label: "Season" },
   { id: "sponsors", label: "Sponsors" },
+  { id: "try", label: "Try of the Week" },
 ];
 
 type Props = {
@@ -40,9 +41,8 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div>
         <h1 className="text-2xl font-bold text-brand">Admin</h1>
-        <Link href="/admin/try-of-the-week" className="btn-ghost text-sm">Try of the Week →</Link>
       </div>
 
       {/* Tab bar */}
@@ -86,6 +86,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         {activeTab === "participants" && <ParticipantsPanel />}
         {activeTab === "history" && <ResultsHistoryPanel />}
         {activeTab === "sponsors" && <SponsorsPanel compId={compId} />}
+        {activeTab === "try" && <TryOfTheWeekPanel compId={compId} />}
       </div>
     </div>
   );
