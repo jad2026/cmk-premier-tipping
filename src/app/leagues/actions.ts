@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { League, LeagueMember, Profile, Pick } from "@/lib/supabase/types";
+import { getCurrentCompetitionId } from "@/lib/competition";
+import type { League, Profile, Pick } from "@/lib/supabase/types";
 
 function randomCode(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -9,6 +10,7 @@ function randomCode(): string {
 
 export async function createLeague(name: string): Promise<{ error?: string; league?: League }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -16,13 +18,12 @@ export async function createLeague(name: string): Promise<{ error?: string; leag
 
   const { data: league, error } = await supabase
     .from("leagues")
-    .insert({ name: name.trim(), invite_code, created_by: user.id })
+    .insert({ name: name.trim(), invite_code, created_by: user.id, competition_id: compId })
     .select()
     .single();
 
   if (error) return { error: error.message };
 
-  // Auto-join the creator
   await supabase
     .from("league_members")
     .insert({ league_id: league.id, user_id: user.id, joined_at: new Date().toISOString() });
@@ -32,6 +33,7 @@ export async function createLeague(name: string): Promise<{ error?: string; leag
 
 export async function joinLeague(invite_code: string): Promise<{ error?: string; league?: League }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -39,6 +41,7 @@ export async function joinLeague(invite_code: string): Promise<{ error?: string;
     .from("leagues")
     .select()
     .eq("invite_code", invite_code.trim().toUpperCase())
+    .eq("competition_id", compId)
     .single();
 
   if (findErr || !league) return { error: "League not found — check your invite code." };
@@ -57,6 +60,7 @@ export async function joinLeague(invite_code: string): Promise<{ error?: string;
 
 export async function fetchMyLeagues(): Promise<{ leagues: (League & { member_count: number })[] }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { leagues: [] };
 
@@ -73,12 +77,17 @@ export async function fetchMyLeagues(): Promise<{ leagues: (League & { member_co
     .from("leagues")
     .select("*")
     .in("id", leagueIds)
+    .eq("competition_id", compId)
     .order("created_at");
+
+  if (!leagues?.length) return { leagues: [] };
+
+  const filteredIds = leagues.map((l) => l.id);
 
   const { data: allMembers } = await supabase
     .from("league_members")
     .select("league_id")
-    .in("league_id", leagueIds);
+    .in("league_id", filteredIds);
 
   const countMap = new Map<string, number>();
   for (const m of allMembers ?? []) {
@@ -86,7 +95,7 @@ export async function fetchMyLeagues(): Promise<{ leagues: (League & { member_co
   }
 
   return {
-    leagues: (leagues ?? []).map((l) => ({ ...l, member_count: countMap.get(l.id) ?? 0 })),
+    leagues: leagues.map((l) => ({ ...l, member_count: countMap.get(l.id) ?? 0 })),
   };
 }
 
@@ -103,11 +112,13 @@ export async function fetchLeagueLeaderboard(
   leagueId: string
 ): Promise<{ league: League | null; entries: LeaderboardEntry[] }> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
 
   const { data: league } = await supabase
     .from("leagues")
     .select("*")
     .eq("id", leagueId)
+    .eq("competition_id", compId)
     .single();
 
   if (!league) return { league: null, entries: [] };
@@ -121,16 +132,31 @@ export async function fetchLeagueLeaderboard(
 
   const userIds = members.map((m) => m.user_id);
 
+  // Scope picks to this competition's fixtures
+  const { data: compGwRows } = await supabase
+    .from("gameweeks")
+    .select("id")
+    .eq("competition_id", compId);
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  const { data: compFixtureRows } = compGwIds.length > 0
+    ? await supabase.from("fixtures").select("id").in("gameweek_id", compGwIds)
+    : { data: [] as { id: string }[] };
+  const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
+
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, display_name, first_name, last_name")
     .in("id", userIds);
 
-  const { data: picks } = await supabase
-    .from("picks")
-    .select("user_id, is_correct")
-    .in("user_id", userIds)
-    .not("is_correct", "is", null);
+  const { data: picks } = compFixtureIds.length > 0
+    ? await supabase
+        .from("picks")
+        .select("user_id, is_correct")
+        .in("user_id", userIds)
+        .in("fixture_id", compFixtureIds)
+        .not("is_correct", "is", null)
+    : { data: [] as Pick[] };
 
   const scoreMap = new Map<string, { correct: number; total: number }>(
     (profiles as Profile[] ?? []).map((p) => [p.id, { correct: 0, total: 0 }])

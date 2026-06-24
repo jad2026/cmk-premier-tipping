@@ -79,6 +79,7 @@ export type League = {
   invite_code: string;
   created_by: string;
   created_at: string;
+  competition_id: string;
 };
 
 export type LeagueMember = {
