@@ -83,7 +83,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
         )}
         {activeTab === "participants" && <ParticipantsPanel />}
         {activeTab === "history" && <ResultsHistoryPanel />}
-        {activeTab === "sponsors" && <SponsorsPanel />}
+        {activeTab === "sponsors" && <SponsorsPanel compId={compId} />}
       </div>
     </div>
   );

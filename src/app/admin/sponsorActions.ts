@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import type { Sponsor, SponsorLocation } from "@/lib/supabase/types";
 
 function serviceClient() {
@@ -12,9 +13,11 @@ function serviceClient() {
 
 export async function fetchSponsors(): Promise<Sponsor[]> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data } = await supabase
     .from("sponsors")
     .select("*")
+    .eq("competition_id", compId)
     .order("order_position")
     .order("created_at");
   return (data ?? []) as Sponsor[];
@@ -22,9 +25,11 @@ export async function fetchSponsors(): Promise<Sponsor[]> {
 
 export async function fetchActiveSponsors(location: SponsorLocation): Promise<Sponsor[]> {
   const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
   const { data } = await supabase
     .from("sponsors")
     .select("*")
+    .eq("competition_id", compId)
     .eq("is_active", true)
     .or(`display_location.eq.${location},display_location.eq.all`)
     .order("order_position")

@@ -69,6 +69,7 @@ export type Sponsor = {
   is_active: boolean;
   order_position: number;
   created_at: string;
+  competition_id: string;
 };
 
 export type League = {

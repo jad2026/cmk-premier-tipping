@@ -25,7 +25,7 @@ const emptyForm = {
   is_active: true,
 };
 
-export default function SponsorsPanel() {
+export default function SponsorsPanel({ compId }: { compId: string }) {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -95,6 +95,7 @@ export default function SponsorsPanel() {
         is_active: form.is_active,
         order_position: editing?.order_position ?? sponsors.length,
         logo_url: editing?.logo_url ?? null,
+        competition_id: compId,
       };
 
       const { error, sponsor } = await upsertSponsor(payload);
