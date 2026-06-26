@@ -70,7 +70,7 @@ export default async function RootLayout({
               </span>
             </div>
             <span className="text-[12px] text-[#8C93A0]">
-              &copy; 2026 &middot; CMK Premier Club Rugby &middot; Taranaki
+              &copy; 2026 &middot; John Dazley &middot; Club Rugby Tipping
             </span>
           </div>
         </footer>
