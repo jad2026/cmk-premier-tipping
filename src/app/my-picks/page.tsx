@@ -79,7 +79,7 @@ export default async function MyPicksPage() {
       .from("gameweeks")
       .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
-      .order("number"),
+      .order("number", { ascending: false }),
     compGwIds.length > 0
       ? supabase
           .from("fixtures")
