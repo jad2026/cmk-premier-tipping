@@ -342,6 +342,7 @@ export default async function HomePage() {
       {/* ── 2. Clubs rail ────────────────────────────────────────────────────── */}
       {teamCount > 0 && (
         <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+          <style>{`.clubs-rail::-webkit-scrollbar { display: none; }`}</style>
           <div className="max-w-content mx-auto flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
               <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>The clubs</div>
@@ -349,9 +350,8 @@ export default async function HomePage() {
             </div>
             <div
               className="clubs-rail flex flex-nowrap gap-[18px] overflow-x-auto py-1"
-              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch", minWidth: 0 }}
             >
-              <style>{`.clubs-rail::-webkit-scrollbar { display: none; }`}</style>
               {dedupedTeams.map((t) => (
                 <div key={t.id} className="flex flex-col items-center gap-[9px] w-[66px]" style={{ flexShrink: 0 }}>
                   <TeamBadge team={t} size="lg" />
@@ -606,101 +606,80 @@ export default async function HomePage() {
                   </Link>
                 </div>
 
-                <div className="overflow-hidden rounded-[18px]" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
-                  <div
-                    className="hidden sm:grid items-center text-[11px] font-extrabold tracking-[.1em] uppercase text-[#9AA1AD]"
-                    style={{
-                      gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                      padding: "15px 20px",
-                      background: "#0D1016",
-                    }}
-                  >
-                    <span>#</span>
-                    <span>Team</span>
-                    <span className="text-center">P</span>
-                    <span className="text-center">W</span>
-                    <span className="text-center">L</span>
-                    <span className="text-center">PF</span>
-                    <span className="text-center">PA</span>
-                    <span className="text-center">PD</span>
-                    <span className="text-right">Pts</span>
-                  </div>
+                <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8", fontFeatureSettings: "'tnum'" }}>
+                  <div className="overflow-x-auto">
+                    {/* Desktop header */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
+                        padding: "15px 20px",
+                        background: "#0D1016",
+                        color: "#9AA1AD",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: ".08em",
+                        textTransform: "uppercase" as const,
+                        minWidth: 540,
+                      }}
+                    >
+                      <span>#</span>
+                      <span>Club</span>
+                      <span style={{ textAlign: "center" }}>P</span>
+                      <span style={{ textAlign: "center" }}>W</span>
+                      <span style={{ textAlign: "center" }}>L</span>
+                      <span style={{ textAlign: "center" }}>PF</span>
+                      <span style={{ textAlign: "center" }}>PA</span>
+                      <span style={{ textAlign: "center" }}>PD</span>
+                      <span style={{ textAlign: "right" }}>Pts</span>
+                    </div>
 
-                  {ladderRows.map((row, i) => {
-                    const teamInfo = teamColorMap.get(row.team_name);
-                    const pd = row.points_diff;
-                    const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
-                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+                    {ladderRows.map((row, i) => {
+                      const pd = row.points_diff;
+                      const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
+                      const barColor = i === 0 ? "var(--accent)" : "transparent";
+                      const teamInfo = teamColorMap.get(row.team_name);
+                      const teamColour = teamInfo?.colour ?? "#2B3A52";
 
-                    return (
-                      <div
-                        key={row.team_id}
-                        className="hidden sm:grid items-center"
-                        style={{
-                          gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                          padding: "16px 20px",
-                          borderTop: "1px solid #EFEDE6",
-                          borderLeft: `3px solid ${barColor}`,
-                        }}
-                      >
-                        <span className="font-display text-[16px] text-ink">{row.position ?? i + 1}</span>
-                        <span className="flex items-center gap-3 font-bold text-[15px] text-ink">
-                          {teamInfo ? (
-                            <TeamBadge
-                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                              size="sm"
-                            />
-                          ) : (
-                            <span
-                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                              style={{ background: "#2B3A52" }}
-                            >
-                              {row.team_name.slice(0, 2).toUpperCase()}
+                      return (
+                        <div
+                          key={row.team_id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
+                            alignItems: "center",
+                            padding: "15px 20px",
+                            borderTop: "1px solid #EFEDE6",
+                            borderLeft: `3px solid ${barColor}`,
+                            minWidth: 540,
+                          }}
+                        >
+                          <span className="font-display" style={{ fontSize: 16, color: "#11151C" }}>{row.position ?? i + 1}</span>
+                          <span className="flex items-center" style={{ gap: 12, minWidth: 0 }}>
+                            {row.crest ? (
+                              <Image src={row.crest} alt={row.team_name} width={32} height={32} className="rounded-full object-contain shrink-0" style={{ width: 32, height: 32 }} unoptimized />
+                            ) : (
+                              <span className="flex items-center justify-center rounded-full shrink-0 font-display text-[11px] text-white" style={{ width: 32, height: 32, background: teamColour }}>
+                                {row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/).length >= 2
+                                  ? (row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/)[0][0] + row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/)[1][0]).toUpperCase()
+                                  : row.team_name.slice(0, 2).toUpperCase()}
+                              </span>
+                            )}
+                            <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {row.team_name}
                             </span>
-                          )}
-                          {row.team_name}
-                        </span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.matches_played)}</span>
-                        <span className="text-center text-[14px] font-bold text-[#169B63]">{val(row.matches_won)}</span>
-                        <span className="text-center text-[14px] text-[#B23A48]">{val(row.matches_lost)}</span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_for)}</span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_against)}</span>
-                        <span className="text-center text-[14px] font-bold" style={{ color: pdColor }}>{signed(row.points_diff)}</span>
-                        <span className="text-right font-display text-[18px] text-ink">{val(row.match_points)}</span>
-                      </div>
-                    );
-                  })}
-
-                  {ladderRows.map((row, i) => {
-                    const teamInfo = teamColorMap.get(row.team_name);
-                    const barColor = i === 0 ? "var(--accent)" : "transparent";
-                    return (
-                      <div
-                        key={`m-${row.team_id}`}
-                        className="sm:hidden flex items-center justify-between px-4 py-3"
-                        style={{ borderTop: "1px solid #EFEDE6", borderLeft: `3px solid ${barColor}` }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-display text-[16px] text-ink w-5">{row.position ?? i + 1}</span>
-                          {teamInfo ? (
-                            <TeamBadge
-                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                              size="sm"
-                            />
-                          ) : (
-                            <span
-                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                              style={{ background: "#2B3A52" }}
-                            >
-                              {row.team_name.slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                          <span className="font-bold text-[14px] text-ink">{row.team_name}</span>
+                          </span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.matches_played)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: "#169B63" }}>{val(row.matches_won)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#B23A48" }}>{val(row.matches_lost)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.points_for)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.points_against)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: pdColor }}>{signed(row.points_diff)}</span>
+                          <span className="font-display" style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}>{val(row.match_points)}</span>
                         </div>
-                        <span className="font-display text-[18px] text-ink">{val(row.match_points)}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </>
             )}
@@ -721,101 +700,79 @@ export default async function HomePage() {
                   </Link>
                 </div>
 
-                <div className="overflow-hidden rounded-[18px]" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
-                  <div
-                    className="hidden sm:grid items-center text-[11px] font-extrabold tracking-[.1em] uppercase text-[#9AA1AD]"
-                    style={{
-                      gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                      padding: "15px 20px",
-                      background: "#0D1016",
-                    }}
-                  >
-                    <span>#</span>
-                    <span>Team</span>
-                    <span className="text-center">P</span>
-                    <span className="text-center">W</span>
-                    <span className="text-center">L</span>
-                    <span className="text-center">PF</span>
-                    <span className="text-center">PA</span>
-                    <span className="text-center">PD</span>
-                    <span className="text-right">Pts</span>
-                  </div>
+                <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8", fontFeatureSettings: "'tnum'" }}>
+                  <div className="overflow-x-auto">
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
+                        padding: "15px 20px",
+                        background: "#0D1016",
+                        color: "#9AA1AD",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: ".08em",
+                        textTransform: "uppercase" as const,
+                        minWidth: 540,
+                      }}
+                    >
+                      <span>#</span>
+                      <span>Club</span>
+                      <span style={{ textAlign: "center" }}>P</span>
+                      <span style={{ textAlign: "center" }}>W</span>
+                      <span style={{ textAlign: "center" }}>L</span>
+                      <span style={{ textAlign: "center" }}>PF</span>
+                      <span style={{ textAlign: "center" }}>PA</span>
+                      <span style={{ textAlign: "center" }}>PD</span>
+                      <span style={{ textAlign: "right" }}>Pts</span>
+                    </div>
 
-                  {womenLadderRows.map((row, i) => {
-                    const teamInfo = teamColorMap.get(row.team_name);
-                    const pd = row.points_diff;
-                    const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
-                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+                    {womenLadderRows.map((row, i) => {
+                      const pd = row.points_diff;
+                      const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
+                      const barColor = i === 0 ? "var(--accent)" : "transparent";
+                      const teamInfo = teamColorMap.get(row.team_name);
+                      const teamColour = teamInfo?.colour ?? "#2B3A52";
 
-                    return (
-                      <div
-                        key={row.team_id}
-                        className="hidden sm:grid items-center"
-                        style={{
-                          gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                          padding: "16px 20px",
-                          borderTop: "1px solid #EFEDE6",
-                          borderLeft: `3px solid ${barColor}`,
-                        }}
-                      >
-                        <span className="font-display text-[16px] text-ink">{row.position ?? i + 1}</span>
-                        <span className="flex items-center gap-3 font-bold text-[15px] text-ink">
-                          {teamInfo ? (
-                            <TeamBadge
-                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                              size="sm"
-                            />
-                          ) : (
-                            <span
-                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                              style={{ background: "#2B3A52" }}
-                            >
-                              {row.team_name.slice(0, 2).toUpperCase()}
+                      return (
+                        <div
+                          key={row.team_id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
+                            alignItems: "center",
+                            padding: "15px 20px",
+                            borderTop: "1px solid #EFEDE6",
+                            borderLeft: `3px solid ${barColor}`,
+                            minWidth: 540,
+                          }}
+                        >
+                          <span className="font-display" style={{ fontSize: 16, color: "#11151C" }}>{row.position ?? i + 1}</span>
+                          <span className="flex items-center" style={{ gap: 12, minWidth: 0 }}>
+                            {row.crest ? (
+                              <Image src={row.crest} alt={row.team_name} width={32} height={32} className="rounded-full object-contain shrink-0" style={{ width: 32, height: 32 }} unoptimized />
+                            ) : (
+                              <span className="flex items-center justify-center rounded-full shrink-0 font-display text-[11px] text-white" style={{ width: 32, height: 32, background: teamColour }}>
+                                {row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/).length >= 2
+                                  ? (row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/)[0][0] + row.team_name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/)[1][0]).toUpperCase()
+                                  : row.team_name.slice(0, 2).toUpperCase()}
+                              </span>
+                            )}
+                            <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {row.team_name}
                             </span>
-                          )}
-                          {row.team_name}
-                        </span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.matches_played)}</span>
-                        <span className="text-center text-[14px] font-bold text-[#169B63]">{val(row.matches_won)}</span>
-                        <span className="text-center text-[14px] text-[#B23A48]">{val(row.matches_lost)}</span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_for)}</span>
-                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_against)}</span>
-                        <span className="text-center text-[14px] font-bold" style={{ color: pdColor }}>{signed(row.points_diff)}</span>
-                        <span className="text-right font-display text-[18px] text-ink">{val(row.match_points)}</span>
-                      </div>
-                    );
-                  })}
-
-                  {womenLadderRows.map((row, i) => {
-                    const teamInfo = teamColorMap.get(row.team_name);
-                    const barColor = i === 0 ? "var(--accent)" : "transparent";
-                    return (
-                      <div
-                        key={`m-${row.team_id}`}
-                        className="sm:hidden flex items-center justify-between px-4 py-3"
-                        style={{ borderTop: "1px solid #EFEDE6", borderLeft: `3px solid ${barColor}` }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-display text-[16px] text-ink w-5">{row.position ?? i + 1}</span>
-                          {teamInfo ? (
-                            <TeamBadge
-                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                              size="sm"
-                            />
-                          ) : (
-                            <span
-                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                              style={{ background: "#2B3A52" }}
-                            >
-                              {row.team_name.slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                          <span className="font-bold text-[14px] text-ink">{row.team_name}</span>
+                          </span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.matches_played)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: "#169B63" }}>{val(row.matches_won)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#B23A48" }}>{val(row.matches_lost)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.points_for)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>{val(row.points_against)}</span>
+                          <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: pdColor }}>{signed(row.points_diff)}</span>
+                          <span className="font-display" style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}>{val(row.match_points)}</span>
                         </div>
-                        <span className="font-display text-[18px] text-ink">{val(row.match_points)}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </>
             )}
