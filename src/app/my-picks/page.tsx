@@ -64,14 +64,12 @@ export default async function MyPicksPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Get competition's gameweek IDs to scope fixtures and picks
   const { data: compGwRows } = await supabase
     .from("gameweeks")
     .select("id")
     .eq("competition_id", compId);
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
-  // Fetch everything in parallel, scoped to this competition
   const [
     { data: gameweeks },
     { data: fixturesRaw },
@@ -94,7 +92,6 @@ export default async function MyPicksPage() {
 
   const compFixtureIds = (fixturesRaw ?? []).map((f: { id: string }) => f.id);
 
-  // Picks scoped to this competition's fixtures
   const [
     { data: picksRaw, error: picksError },
     { data: allPicksForRank },
@@ -121,7 +118,6 @@ export default async function MyPicksPage() {
   const totalCorrect = picks.filter((p) => p.is_correct === true).length;
   const totalTipped = scoredPicks.length;
 
-  // Rank: count users with more correct picks than me
   const tallyByUser = new Map<string, number>();
   for (const p of allPicksForRank ?? []) {
     tallyByUser.set(p.user_id, (tallyByUser.get(p.user_id) ?? 0) + 1);
@@ -160,64 +156,128 @@ export default async function MyPicksPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* ── Page header ──────────────────────────────────────────────── */}
-      <div>
-        <p className="eyebrow mb-1">Season History</p>
-        <h1 className="text-3xl font-bold text-brand">My Picks</h1>
-      </div>
+    <div
+      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
+    >
 
-      {/* ── Summary card ─────────────────────────────────────────────── */}
-      <div className="card-md px-6 py-5">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Stat label="Correct" value={String(totalCorrect)} />
-          <Stat label="Tipped" value={totalTipped > 0 ? String(totalTipped) : "—"} />
-          <Stat label="Accuracy" value={pct(totalCorrect, totalTipped)} highlight />
-          <Stat
-            label="Current Rank"
-            value={totalPlayers > 0 ? `#${rank}` : "—"}
-            sub={totalPlayers > 0 ? `of ${totalPlayers}` : undefined}
-          />
+      {/* ── Dark header ──────────────────────────────────────────────── */}
+      <section style={{ background: "#0B0E13", color: "#fff" }}>
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#C7CCD4" }}>
+              Season history
+            </span>
+          </div>
+          <h1
+            className="font-display uppercase"
+            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
+          >
+            My Picks<span style={{ color: "var(--accent)" }}>.</span>
+          </h1>
         </div>
-      </div>
+      </section>
+
+      {/* ── Stats summary ────────────────────────────────────────────── */}
+      <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px" }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #E4E1D8",
+            borderRadius: 18,
+            padding: "28px 32px",
+          }}
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 24 }}>
+            <StatTile label="Correct" value={String(totalCorrect)} />
+            <StatTile label="Tipped" value={totalTipped > 0 ? String(totalTipped) : "—"} />
+            <StatTile label="Accuracy" value={pct(totalCorrect, totalTipped)} highlight />
+            <StatTile
+              label="Current Rank"
+              value={totalPlayers > 0 ? `#${rank}` : "—"}
+              sub={totalPlayers > 0 ? `of ${totalPlayers}` : undefined}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* ── Rounds ───────────────────────────────────────────────────── */}
-      {rounds.length === 0 ? (
-        <div className="card px-6 py-10 text-center">
-          <p className="text-gray-500">No rounds scheduled yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {rounds.map((round) => {
-            const hasScoredPicks = round.roundPicked > 0;
-            return (
-              <section key={round.id} className="card-md overflow-hidden">
-                {/* Round header */}
-                <div className="bg-gradient-to-r from-brand to-brand-light px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wide">
-                      {round.label}
-                    </h2>
-                    <span className="text-white/40 text-xs hidden sm:inline">·</span>
-                    <span className="text-white/60 text-xs hidden sm:inline">
-                      {fmtDate(round.deadline)}
-                    </span>
+      <section className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px 70px" }}>
+        {rounds.length === 0 ? (
+          <div className="text-center" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "48px 24px" }}>
+            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No rounds scheduled yet.</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {rounds.map((round) => {
+              const hasScoredPicks = round.roundPicked > 0;
+              return (
+                <div
+                  key={round.id}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E4E1D8",
+                    borderRadius: 18,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Round header */}
+                  <div
+                    className="flex items-center justify-between gap-3"
+                    style={{
+                      background: "#0D1016",
+                      padding: "14px 22px",
+                      borderRadius: "18px 18px 0 0",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <h2
+                        className="font-display uppercase"
+                        style={{ fontSize: 15, margin: 0, color: "#fff" }}
+                      >
+                        {round.label}
+                      </h2>
+                      <span className="hidden sm:inline" style={{ fontSize: 13, color: "#9AA1AD" }}>
+                        {fmtDate(round.deadline)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {hasScoredPicks && (
+                        <span
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "rgba(255,255,255,.1)",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {round.roundCorrect}/{round.roundPicked}
+                        </span>
+                      )}
+                      {round.is_open && (
+                        <span
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "rgba(var(--accent-rgb,217,165,33),.25)",
+                            color: "var(--accent)",
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: ".08em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Open
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {hasScoredPicks && (
-                    <span className="shrink-0 px-2.5 py-1 rounded-full bg-white/15 text-white text-xs font-bold">
-                      {round.roundCorrect}/{round.roundPicked}
-                    </span>
-                  )}
-                  {round.is_open && (
-                    <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand-gold/30 text-brand-gold text-[10px] font-bold uppercase tracking-wide">
-                      Open
-                    </span>
-                  )}
-                </div>
 
-                {/* Fixtures */}
-                <div className="divide-y divide-gray-100">
-                  {round.fixtures.map((fixture) => {
+                  {/* Fixtures */}
+                  {round.fixtures.map((fixture, fIdx) => {
                     const pick = pickMap.get(fixture.id);
                     const hasResult = fixture.result_team_id !== null || fixture.is_draw;
                     const pickedDraw = pick?.picked_draw ?? false;
@@ -226,9 +286,6 @@ export default async function MyPicksPage() {
                       ? (fixture.home_team.id === pickedTeamId ? fixture.home_team : fixture.away_team)
                       : null;
 
-                    // Derive correctness from the fixture result directly so it
-                    // shows even when is_correct hasn't been written yet by the
-                    // scoring function (e.g. result entered while round is still open).
                     let isCorrect: boolean | null = null;
                     if (pick && hasResult) {
                       if (fixture.is_draw) {
@@ -246,91 +303,174 @@ export default async function MyPicksPage() {
                       : fixture.result_team?.name ?? null;
 
                     return (
-                      <div key={fixture.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div
+                        key={fixture.id}
+                        className="flex flex-col sm:flex-row sm:items-center gap-3"
+                        style={{
+                          padding: "14px 22px",
+                          borderTop: fIdx > 0 ? "1px solid #EFEDE6" : "none",
+                        }}
+                      >
                         {/* Teams */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <TeamBadge team={fixture.home_team} size="xs" />
-                          <span className="text-sm font-medium text-gray-700 truncate">
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#11151C" }} className="truncate">
                             {fixture.home_team.name}
                           </span>
-                          <span className="text-gray-300 text-xs font-bold shrink-0">vs</span>
-                          <span className="text-sm font-medium text-gray-700 truncate">
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#C7C2B5", letterSpacing: ".06em" }} className="shrink-0">
+                            VS
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#11151C" }} className="truncate">
                             {fixture.away_team.name}
                           </span>
                           <TeamBadge team={fixture.away_team} size="xs" />
                         </div>
 
-                        {/* Pick + result row */}
+                        {/* Pick + result */}
                         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                          {/* User's pick */}
                           {pick ? (
                             <div className="flex items-center gap-1.5">
                               {autoPicked && (
-                                <span title="Auto-picked" className="text-sm leading-none">🎲</span>
+                                <span
+                                  title="Auto-picked"
+                                  style={{
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
+                                    background: "#F5F4EF",
+                                    border: "1px solid #E4E1D8",
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                    textTransform: "uppercase",
+                                    letterSpacing: ".06em",
+                                    color: "#8B8676",
+                                  }}
+                                >
+                                  Auto
+                                </span>
                               )}
                               {pickedDraw ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold">
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  style={{
+                                    padding: "4px 10px",
+                                    borderRadius: 8,
+                                    background: "#F5F4EF",
+                                    border: "1px solid #E4E1D8",
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: "#5A6371",
+                                  }}
+                                >
                                   🤝 Draw
                                 </span>
                               ) : pickedTeam ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand/10 text-brand text-xs font-semibold">
+                                <span
+                                  className="inline-flex items-center gap-1.5"
+                                  style={{
+                                    padding: "4px 10px",
+                                    borderRadius: 8,
+                                    background: isCorrect === true ? "rgba(31,158,90,.08)" : isCorrect === false ? "rgba(178,58,72,.06)" : "rgba(var(--accent-rgb,217,165,33),.08)",
+                                    border: `1px solid ${isCorrect === true ? "rgba(31,158,90,.2)" : isCorrect === false ? "rgba(178,58,72,.15)" : "rgba(var(--accent-rgb,217,165,33),.15)"}`,
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: isCorrect === true ? "#1F9E5A" : isCorrect === false ? "#B23A48" : "#11151C",
+                                  }}
+                                >
                                   <TeamBadge team={pickedTeam} size="xs" />
                                   {pickedTeam.short_name || pickedTeam.name}
                                 </span>
                               ) : null}
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400 italic">No pick</span>
+                            <span style={{ fontSize: 13, color: "#8B8676", fontStyle: "italic" }}>No pick</span>
                           )}
 
-                          {/* Result */}
                           {hasResult && (
-                            <span className="text-[11px] text-gray-400 hidden sm:inline">
-                              Result: <span className="font-medium text-gray-600">{resultLabel}</span>
+                            <span className="hidden sm:inline" style={{ fontSize: 11, color: "#8B8676" }}>
+                              Result: <span style={{ fontWeight: 600, color: "#5A6371" }}>{resultLabel}</span>
                             </span>
                           )}
 
-                          {/* Correct / wrong badge */}
                           {isCorrect === true && (
-                            <span className="text-base leading-none" title="Correct">✅</span>
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                background: "#1F9E5A",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: "#fff",
+                              }}
+                            >
+                              ✓
+                            </span>
                           )}
                           {isCorrect === false && (
-                            <span className="text-base leading-none" title="Wrong">❌</span>
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                background: "#B23A48",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: "#fff",
+                              }}
+                            >
+                              ✗
+                            </span>
                           )}
                         </div>
                       </div>
                     );
                   })}
-                </div>
 
-                {/* Round footer — score bar if scored */}
-                {hasScoredPicks && (
-                  <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-3">
-                    <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-brand-gold transition-all"
-                        style={{ width: `${Math.round((round.roundCorrect / round.roundPicked) * 100)}%` }}
-                      />
+                  {/* Round footer — score bar */}
+                  {hasScoredPicks && (
+                    <div
+                      className="flex items-center gap-3"
+                      style={{
+                        padding: "12px 22px",
+                        background: "#F9F8F5",
+                        borderTop: "1px solid #EFEDE6",
+                      }}
+                    >
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: "#EFEDE6", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            height: "100%",
+                            borderRadius: 3,
+                            background: "var(--accent)",
+                            width: `${Math.round((round.roundCorrect / round.roundPicked) * 100)}%`,
+                            transition: "width .3s",
+                          }}
+                        />
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#5A6371", flexShrink: 0 }}>
+                        {round.roundCorrect}/{round.roundPicked} correct · {pct(round.roundCorrect, round.roundPicked)}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-gray-500 shrink-0">
-                      {round.roundCorrect}/{round.roundPicked} correct
-                      {" "}·{" "}
-                      {pct(round.roundCorrect, round.roundPicked)}
-                    </span>
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
-      )}
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
 // ── Stat tile ──────────────────────────────────────────────────────────────────
 
-function Stat({
+function StatTile({
   label,
   value,
   sub,
@@ -342,12 +482,21 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center text-center gap-0.5">
-      <span className={`text-3xl font-bold ${highlight ? "text-brand-gold" : "text-brand"}`}>
+    <div className="flex flex-col items-center text-center" style={{ gap: 4 }}>
+      <span
+        className="font-display"
+        style={{
+          fontSize: 38,
+          lineHeight: 1,
+          color: highlight ? "var(--accent)" : "#11151C",
+        }}
+      >
         {value}
       </span>
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{label}</span>
-      {sub && <span className="text-xs text-gray-400">{sub}</span>}
+      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#8B8676" }}>
+        {label}
+      </span>
+      {sub && <span style={{ fontSize: 12, color: "#8B8676" }}>{sub}</span>}
     </div>
   );
 }
