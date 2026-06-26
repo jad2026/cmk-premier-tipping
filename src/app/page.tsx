@@ -166,8 +166,8 @@ export default async function HomePage() {
         <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.85), rgba(0,0,0,0.3))" }} />
         <div className="relative px-6 sm:px-10 py-14 md:py-20 text-left">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
-            Club Rugby<br />
-            <span className="text-brand-gold">Tipping</span>
+            CLUB RUGBY<br />
+            <span className="text-brand-gold">TIPPING</span>
           </h1>
           <p className="text-sm sm:text-base text-white/60 font-medium mb-6">{heroSubtitle}</p>
           <div className="flex justify-start gap-3 flex-wrap">
@@ -379,9 +379,9 @@ export default async function HomePage() {
             <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
             <h2 className="text-base font-bold text-brand uppercase tracking-wide">All Rounds</h2>
           </div>
-          <div className="card overflow-hidden divide-y divide-gray-50">
-            {rounds.map(({ gameweek: gw, status, total, resultsIn }) => (
-              <div key={gw.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
+          <div className="overflow-hidden rounded-lg border border-gray-100">
+            {rounds.map(({ gameweek: gw, status, total, resultsIn }, i) => (
+              <div key={gw.id} className={`flex items-center justify-between px-4 py-2 hover:bg-gray-50/60 transition-colors${i % 2 === 0 ? " bg-gray-50/40" : ""}`}>
                 <div className="min-w-0">
                   <span className="font-medium text-gray-800 text-sm">{gw.label}</span>
                   {status === "completed" && total > 0 && (
@@ -403,20 +403,20 @@ export default async function HomePage() {
 function RoundStatusBadge({ status }: { status: RoundStatus }) {
   if (status === "open") {
     return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 shrink-0">
+      <span className="px-2.5 py-1 rounded text-xs font-semibold bg-green-100 text-green-700 shrink-0">
         ● Open
       </span>
     );
   }
   if (status === "completed") {
     return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-gold/15 text-brand-gold-dark shrink-0">
-        ✓ Completed
+      <span className="px-2.5 py-1 rounded text-xs font-semibold bg-brand-gold/15 text-brand-gold-dark shrink-0">
+        Completed
       </span>
     );
   }
   return (
-    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 shrink-0">
+    <span className="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-500 shrink-0">
       Upcoming
     </span>
   );
