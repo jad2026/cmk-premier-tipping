@@ -53,9 +53,7 @@ export default async function RootLayout({
     >
       <body className={`${archivo.className} min-h-screen`}>
         <Navbar />
-        <div className="max-w-content mx-auto px-4 sm:px-8 pt-6">
-          <GlobalTeamMarquee />
-        </div>
+        <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
         </main>

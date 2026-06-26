@@ -7,7 +7,7 @@ export default async function GlobalTeamMarquee() {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
 
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "") return null;
 
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
@@ -20,5 +20,9 @@ export default async function GlobalTeamMarquee() {
 
   if (!teams || teams.length === 0) return null;
 
-  return <TeamMarquee teams={teams} />;
+  return (
+    <div className="max-w-content mx-auto px-4 sm:px-8 pt-6">
+      <TeamMarquee teams={teams} />
+    </div>
+  );
 }

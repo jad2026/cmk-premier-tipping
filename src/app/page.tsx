@@ -210,7 +210,18 @@ export default async function HomePage() {
   const isNpc = compId === NPC_COMPETITION_ID;
   const compLabel = isNpc ? "Bunnings NPC" : "CMK Premier";
   const regionLabel = isNpc ? "New Zealand" : "Taranaki";
-  const teamCount = (teams ?? []).length;
+
+  // Filter out women's teams and deduplicate by name
+  const dedupedTeams: Team[] = [];
+  const seenTeamNames = new Set<string>();
+  for (const t of (teams ?? []) as Team[]) {
+    if (t.name.includes("Women")) continue;
+    if (!seenTeamNames.has(t.name)) {
+      seenTeamNames.add(t.name);
+      dedupedTeams.push(t);
+    }
+  }
+  const teamCount = dedupedTeams.length;
 
   const openCount = rounds.filter((r) => r.status === "open").length;
   const completedRound = rounds.filter((r) => r.status === "completed").length;
@@ -225,7 +236,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8">
+    <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
 
       {/* ── 1. Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden text-white" style={{ background: "#0B0E13" }}>
@@ -243,7 +254,7 @@ export default async function HomePage() {
             background: "linear-gradient(98deg, rgba(11,14,19,.97) 0%, rgba(11,14,19,.86) 40%, rgba(11,14,19,.45) 78%, rgba(11,14,19,.25) 100%)",
           }}
         />
-        <div className="relative z-[2] max-w-content mx-auto px-4 sm:px-8" style={{ padding: "88px 32px 96px" }}>
+        <div className="relative z-[2] max-w-content mx-auto" style={{ padding: "88px 32px 96px" }}>
           {activeRound && (
             <div className="flex items-center gap-3 mb-[26px]">
               <span className="block w-[26px] h-[3px] rounded-full" style={{ background: "var(--accent)" }} />
@@ -253,8 +264,8 @@ export default async function HomePage() {
             </div>
           )}
 
-          <h1 className="font-display text-[clamp(48px,8vw,92px)] leading-[.86] tracking-[-.01em] uppercase max-w-[760px] mb-[22px]">
-            Make your{"\n"}call<span style={{ color: "var(--accent)" }}>.</span>
+          <h1 className="font-display text-[92px] leading-[.86] tracking-[-.01em] uppercase max-w-[760px] mb-[22px]">
+            Make your<br />call<span style={{ color: "var(--accent)" }}>.</span>
           </h1>
 
           {activeRound && activeMode === "open" && (
@@ -315,13 +326,13 @@ export default async function HomePage() {
       {/* ── 2. Clubs rail ────────────────────────────────────────────────────── */}
       {teamCount > 0 && (
         <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
-          <div className="max-w-content mx-auto px-4 sm:px-8 py-5 flex items-center gap-[30px]">
+          <div className="max-w-content mx-auto py-5 flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
               <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>The clubs</div>
               <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} sides</div>
             </div>
             <div className="flex gap-[18px] overflow-x-auto py-1" style={{ scrollbarWidth: "none" }}>
-              {((teams ?? []) as Team[]).map((t) => (
+              {dedupedTeams.map((t) => (
                 <div key={t.id} className="flex flex-col items-center gap-[9px] shrink-0 w-[66px]">
                   <TeamBadge team={t} size="lg" />
                   <span className="text-[11px] text-[#9AA1AD] text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[66px]">
@@ -336,7 +347,7 @@ export default async function HomePage() {
 
       {/* ── 3. Featured round card ───────────────────────────────────────────── */}
       <section style={{ background: "#F2F0EA" }}>
-        <div className="max-w-content mx-auto px-4 sm:px-8 pt-[60px] pb-[40px]">
+        <div className="max-w-content mx-auto" style={{ padding: "60px 32px 40px" }}>
 
           {/* Join banner */}
           {user && !isEnrolled && !seasonComplete && (
@@ -526,7 +537,7 @@ export default async function HomePage() {
       {/* ── 5. NPC banner ────────────────────────────────────────────────────── */}
       {compId !== NPC_COMPETITION_ID && (
         <section style={{ background: "#F2F0EA" }}>
-          <div className="max-w-content mx-auto px-4 sm:px-8 pt-[10px] pb-[40px]">
+          <div className="max-w-content mx-auto" style={{ padding: "10px 32px 40px" }}>
             <div
               className="relative overflow-hidden rounded-[20px] text-white flex items-center justify-between gap-[26px] flex-wrap"
               style={{ background: "#161B24", border: "1px solid rgba(255,255,255,.08)", padding: "32px 38px" }}
@@ -557,7 +568,7 @@ export default async function HomePage() {
       {/* ── 6. Ladder snapshot ────────────────────────────────────────────────── */}
       {ladderRows.length > 0 && (
         <section style={{ background: "#F2F0EA" }}>
-          <div className="max-w-content mx-auto px-4 sm:px-8 pt-[14px] pb-[70px]">
+          <div className="max-w-content mx-auto" style={{ padding: "14px 32px 70px" }}>
             <div className="flex items-center gap-[13px] mb-[22px]">
               <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
               <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Men</h2>

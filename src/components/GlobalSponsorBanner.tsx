@@ -6,7 +6,7 @@ export default async function GlobalSponsorBanner() {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
 
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "") return null;
 
   const sponsors = await fetchActiveSponsors("home");
   if (sponsors.length === 0) return null;
