@@ -6,6 +6,8 @@ import TipsForm from "./TipsForm";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Fixture, Pick } from "@/lib/supabase/types";
 
+export const dynamic = "force-dynamic";
+
 export type RoundData = {
   id: string;
   number: number;
@@ -34,9 +36,8 @@ export default async function TipsPage() {
   if (!participant) {
     return (
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8 space-y-4">
-        <span className="text-4xl block">🏉</span>
-        <h1 className="text-xl font-bold text-brand">Join to Start Tipping</h1>
-        <p className="text-gray-500 text-sm">
+        <h1 className="text-xl font-display uppercase text-md-text">Join to Start Tipping</h1>
+        <p className="text-md-text-secondary text-sm">
           You need to join this competition before you can submit tips.
         </p>
         <JoinCompetitionButton />
@@ -53,9 +54,8 @@ export default async function TipsPage() {
   if (seasonConfig?.season_complete) {
     return (
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
-        <span className="text-4xl mb-4 block">🏆</span>
-        <h1 className="text-xl font-bold text-brand mb-2">Competition Ended</h1>
-        <p className="text-gray-500 text-sm mb-6">
+        <h1 className="text-xl font-display uppercase text-md-text mb-2">Competition Ended</h1>
+        <p className="text-md-text-secondary text-sm mb-6">
           The competition has ended. Thanks for playing!
         </p>
         <Link href="/leaderboard" className="btn-primary inline-flex">
@@ -65,14 +65,12 @@ export default async function TipsPage() {
     );
   }
 
-  // Get this competition's gameweek IDs first so we can scope fixture queries
   const { data: compGwRows } = await supabase
     .from("gameweeks")
     .select("id")
     .eq("competition_id", compId);
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
-  // Check if any fixtures exist for this competition
   const { count: fixtureCount } = compGwIds.length > 0
     ? await supabase
         .from("fixtures")
@@ -83,9 +81,8 @@ export default async function TipsPage() {
   if (!fixtureCount) {
     return (
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
-        <span className="text-4xl mb-4 block">🏉</span>
-        <h1 className="text-xl font-bold text-brand mb-2">Fixtures Coming Soon</h1>
-        <p className="text-gray-500 text-sm">
+        <h1 className="text-xl font-display uppercase text-md-text mb-2">Fixtures Coming Soon</h1>
+        <p className="text-md-text-secondary text-sm">
           The season is being set up — check back soon to start tipping!
         </p>
       </div>
@@ -99,7 +96,6 @@ export default async function TipsPage() {
     .eq("is_open", true)
     .order("number");
 
-  // Fetch fixtures for all open gameweeks in parallel
   const fixtureResults = await Promise.all(
     (openGameweeks ?? []).map((gw) =>
       supabase
@@ -112,7 +108,6 @@ export default async function TipsPage() {
     )
   );
 
-  // Only include rounds that have at least one fixture without a result entered
   const gameweeks = (openGameweeks ?? []).filter((_, i) => {
     const fixtures = fixtureResults[i].data ?? [];
     return fixtures.length > 0 && fixtures.some((f) => f.result_team_id === null);
@@ -121,9 +116,8 @@ export default async function TipsPage() {
   if (gameweeks.length === 0) {
     return (
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
-        <span className="text-4xl mb-4 block">🏉</span>
-        <h1 className="text-xl font-bold text-brand mb-2">No Rounds Open for Tipping</h1>
-        <p className="text-gray-500 text-sm mb-6">
+        <h1 className="text-xl font-display uppercase text-md-text mb-2">No Rounds Open for Tipping</h1>
+        <p className="text-md-text-secondary text-sm mb-6">
           There are no rounds currently open. Check back soon for the next round!
         </p>
         <Link href="/leaderboard" className="btn-primary inline-flex">View Leaderboard</Link>
@@ -131,7 +125,6 @@ export default async function TipsPage() {
     );
   }
 
-  // Build active rounds from filtered gameweeks, carrying their fixture data
   const activeRounds = gameweeks.map((gw) => {
     const idx = (openGameweeks ?? []).findIndex((g) => g.id === gw.id);
     const fixtures = (fixtureResults[idx]?.data ?? []) as Fixture[];
@@ -163,48 +156,8 @@ export default async function TipsPage() {
       .filter((p): p is Pick => p !== undefined),
   }));
 
-  const totalCount = rounds.reduce((s, r) => s + r.fixtures.length, 0);
-  const pickedCount = rounds.reduce((s, r) => s + r.existingPicks.length, 0);
-
   return (
-    <div className="space-y-6">
-      {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <p className="eyebrow mb-1">
-            {rounds.length === 1 ? `Round ${rounds[0].number}` : `${rounds.length} Open Rounds`}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-brand">
-            Submit Your Tips
-          </h1>
-          {rounds.length === 1 && (
-            <p className="text-sm text-gray-500 mt-1">
-              Deadline:{" "}
-              <span className="font-medium text-gray-800">
-                {new Date(rounds[0].deadline).toLocaleString("en-NZ", {
-                  timeZone: "Pacific/Auckland",
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </p>
-          )}
-        </div>
-        {totalCount > 0 && (
-          <div className="card px-4 py-3 text-center min-w-[80px]">
-            <p className="text-2xl font-bold text-brand tabular-nums">
-              {pickedCount}/{totalCount}
-            </p>
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide font-medium mt-0.5">
-              Picked
-            </p>
-          </div>
-        )}
-      </div>
-
+    <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8">
       <TipsForm rounds={rounds} userId={user.id} />
     </div>
   );
