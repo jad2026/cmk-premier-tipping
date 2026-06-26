@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+::selection{background:#E6007E;color:#fff}
+.crt-rail::-webkit-scrollbar{height:0}
+</style>
+</helmet>
+
+<div style="font-family:'Archivo',system-ui,sans-serif;background:#F2F0EA;color:#11151C;min-height:100vh">
+
+  <header style="position:sticky;top:0;z-index:50;background:rgba(13,16,22,.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1200px;margin:0 auto;padding:0 32px;height:74px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font-family:'Archivo Black',sans-serif;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:#fff">Club Rugby Tipping</span>
+      </div>
+      <nav style="display:flex;align-items:center;gap:4px">
+        <a href="#" style="display:flex;align-items:center;gap:7px;padding:9px 15px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;border-radius:9px"><span style="width:6px;height:6px;border-radius:50%;background:{{ accent }}"></span>Home</a>
+        <a href="Club Rugby Tipping — Tips.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Tips</a>
+        <a href="Club Rugby Tipping — Leaderboard.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Leaderboard</a>
+        <a href="Club Rugby Tipping — Ladder.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Ladder</a>
+        <div style="width:1px;height:26px;background:rgba(255,255,255,.14);margin:0 10px"></div>
+        <a href="#" style="padding:10px 20px;font-size:14px;font-weight:800;letter-spacing:.02em;border-radius:10px;background:{{ accent }};color:{{ accentText }};text-decoration:none" style-hover="filter:brightness(1.08)">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="position:relative;overflow:hidden;background:#0B0E13;color:#fff">
+    <sc-if value="{{ heroPhoto }}" hint-placeholder-val="{{ true }}">
+      <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="home-hero" shape="rect" placeholder="Drop a matchday photo" style="position:absolute;inset:0;width:100%;height:100%" hint-size="100%,100%"></x-import>
+    </sc-if>
+    <div style="position:absolute;inset:0;background:linear-gradient(98deg,rgba(11,14,19,.97) 0%,rgba(11,14,19,.86) 40%,rgba(11,14,19,.45) 78%,rgba(11,14,19,.25) 100%)"></div>
+    <div style="position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:88px 32px 96px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:26px">
+        <div style="width:26px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <span style="font-size:13px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#C7CCD4">Round 14 · CMK Premier · Taranaki</span>
+      </div>
+      <h1 style="font-family:'Archivo Black',sans-serif;font-size:92px;line-height:.86;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 22px;max-width:760px">Make your<br>call<span style="color:{{ accent }}">.</span></h1>
+      <p style="font-size:19px;line-height:1.5;color:#C2C7D0;max-width:480px;margin:0 0 38px">Round 14 is open. Lock your tips before kickoff, back your clubs and climb the leaderboard.</p>
+
+      <div style="display:flex;gap:14px;margin-bottom:42px">
+        <div style="min-width:84px;padding:16px 18px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:center">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1;color:#fff">{{ dd }}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8C93A0;margin-top:7px">Days</div>
+        </div>
+        <div style="min-width:84px;padding:16px 18px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:center">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1;color:#fff">{{ hh }}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8C93A0;margin-top:7px">Hrs</div>
+        </div>
+        <div style="min-width:84px;padding:16px 18px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:center">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1;color:#fff">{{ mm }}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8C93A0;margin-top:7px">Min</div>
+        </div>
+        <div style="min-width:84px;padding:16px 18px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:center">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1;color:{{ accent }}">{{ ss }}</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8C93A0;margin-top:7px">Sec</div>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;padding-left:6px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8C93A0">Tips close</div>
+          <div style="font-size:15px;font-weight:700;color:#E6E8EC">Sat 27 Jun · 1:45 PM</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <a href="Club Rugby Tipping — Tips.dc.html" style="display:inline-flex;align-items:center;gap:10px;padding:17px 30px;border-radius:12px;background:{{ accent }};color:{{ accentText }};font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none" style-hover="filter:brightness(1.08)">Make your tips →</a>
+        <a href="Club Rugby Tipping — Leaderboard.dc.html" style="display:inline-flex;align-items:center;gap:10px;padding:17px 28px;border-radius:12px;background:transparent;border:1.5px solid rgba(255,255,255,.28);color:#fff;font-size:16px;font-weight:700;text-decoration:none" style-hover="background:rgba(255,255,255,.08)">View leaderboard</a>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#0D1016;color:#fff;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="max-width:1200px;margin:0 auto;padding:20px 32px;display:flex;align-items:center;gap:30px">
+      <div style="flex-shrink:0">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:{{ accent }}">The clubs</div>
+        <div style="font-size:13px;color:#8C93A0;margin-top:3px">CMK Premier · 13 sides</div>
+      </div>
+      <div class="crt-rail" style="display:flex;gap:18px;overflow-x:auto;padding:4px 0">
+        <sc-for list="{{ clubs }}" as="c" hint-placeholder-count="10">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex-shrink:0;width:66px">
+            <div style="width:52px;height:52px;border-radius:50%;background:{{ c.color }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.08)">{{ c.mono }}</div>
+            <span style="font-size:11px;color:#9AA1AD;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">{{ c.name }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#F2F0EA">
+    <div style="max-width:1200px;margin:0 auto;padding:60px 32px 40px">
+
+      <div style="position:relative;overflow:hidden;border-radius:22px;background:#0D1016;color:#fff;padding:36px 40px;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap">
+        <div style="position:relative;z-index:2">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+            <span style="width:9px;height:9px;border-radius:50%;background:#2CC36B;animation:pulseDot 1.6s ease-in-out infinite"></span>
+            <span style="font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#2CC36B">Open now · CMK Premier</span>
+          </div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:44px;line-height:.95;text-transform:uppercase">Round 14</div>
+          <div style="font-size:15px;color:#B6BCC6;margin-top:10px">Tips close Saturday 27 June · 1:45 PM</div>
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <span style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:700">6 matches</span>
+            <span style="padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:700;color:#8C93A0">0 / 6 tipped</span>
+          </div>
+        </div>
+        <a href="Club Rugby Tipping — Tips.dc.html" style="position:relative;z-index:2;display:inline-flex;align-items:center;gap:10px;padding:18px 32px;border-radius:13px;background:{{ accent }};color:{{ accentText }};font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none;white-space:nowrap" style-hover="filter:brightness(1.08)">Submit tips →</a>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:13px;margin:54px 0 22px">
+        <div style="width:26px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <h2 style="font-family:'Archivo Black',sans-serif;font-size:23px;text-transform:uppercase;letter-spacing:.02em;margin:0">All rounds</h2>
+        <div style="flex:1;height:1px;background:#DCD9CF"></div>
+        <span style="font-size:13px;font-weight:700;color:#8B8676;letter-spacing:.04em">14 rounds · 1 open</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:14px">
+        <sc-for list="{{ rounds }}" as="r" hint-placeholder-count="14">
+          <div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;aspect-ratio:1.05;padding:15px 16px;border-radius:15px;background:{{ r.bg }};border:1px solid {{ r.border }}">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:{{ r.tagColor }}">Round</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:42px;line-height:.9;color:{{ r.numColor }}">{{ r.num }}</div>
+            <div style="font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:{{ r.metaColor }}">{{ r.metaText }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ showNpc }}" hint-placeholder-val="{{ true }}">
+    <section style="background:#F2F0EA">
+      <div style="max-width:1200px;margin:0 auto;padding:10px 32px 40px">
+        <div style="position:relative;overflow:hidden;border-radius:20px;background:#161B24;border:1px solid rgba(255,255,255,.08);padding:32px 38px;display:flex;align-items:center;justify-content:space-between;gap:26px;color:#fff;flex-wrap:wrap">
+          <div style="position:relative;z-index:2">
+            <div style="font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:{{ accent }};margin-bottom:10px">Tip the NPC</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:26px;text-transform:uppercase;line-height:1;margin-bottom:8px">Think you know provincial rugby?</div>
+            <div style="font-size:15px;color:#AEB4BE;max-width:520px">Join the Bunnings NPC tipping competition and go head-to-head with the country.</div>
+          </div>
+          <a href="#" style="position:relative;z-index:2;display:inline-flex;align-items:center;gap:9px;padding:15px 26px;border-radius:11px;background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:15px;font-weight:700;text-decoration:none;white-space:nowrap" style-hover="background:rgba(255,255,255,.08)">Join NPC tipping →</a>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <section style="background:#F2F0EA">
+    <div style="max-width:1200px;margin:0 auto;padding:14px 32px 70px">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:22px">
+        <div style="width:26px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <h2 style="font-family:'Archivo Black',sans-serif;font-size:23px;text-transform:uppercase;letter-spacing:.02em;margin:0">CMK Premier Men</h2>
+        <div style="flex:1;height:1px;background:#DCD9CF"></div>
+        <a href="Club Rugby Tipping — Ladder.dc.html" style="font-size:14px;font-weight:800;color:{{ accent }};text-decoration:none;letter-spacing:.02em" style-hover="opacity:.75">Full ladder →</a>
+      </div>
+
+      <div style="background:#fff;border:1px solid #E4E1D8;border-radius:18px;overflow:hidden;font-feature-settings:'tnum'">
+        <div style="display:grid;grid-template-columns:46px 1fr 46px 46px 46px 64px 64px 64px 58px;padding:15px 20px;background:#0D1016;color:#9AA1AD;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">
+          <span>#</span><span>Team</span><span style="text-align:center">P</span><span style="text-align:center">W</span><span style="text-align:center">L</span><span style="text-align:center">PF</span><span style="text-align:center">PA</span><span style="text-align:center">PD</span><span style="text-align:right">Pts</span>
+        </div>
+        <sc-for list="{{ ladder }}" as="l" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:46px 1fr 46px 46px 46px 64px 64px 64px 58px;align-items:center;padding:16px 20px;border-top:1px solid #EFEDE6;border-left:3px solid {{ l.bar }}">
+            <span style="font-family:'Archivo Black',sans-serif;font-size:16px;color:#11151C">{{ l.rank }}</span>
+            <span style="display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px;color:#11151C"><span style="width:30px;height:30px;border-radius:50%;flex-shrink:0;background:{{ l.color }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:11px;color:#fff">{{ l.mono }}</span>{{ l.team }}</span>
+            <span style="text-align:center;font-size:14px;color:#5A6371">{{ l.P }}</span>
+            <span style="text-align:center;font-size:14px;font-weight:700;color:#169B63">{{ l.W }}</span>
+            <span style="text-align:center;font-size:14px;color:#B23A48">{{ l.L }}</span>
+            <span style="text-align:center;font-size:14px;color:#5A6371">{{ l.PF }}</span>
+            <span style="text-align:center;font-size:14px;color:#5A6371">{{ l.PA }}</span>
+            <span style="text-align:center;font-size:14px;font-weight:700;color:{{ l.pdColor }}">{{ l.PD }}</span>
+            <span style="text-align:right;font-family:'Archivo Black',sans-serif;font-size:18px;color:#11151C">{{ l.PTS }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background:#0B0E13;color:#8C93A0;border-top:1px solid rgba(255,255,255,.06)">
+    <div style="max-width:1200px;margin:0 auto;padding:30px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+<div style="width:24px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:#fff">Club Rugby Tipping</span>
+      </div>
+      <span style="font-size:13px">© 2026 · CMK Premier Club Rugby · Taranaki</span>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1024},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber&quot;,&quot;Magenta&quot;,&quot;Light Blue&quot;,&quot;Green&quot;,&quot;Chocolate&quot;],&quot;default&quot;:&quot;Amber&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;heroPhoto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showNpc&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { now: Date.now() };
+
+  componentDidMount() {
+    this._t = setInterval(() => this.setState({ now: Date.now() }), 1000);
+  }
+  componentWillUnmount() {
+    if (this._t) clearInterval(this._t);
+  }
+
+  renderVals() {
+    const ACCENTS = {
+      'Magenta': '#E6007E',
+      'Light Blue': '#2C9FD4',
+      'Green': '#12A150',
+      'Amber': '#D9A521',
+      'Chocolate': '#7A4B36'
+    };
+    const accentName = this.props.accent ?? 'Amber';
+    const accent = ACCENTS[accentName] || '#E6007E';
+    const accentText = accentName === 'Amber' ? '#11151C' : '#FFFFFF';
+    const heroPhoto = this.props.heroPhoto ?? true;
+    const showNpc = this.props.showNpc ?? true;
+
+    // Countdown to Sat 27 Jun 2026, 1:45 PM
+    const deadline = new Date(2026, 5, 27, 13, 45, 0).getTime();
+    let diff = Math.max(0, deadline - this.state.now);
+    const day = 86400000, hr = 3600000, min = 60000;
+    const dd = Math.floor(diff / day); diff -= dd * day;
+    const hh = Math.floor(diff / hr); diff -= hh * hr;
+    const mm = Math.floor(diff / min); diff -= mm * min;
+    const ss = Math.floor(diff / 1000);
+    const pad = n => String(n).padStart(2, '0');
+
+    const clubs = [
+      { name: 'Clifton', mono: 'CL', color: '#1E7A3E' },
+      { name: 'Coastal', mono: 'CO', color: '#2B6E2B' },
+      { name: 'Inglewood', mono: 'IN', color: '#169B63' },
+      { name: 'Kaitake', mono: 'KT', color: '#2C6E8F' },
+      { name: 'Kaponga', mono: 'KP', color: '#7A4B36' },
+      { name: 'NPOB', mono: 'OB', color: '#1B2A4A' },
+      { name: 'NPHSOB', mono: 'HS', color: '#15324E' },
+      { name: 'Okaiawa', mono: 'OK', color: '#2E3A2A' },
+      { name: 'Pātea', mono: 'PA', color: '#2C9FD4' },
+      { name: 'Southern', mono: 'SO', color: '#3FB1DB' },
+      { name: 'Stratford E.', mono: 'SE', color: '#B23A48' },
+      { name: 'Toko', mono: 'TK', color: '#6E3A2A' },
+      { name: 'Tukapa', mono: 'TU', color: '#21409A' }
+    ];
+
+    const C = {
+      done: { bg: '#FFFFFF', border: '#E4E1D8', numColor: '#11151C', tagColor: '#A9A593', metaColor: '#1F9E5A' },
+      open: { bg: accent, border: accent, numColor: accentText, tagColor: accentName === 'Amber' ? 'rgba(17,21,28,.55)' : 'rgba(255,255,255,.7)', metaColor: accentText },
+      soon: { bg: '#EAE8E0', border: '#DEDBD1', numColor: '#B4B0A2', tagColor: '#BBB7A8', metaColor: '#B4B0A2' }
+    };
+    const defs = [
+      ['done', '6/6 ✓'], ['done', '6/6 ✓'], ['done', '6/6 ✓'], ['done', '6/6 ✓'], ['done', '6/6 ✓'],
+      ['done', '6/6 ✓'], ['done', '6/6 ✓'], ['done', '6/6 ✓'], ['done', '6/6 ✓'],
+      ['soon', 'Upcoming'], ['done', '4/4 ✓'], ['soon', 'Upcoming'], ['done', '4/4 ✓'], ['open', 'Tip now']
+    ];
+    const rounds = defs.map((d, i) => {
+      const c = C[d[0]];
+      return { num: i + 1, metaText: d[1], bg: c.bg, border: c.border, numColor: c.numColor, tagColor: c.tagColor, metaColor: c.metaColor };
+    });
+
+    const cMap = { Clifton: '#1E7A3E', Coastal: '#2B6E2B', Southern: '#3FB1DB', NPOB: '#1B2A4A', 'Stratford Eltham': '#B23A48' };
+    const monoMap = { Clifton: 'CL', Coastal: 'CO', Southern: 'SO', NPOB: 'OB', 'Stratford Eltham': 'SE' };
+    const raw = [
+      { rank: 1, team: 'Clifton', P: 13, W: 13, L: 0, PF: 619, PA: 221, PD: '+398', PTS: 48 },
+      { rank: 2, team: 'Coastal', P: 13, W: 8, L: 4, PF: 408, PA: 308, PD: '+100', PTS: 33 },
+      { rank: 3, team: 'Southern', P: 13, W: 6, L: 7, PF: 356, PA: 410, PD: '−54', PTS: 30 },
+      { rank: 4, team: 'NPOB', P: 13, W: 7, L: 5, PF: 418, PA: 327, PD: '+91', PTS: 27 },
+      { rank: 5, team: 'Stratford Eltham', P: 13, W: 6, L: 7, PF: 380, PA: 399, PD: '−19', PTS: 27 }
+    ];
+    const ladder = raw.map(r => ({
+      ...r,
+      pdColor: r.PD.charAt(0) === '+' ? '#1F9E5A' : '#B23A48',
+      bar: r.rank === 1 ? accent : 'transparent',
+      color: cMap[r.team] || '#2B3A52',
+      mono: monoMap[r.team] || r.team.slice(0, 2).toUpperCase()
+    }));
+
+    return { accent, accentText, heroPhoto, showNpc, dd, hh: pad(hh), mm: pad(mm), ss: pad(ss), clubs, rounds, ladder };
+  }
+}
+</script>
+</body>
+</html>

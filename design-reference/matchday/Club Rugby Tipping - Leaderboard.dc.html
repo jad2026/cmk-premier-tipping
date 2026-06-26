@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+::selection{background:#E6007E;color:#fff}
+</style>
+</helmet>
+
+<div style="font-family:'Archivo',system-ui,sans-serif;background:#F2F0EA;color:#11151C;min-height:100vh">
+
+  <header style="position:sticky;top:0;z-index:50;background:rgba(13,16,22,.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1100px;margin:0 auto;padding:0 32px;height:74px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:#fff">Club Rugby Tipping</span>
+      </div>
+      <nav style="display:flex;align-items:center;gap:4px">
+        <a href="Club Rugby Tipping — Home.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Home</a>
+        <a href="Club Rugby Tipping — Tips.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Tips</a>
+        <a href="#" style="display:flex;align-items:center;gap:7px;padding:9px 15px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;border-radius:9px"><span style="width:6px;height:6px;border-radius:50%;background:{{ accent }}"></span>Leaderboard</a>
+        <a href="Club Rugby Tipping — Ladder.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Ladder</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="background:#0B0E13;color:#fff">
+    <div style="max-width:1100px;margin:0 auto;padding:44px 32px 36px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <div style="width:24px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <span style="font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#C7CCD4">Season standings · After Round 13</span>
+      </div>
+      <h1 style="font-family:'Archivo Black',sans-serif;font-size:60px;line-height:.86;text-transform:uppercase;margin:0">Leaderboard<span style="color:{{ accent }}">.</span></h1>
+      <p style="font-size:16px;color:#AEB4BE;margin:14px 0 0;max-width:480px">Every correct tip is worth a point. 124 tippers in the comp this season.</p>
+    </div>
+  </section>
+
+  <section style="max-width:1100px;margin:0 auto;padding:34px 32px 16px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:end">
+      <sc-for list="{{ podium }}" as="p" hint-placeholder-count="3">
+        <div style="position:relative;background:{{ p.bg }};border:1px solid {{ p.border }};border-radius:18px;padding:24px 22px;{{ p.lift }};overflow:hidden">
+          <div style="position:absolute;top:16px;right:18px;font-family:'Archivo Black',sans-serif;font-size:46px;line-height:1;color:{{ p.medalColor }};opacity:.9">{{ p.medal }}</div>
+          <div style="width:54px;height:54px;border-radius:50%;background:{{ p.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:18px;color:{{ p.avatarText }};margin-bottom:16px">{{ p.initials }}</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:21px;text-transform:uppercase;line-height:1;color:{{ p.nameColor }}">{{ p.name }}</div>
+          <div style="font-size:13px;color:{{ p.subColor }};margin-top:6px;font-weight:600">{{ p.club }}</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:18px">
+            <span style="font-family:'Archivo Black',sans-serif;font-size:38px;line-height:1;color:{{ p.ptsColor }}">{{ p.pts }}</span>
+            <span style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ p.subColor }}">pts</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="max-width:1100px;margin:0 auto;padding:18px 32px 70px">
+    <div style="background:#fff;border:1px solid #E4E1D8;border-radius:18px;overflow:hidden;font-feature-settings:'tnum'">
+      <div style="display:grid;grid-template-columns:54px 1fr 92px 78px 70px;padding:15px 22px;background:#0D1016;color:#9AA1AD;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">
+        <span>#</span><span>Tipper</span><span style="text-align:center">This rd</span><span style="text-align:center">Hit %</span><span style="text-align:right">Pts</span>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="9">
+        <div style="display:grid;grid-template-columns:54px 1fr 92px 78px 70px;align-items:center;padding:15px 22px;border-top:1px solid #EFEDE6;background:{{ r.rowBg }};border-left:3px solid {{ r.bar }}">
+          <span style="font-family:'Archivo Black',sans-serif;font-size:16px;color:{{ r.rankColor }}">{{ r.rank }}</span>
+          <span style="display:flex;align-items:center;gap:12px">
+            <span style="width:34px;height:34px;border-radius:50%;flex-shrink:0;background:{{ r.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:12px;color:#fff">{{ r.initials }}</span>
+            <span style="display:flex;flex-direction:column">
+              <span style="font-weight:700;font-size:15px;color:#11151C">{{ r.name }}</span>
+              <span style="font-size:12px;color:#8B8676">{{ r.club }}</span>
+            </span>
+            <sc-if value="{{ r.isYou }}" hint-placeholder-val="{{ false }}">
+              <span style="margin-left:4px;padding:3px 9px;border-radius:999px;background:{{ accent }};color:{{ accentText }};font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">You</span>
+            </sc-if>
+          </span>
+          <span style="text-align:center;font-size:14px;font-weight:700;color:#1F9E5A">{{ r.thisRound }}</span>
+          <span style="text-align:center;font-size:14px;color:#5A6371">{{ r.hitPct }}</span>
+          <span style="text-align:right;font-family:'Archivo Black',sans-serif;font-size:18px;color:#11151C">{{ r.pts }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:14px;text-align:center">
+      <a href="#" style="font-size:14px;font-weight:800;color:{{ accent }};text-decoration:none;letter-spacing:.02em" style-hover="opacity:.75">See all 124 tippers →</a>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:1024},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber&quot;,&quot;Magenta&quot;,&quot;Light Blue&quot;,&quot;Green&quot;,&quot;Chocolate&quot;],&quot;default&quot;:&quot;Amber&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const ACCENTS = { 'Magenta': '#E6007E', 'Light Blue': '#2C9FD4', 'Green': '#12A150', 'Amber': '#D9A521', 'Chocolate': '#7A4B36' };
+    const accentName = this.props.accent ?? 'Amber';
+    const accent = ACCENTS[accentName] || '#E6007E';
+    const accentText = accentName === 'Amber' ? '#11151C' : '#FFFFFF';
+
+    const av = ['#1E7A3E', '#21409A', '#B23A48', '#2C9FD4', '#7A4B36', '#15324E', '#2B6E2B', '#6E3A2A', '#2C6E8F'];
+    const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+    const podium = [
+      { rank: 2, name: 'Mereana T.', club: 'Coastal', pts: 71 },
+      { rank: 1, name: 'Dave Whitmore', club: 'Clifton', pts: 74 },
+      { rank: 3, name: 'Sef Tu’ineau', club: 'Tukapa', pts: 70 }
+    ].map((p, idx) => {
+      const gold = p.rank === 1;
+      return {
+        ...p,
+        medal: p.rank === 1 ? '1' : p.rank === 2 ? '2' : '3',
+        medalColor: gold ? accent : 'rgba(17,21,28,.10)',
+        bg: gold ? '#0D1016' : '#fff',
+        border: gold ? '#0D1016' : '#E4E1D8',
+        lift: gold ? 'transform:translateY(-14px)' : '',
+        avatarBg: av[idx], avatarText: '#fff',
+        nameColor: gold ? '#fff' : '#11151C',
+        subColor: gold ? '#9AA1AD' : '#8B8676',
+        ptsColor: gold ? accent : '#11151C',
+        initials: initials(p.name)
+      };
+    });
+
+    const raw = [
+      { name: 'Dave Whitmore', club: 'Clifton', thisRound: 5, hitPct: '79%', pts: 74 },
+      { name: 'Mereana T.', club: 'Coastal', thisRound: 4, hitPct: '76%', pts: 71 },
+      { name: 'Sef Tu’ineau', club: 'Tukapa', thisRound: 6, hitPct: '75%', pts: 70 },
+      { name: 'Henry Baker', club: 'NPOB', thisRound: 4, hitPct: '73%', pts: 68 },
+      { name: 'Anahera W.', club: 'Southern', thisRound: 5, hitPct: '71%', pts: 66 },
+      { name: 'You', club: 'Inglewood', thisRound: 5, hitPct: '70%', pts: 65, isYou: true },
+      { name: 'Tom Carrington', club: 'Stratford E.', thisRound: 3, hitPct: '68%', pts: 63 },
+      { name: 'Riki Hohaia', club: 'Kaitake', thisRound: 4, hitPct: '67%', pts: 62 },
+      { name: 'Greg Plummer', club: 'Kaponga', thisRound: 4, hitPct: '66%', pts: 60 }
+    ];
+    const rows = raw.map((r, i) => ({
+      ...r,
+      rank: i + 1,
+      initials: initials(r.name === 'You' ? 'You' : r.name),
+      avatarBg: r.isYou ? accent : av[i % av.length],
+      rowBg: r.isYou ? (accentName === 'Amber' ? 'rgba(217,165,33,.10)' : 'rgba(230,0,126,.05)') : '#fff',
+      bar: r.isYou ? accent : 'transparent',
+      rankColor: i < 3 ? accent : '#11151C'
+    }));
+
+    return { accent, accentText, podium, rows };
+  }
+}
+</script>
+</body>
+</html>

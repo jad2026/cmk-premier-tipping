@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+::selection{background:#E6007E;color:#fff}
+</style>
+</helmet>
+
+<div style="font-family:'Archivo',system-ui,sans-serif;background:#F2F0EA;color:#11151C;min-height:100vh">
+
+  <header style="position:sticky;top:0;z-index:50;background:rgba(13,16,22,.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1100px;margin:0 auto;padding:0 32px;height:74px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:3px;border-radius:2px;background:{{ accent }}"></div>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:#fff">Club Rugby Tipping</span>
+      </div>
+      <nav style="display:flex;align-items:center;gap:4px">
+        <a href="Club Rugby Tipping — Home.dc.html" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Home</a>
+        <a href="#" style="display:flex;align-items:center;gap:7px;padding:9px 15px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;border-radius:9px"><span style="width:6px;height:6px;border-radius:50%;background:{{ accent }}"></span>Tips</a>
+        <a href="#" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Leaderboard</a>
+        <a href="#" style="padding:9px 15px;font-size:14px;font-weight:600;color:#99A0AC;text-decoration:none;border-radius:9px" style-hover="color:#fff;background:rgba(255,255,255,.06)">Ladder</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="background:#0B0E13;color:#fff">
+    <div style="max-width:1100px;margin:0 auto;padding:40px 32px 34px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <span style="width:9px;height:9px;border-radius:50%;background:#2CC36B;animation:pulseDot 1.6s ease-in-out infinite"></span>
+        <span style="font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2CC36B">Open · CMK Premier · Taranaki</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+        <div>
+          <h1 style="font-family:'Archivo Black',sans-serif;font-size:60px;line-height:.86;text-transform:uppercase;margin:0">Round 14<span style="color:{{ accent }}">.</span></h1>
+          <p style="font-size:16px;color:#AEB4BE;margin:14px 0 0">Pick a winner in every match. Tips lock at the first kickoff.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="text-align:right">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8C93A0">Tips close</div>
+            <div style="font-size:15px;font-weight:700;color:#E6E8EC">Sat 27 Jun · 1:45 PM</div>
+          </div>
+          <div style="min-width:78px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);text-align:center">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1;color:{{ accent }}">{{ countdown }}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8C93A0;margin-top:5px">to lock</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div style="position:sticky;top:74px;z-index:40;background:rgba(242,240,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E0DDD3">
+    <div style="max-width:1100px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:18px">
+      <div style="flex:1;height:8px;border-radius:99px;background:#E2DFD5;overflow:hidden">
+        <div style="height:100%;width:{{ progressPct }};background:{{ accent }};border-radius:99px;transition:width .35s ease"></div>
+      </div>
+      <span style="font-size:13px;font-weight:800;letter-spacing:.02em;color:#5A5546;white-space:nowrap">{{ pickedCount }} / {{ totalCount }} tipped</span>
+    </div>
+  </div>
+
+  <section style="max-width:1100px;margin:0 auto;padding:30px 32px 40px;display:flex;flex-direction:column;gap:16px">
+    <sc-for list="{{ matches }}" as="m" hint-placeholder-count="6">
+      <div style="background:#fff;border:1px solid {{ m.cardBorder }};border-radius:18px;overflow:hidden;box-shadow:0 1px 2px rgba(17,21,28,.04)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 22px;border-bottom:1px solid #EFEDE6;background:#FAF9F5">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A39E8C">{{ m.venue }}</span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A39E8C">{{ m.time }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 64px 1fr;align-items:stretch;gap:0">
+          <button onClick="{{ m.pickHome }}" style="{{ m.homeStyle }}" style-hover="background:#FBFAF6">
+            <span style="width:46px;height:46px;border-radius:50%;flex-shrink:0;background:{{ m.homeColor }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff">{{ m.homeMono }}</span>
+            <span style="display:flex;flex-direction:column;align-items:flex-start;text-align:left">
+              <span style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1;text-transform:uppercase">{{ m.home }}</span>
+              <span style="font-size:12px;color:#8B8676;margin-top:5px;font-weight:600">{{ m.homeForm }}</span>
+            </span>
+            <sc-if value="{{ m.homeSelected }}" hint-placeholder-val="{{ false }}">
+              <span style="margin-left:auto;width:24px;height:24px;border-radius:50%;background:{{ accent }};color:{{ accentText }};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">✓</span>
+            </sc-if>
+          </button>
+          <div style="display:flex;align-items:center;justify-content:center;background:#F4F2EC;border-left:1px solid #EFEDE6;border-right:1px solid #EFEDE6">
+            <span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#B4B0A2;letter-spacing:.05em">VS</span>
+          </div>
+          <button onClick="{{ m.pickAway }}" style="{{ m.awayStyle }}" style-hover="background:#FBFAF6">
+            <sc-if value="{{ m.awaySelected }}" hint-placeholder-val="{{ false }}">
+              <span style="margin-right:auto;width:24px;height:24px;border-radius:50%;background:{{ accent }};color:{{ accentText }};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">✓</span>
+            </sc-if>
+            <span style="display:flex;flex-direction:column;align-items:flex-end;text-align:right">
+              <span style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1;text-transform:uppercase">{{ m.away }}</span>
+              <span style="font-size:12px;color:#8B8676;margin-top:5px;font-weight:600">{{ m.awayForm }}</span>
+            </span>
+            <span style="width:46px;height:46px;border-radius:50%;flex-shrink:0;background:{{ m.awayColor }};display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff">{{ m.awayMono }}</span>
+          </button>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <div style="position:sticky;bottom:0;z-index:45;background:rgba(13,16,22,.96);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.1)">
+    <div style="max-width:1100px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+      <div style="color:#fff">
+        <div style="font-family:'Archivo Black',sans-serif;font-size:18px;text-transform:uppercase;line-height:1">{{ pickedCount }} of {{ totalCount }} tipped</div>
+        <div style="font-size:13px;color:#8C93A0;margin-top:4px">{{ remainingText }}</div>
+      </div>
+      <button onClick="{{ submit }}" style="display:inline-flex;align-items:center;gap:10px;padding:16px 34px;border:none;cursor:pointer;border-radius:12px;background:{{ submitBg }};color:{{ submitColor }};font-family:'Archivo',sans-serif;font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase" style-hover="filter:brightness(1.06)">{{ submitLabel }}</button>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:1024},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber&quot;,&quot;Magenta&quot;,&quot;Light Blue&quot;,&quot;Green&quot;,&quot;Chocolate&quot;],&quot;default&quot;:&quot;Amber&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { picks: {}, submitted: false };
+
+  renderVals() {
+    const ACCENTS = {
+      'Magenta': '#E6007E', 'Light Blue': '#2C9FD4', 'Green': '#12A150', 'Amber': '#D9A521', 'Chocolate': '#7A4B36'
+    };
+    const accentName = this.props.accent ?? 'Amber';
+    const accent = ACCENTS[accentName] || '#E6007E';
+    const accentText = accentName === 'Amber' ? '#11151C' : '#FFFFFF';
+
+    const data = [
+      { home: 'Clifton', homeMono: 'CL', homeColor: '#1E7A3E', homeForm: 'WWWWW · 1st', away: 'Toko', awayMono: 'TK', awayColor: '#6E3A2A', awayForm: 'LLWLL · 11th', venue: 'Clifton Domain', time: 'Sat 2:45 PM' },
+      { home: 'Coastal', homeMono: 'CO', homeColor: '#2B6E2B', homeForm: 'WWLWW · 2nd', away: 'Kaponga', awayMono: 'KP', awayColor: '#7A4B36', awayForm: 'WLWLL · 7th', venue: 'Rahotu', time: 'Sat 2:45 PM' },
+      { home: 'Southern', homeMono: 'SO', homeColor: '#3FB1DB', homeForm: 'LWLWL · 3rd', away: 'NPOB', awayMono: 'OB', awayColor: '#1B2A4A', awayForm: 'WWLWL · 4th', venue: 'Hāwera', time: 'Sat 2:45 PM' },
+      { home: 'Stratford E.', homeMono: 'SE', homeColor: '#B23A48', homeForm: 'WLLWW · 5th', away: 'Inglewood', awayMono: 'IN', awayColor: '#169B63', awayForm: 'LWLLW · 6th', venue: 'TET Stadium', time: 'Sat 2:45 PM' },
+      { home: 'Tukapa', homeMono: 'TU', homeColor: '#21409A', homeForm: 'WLWWL · 8th', away: 'Kaitake', awayMono: 'KT', awayColor: '#2C6E8F', awayForm: 'LLWLW · 9th', venue: 'Tukapa Club', time: 'Sat 2:45 PM' },
+      { home: 'NPHSOB', homeMono: 'HS', homeColor: '#15324E', homeForm: 'LWLLL · 10th', away: 'Pātea', awayMono: 'PA', awayColor: '#2C9FD4', awayForm: 'WLLWL · 12th', venue: 'Sanders Park', time: 'Sat 2:45 PM' }
+    ];
+
+    const baseBtn = 'display:flex;align-items:center;gap:14px;padding:20px 22px;border:none;cursor:pointer;background:#fff;text-align:left;font-family:inherit;color:#11151C;transition:background .15s ease;';
+    const selBg = accentName === 'Amber' ? 'rgba(217,165,33,.12)' : 'rgba(230,0,126,.06)';
+
+    const matches = data.map((d, i) => {
+      const pick = this.state.picks[i];
+      const homeSelected = pick === 'home';
+      const awaySelected = pick === 'away';
+      const homeStyle = baseBtn + (homeSelected ? `background:${selBg};box-shadow:inset 0 0 0 2px ${accent};` : '');
+      const awayStyle = baseBtn + 'justify-content:flex-end;' + (awaySelected ? `background:${selBg};box-shadow:inset 0 0 0 2px ${accent};` : '');
+      return {
+        ...d,
+        homeSelected, awaySelected, homeStyle, awayStyle,
+        cardBorder: pick ? accent : '#E4E1D8',
+        pickHome: () => this.setState(s => ({ picks: { ...s.picks, [i]: 'home' } })),
+        pickAway: () => this.setState(s => ({ picks: { ...s.picks, [i]: 'away' } }))
+      };
+    });
+
+    const pickedCount = Object.keys(this.state.picks).length;
+    const totalCount = data.length;
+    const progressPct = Math.round((pickedCount / totalCount) * 100) + '%';
+    const remaining = totalCount - pickedCount;
+    const allDone = remaining === 0;
+
+    return {
+      accent, accentText, matches, pickedCount, totalCount, progressPct,
+      countdown: '15h',
+      remainingText: this.state.submitted ? 'Tips submitted — good luck!' : (allDone ? 'All matches tipped — ready to lock in.' : `${remaining} match${remaining === 1 ? '' : 'es'} left to tip`),
+      submitLabel: this.state.submitted ? 'Tips locked ✓' : (allDone ? 'Lock in tips →' : 'Lock in tips →'),
+      submitBg: this.state.submitted ? '#2CC36B' : (allDone ? accent : 'rgba(255,255,255,.14)'),
+      submitColor: this.state.submitted ? '#06210F' : (allDone ? accentText : '#737A86'),
+      submit: () => { if (Object.keys(this.state.picks).length === data.length) this.setState({ submitted: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
