@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { fetchRounds, setRoundOpen, type RoundRow } from "./actions";
+import { fetchRounds, setRoundOpen, autoFillRandomPicks, type RoundRow } from "./actions";
 import FixtureListPanel from "./FixtureListPanel";
 import type { Team } from "@/lib/supabase/types";
 
@@ -9,7 +9,9 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [fillingId, setFillingId] = useState<string | null>(null);
 
   function load() {
     startTransition(async () => {
@@ -23,11 +25,25 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
 
   function toggle(round: RoundRow, open: boolean) {
     setActionError(null);
+    setActionFeedback(null);
     startTransition(async () => {
       const { error } = await setRoundOpen(round.id, open);
       if (error) setActionError(error);
       else load();
     });
+  }
+
+  async function handleAutoFill(round: RoundRow) {
+    setActionError(null);
+    setActionFeedback(null);
+    setFillingId(round.id);
+    const { count, error } = await autoFillRandomPicks(round.id);
+    setFillingId(null);
+    if (error) {
+      setActionError(error);
+    } else {
+      setActionFeedback(`Auto-filled ${count} pick${count !== 1 ? "s" : ""} for ${round.label}.`);
+    }
   }
 
   function fmtDeadline(iso: string) {
@@ -59,6 +75,8 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
     );
   }
 
+  const gridCols = "3rem 1fr 10rem 8rem 7rem 7rem";
+
   return (
     <div className="space-y-4">
       {actionError && (
@@ -66,26 +84,38 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
           {actionError}
         </div>
       )}
+      {actionFeedback && (
+        <div style={{ borderRadius: 12, background: "rgba(31,158,90,.06)", border: "1px solid rgba(31,158,90,.15)", padding: "12px 16px" }}>
+          <p style={{ fontSize: 14, color: "#1F9E5A", margin: 0 }}>{actionFeedback}</p>
+        </div>
+      )}
 
       <div className="card overflow-hidden divide-y divide-gray-50">
         {/* Header */}
-        <div className="grid grid-cols-[3rem_1fr_10rem_8rem_7rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider">
+        <div
+          className="bg-brand text-white text-xs font-semibold uppercase tracking-wider"
+          style={{ display: "grid", gridTemplateColumns: gridCols }}
+        >
           <div className="px-4 py-3 text-center">#</div>
           <div className="px-4 py-3">Round</div>
           <div className="px-4 py-3">Deadline</div>
           <div className="px-4 py-3">Fixtures</div>
           <div className="px-4 py-3 text-center">Status</div>
+          <div className="px-4 py-3 text-center">Auto-fill</div>
         </div>
 
         {rounds.map((round) => {
           const isCompleted = round.totalFixtures > 0 && round.resultedFixtures === round.totalFixtures;
+          const deadlinePassed = new Date(round.deadline) < new Date();
+          const canAutoFill = deadlinePassed && !isCompleted && round.totalFixtures > 0;
 
           return (
             <div
               key={round.id}
-              className={`grid grid-cols-[3rem_1fr_10rem_8rem_7rem] items-center transition-colors ${
+              className={`items-center transition-colors ${
                 round.is_open ? "bg-green-50/60" : "bg-white hover:bg-gray-50/60"
               }`}
+              style={{ display: "grid", gridTemplateColumns: gridCols }}
             >
               {/* # */}
               <div className="px-4 py-4 text-center">
@@ -139,6 +169,37 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
                   >
                     Open
                   </button>
+                )}
+              </div>
+
+              {/* Auto-fill */}
+              <div className="px-4 py-4 flex justify-center">
+                {canAutoFill ? (
+                  <button
+                    onClick={() => handleAutoFill(round)}
+                    disabled={fillingId === round.id || isPending}
+                    style={{
+                      border: "1px solid #E4E1D8",
+                      borderRadius: 10,
+                      padding: "6px 12px",
+                      fontWeight: 700,
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      letterSpacing: ".04em",
+                      background: "transparent",
+                      color: "#11151C",
+                      cursor: fillingId === round.id ? "wait" : "pointer",
+                      whiteSpace: "nowrap",
+                      opacity: fillingId === round.id ? 0.6 : 1,
+                      transition: "opacity .15s, border-color .15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; }}
+                  >
+                    {fillingId === round.id ? "Filling…" : "Fill Picks"}
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 11, color: "#C9C5B8" }}>—</span>
                 )}
               </div>
             </div>

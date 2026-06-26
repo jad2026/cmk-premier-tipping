@@ -1068,6 +1068,23 @@ export async function deleteFixture(fixtureId: string): Promise<{ error: string 
 }
 
 // ---------------------------------------------------------------------------
+// Auto-fill random picks for a specific round
+// ---------------------------------------------------------------------------
+
+export async function autoFillRandomPicks(gameweekId: string): Promise<{ count: number; error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("auto_fill_missing_picks", {
+    p_gameweek_id: gameweekId,
+  });
+
+  if (error) return { count: 0, error: error.message };
+
+  revalidatePath("/leaderboard");
+  revalidatePath("/my-picks");
+  return { count: data ?? 0, error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Backfill competition_participants for CMK — enrol all existing profiles
 // ---------------------------------------------------------------------------
 
