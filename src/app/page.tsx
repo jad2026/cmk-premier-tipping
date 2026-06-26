@@ -181,7 +181,7 @@ export default async function HomePage() {
       {compId !== NPC_COMPETITION_ID && (
         <a
           href="https://npc.clubrugbytipping.com"
-          className="card-md group relative overflow-hidden flex items-center gap-5 px-6 py-5 hover:shadow-card-lg transition-shadow"
+          className="card-md group relative overflow-hidden flex items-center gap-5 px-6 py-5 hover:shadow-card-lg transition-shadow border-l-4 border-brand-gold bg-brand-gold/5"
         >
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold uppercase tracking-widest text-brand-gold mb-1">Tip the NPC</p>
@@ -234,7 +234,7 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-            <Link href={`/tips#${r.gameweek.label.toLowerCase().replace(/\s+/g, "-")}`} className="btn-primary shrink-0">Submit Tips</Link>
+            <Link href={`/tips#${r.gameweek.label.toLowerCase().replace(/\s+/g, "-")}`} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 shrink-0">Submit Tips</Link>
           </section>
         );
       })}
@@ -285,7 +285,7 @@ export default async function HomePage() {
                   href={video.embedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-primary inline-flex items-center gap-2 text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150"
                 >
                   ▶ Watch on {video.type === "facebook" ? "Facebook" : video.type === "instagram" ? "Instagram" : "External Site"}
                 </a>
@@ -394,10 +394,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-      <footer className="mt-8 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
-        <span>Club Rugby Tipping &copy; 2026</span>
-        <span>clubrugbytipping.com</span>
-      </footer>
     </div>
   );
 }

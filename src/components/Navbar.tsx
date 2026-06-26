@@ -79,112 +79,159 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="bg-brand sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.18)]" ref={menuRef}>
-      <div className="border-b-2 border-brand-gold/40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+    <header
+      ref={menuRef}
+      className="sticky top-0 z-40"
+      style={{
+        background: "rgba(13,16,22,.94)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255,255,255,.08)",
+      }}
+    >
+      <div className="max-w-content mx-auto px-4 sm:px-8 flex items-center justify-between h-[74px]">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group select-none shrink-0">
-            <div className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-brand-gold/15 border border-brand-gold/25 group-hover:bg-brand-gold/25 transition-colors">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <ellipse cx="11" cy="11" rx="9.5" ry="5.8" transform="rotate(-35 11 11)" stroke="#C9A84C" strokeWidth="1.5" fill="none"/>
-                <line x1="4.5" y1="11" x2="17.5" y2="11" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.6"/>
-                <path d="M8 7.8 C9.5 8.5 12.5 8.5 14 7.8" stroke="white" strokeWidth="0.9" strokeLinecap="round" fill="none" opacity="0.55"/>
-                <path d="M8 14.2 C9.5 13.5 12.5 13.5 14 14.2" stroke="white" strokeWidth="0.9" strokeLinecap="round" fill="none" opacity="0.55"/>
-                <ellipse cx="8.5" cy="9.5" rx="1.8" ry="0.9" transform="rotate(-35 8.5 9.5)" fill="white" opacity="0.12"/>
-              </svg>
-            </div>
-            <div className="leading-none">
-              <div className="text-[15px] font-extrabold text-white tracking-tight">Club Rugby</div>
-              <div className="text-[10px] font-semibold text-brand-gold tracking-[0.22em] uppercase mt-0.5">Tipping</div>
-            </div>
-          </Link>
+        {/* Logo: accent tick + wordmark */}
+        <Link href="/" className="flex items-center gap-3 select-none shrink-0">
+          <span
+            className="block w-[26px] h-[3px] rounded-full shrink-0"
+            style={{ background: "var(--accent)" }}
+          />
+          <span className="font-display text-[17px] uppercase tracking-[.06em] text-white">
+            Club Rugby Tipping
+          </span>
+        </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden sm:flex items-center gap-0.5">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 ${
-                  isActive(href)
-                    ? "text-brand-gold"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                {label}
-                {isActive(href) && (
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-brand-gold" />
-                )}
-              </Link>
-            ))}
-            <div className="ml-3 pl-3 border-l border-white/10">
-              {user ? (
-                <button
-                  onClick={signOut}
-                  className="px-3.5 py-2 rounded-lg text-sm font-medium text-red-300 hover:text-white hover:bg-red-500/20 transition-all duration-150"
-                >
-                  Sign out
-                </button>
-              ) : (
-                <Link
-                  href="/login"
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-gold text-white hover:bg-brand-gold-dark active:scale-[0.98] transition-all duration-150 shadow-sm"
-                >
-                  Sign in
-                </Link>
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="relative flex items-center gap-1.5 px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150 outline-none"
+              style={{
+                color: isActive(href) ? "#FFFFFF" : "#99A0AC",
+                background: isActive(href) ? "transparent" : "transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive(href)) {
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.background = "rgba(255,255,255,.06)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(href)) {
+                  e.currentTarget.style.color = "#99A0AC";
+                  e.currentTarget.style.background = "transparent";
+                }
+              }}
+            >
+              {isActive(href) && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: "var(--accent)" }}
+                />
               )}
-            </div>
-          </nav>
-
-          {/* Mobile right side: sign-in pill + hamburger */}
-          <div className="flex sm:hidden items-center gap-2">
-            {!user && (
+              {label}
+            </Link>
+          ))}
+          <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
+            {user ? (
+              <button
+                onClick={signOut}
+                className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
+                style={{ color: "#99A0AC" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.background = "rgba(255,255,255,.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#99A0AC";
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                Sign out
+              </button>
+            ) : (
               <Link
                 href="/login"
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-gold text-white shadow-sm"
+                className="px-[20px] py-[10px] rounded-[10px] text-sm font-extrabold uppercase tracking-[.02em] transition-all duration-150 active:scale-[0.98]"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-text)",
+                }}
               >
                 Sign in
               </Link>
             )}
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              className="flex items-center justify-center w-10 h-10 rounded-lg text-white hover:bg-white/10 transition-colors"
-            >
-              {menuOpen ? (
-                /* X icon */
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-              ) : (
-                /* Hamburger icon */
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-              )}
-            </button>
           </div>
+        </nav>
+
+        {/* Mobile right side: sign-in pill + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          {!user && (
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-[10px] text-xs font-extrabold uppercase tracking-[.02em]"
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-text)",
+              }}
+            >
+              Sign in
+            </Link>
+          )}
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            className="flex items-center justify-center w-11 h-11 rounded-[9px] transition-colors"
+            style={{ color: "#99A0AC" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,.06)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Mobile dropdown menu */}
       {menuOpen && (
-        <div className="sm:hidden bg-brand border-t border-white/10 shadow-lg">
-          <nav className="max-w-5xl mx-auto px-4 py-2 flex flex-col">
+        <div
+          className="md:hidden shadow-lg"
+          style={{
+            background: "rgba(13,16,22,.98)",
+            borderTop: "1px solid rgba(255,255,255,.08)",
+          }}
+        >
+          <nav className="max-w-content mx-auto px-4 py-2 flex flex-col">
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-3.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(href)
-                    ? "text-brand-gold bg-white/5"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
-                }`}
+                className="flex items-center gap-3 px-3 py-3.5 rounded-[9px] text-sm font-medium transition-colors"
+                style={{
+                  color: isActive(href) ? "#FFFFFF" : "#99A0AC",
+                  background: isActive(href) ? "rgba(255,255,255,.06)" : "transparent",
+                }}
               >
                 {isActive(href) && (
-                  <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: "var(--accent)" }}
+                  />
                 )}
                 {label}
               </Link>
@@ -192,7 +239,8 @@ export default function Navbar() {
             {user && (
               <button
                 onClick={signOut}
-                className="flex items-center px-3 py-3.5 rounded-lg text-sm font-medium text-red-300 hover:text-white hover:bg-red-500/20 transition-colors mt-1 mb-1"
+                className="flex items-center px-3 py-3.5 rounded-[9px] text-sm font-medium transition-colors mt-1 mb-1"
+                style={{ color: "#99A0AC" }}
               >
                 Sign out
               </button>

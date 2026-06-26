@@ -19,7 +19,7 @@ export default function TeamMarquee({ teams }: { teams: Team[] }) {
 
   return (
     <div
-      className="rounded-2xl bg-brand overflow-hidden py-3"
+      className="overflow-hidden py-3"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

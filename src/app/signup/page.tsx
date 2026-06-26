@@ -121,10 +121,12 @@ export default function SignupPage() {
 
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-16">
-      <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-        <span className="text-3xl block mb-2 select-none">🏉</span>
-        <h1 className="text-xl font-bold text-white tracking-tight">Club Rugby Tipping</h1>
-        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">Create your account</p>
+      <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+        <h1 className="text-2xl font-extrabold tracking-tight uppercase">
+          <span className="text-gray-900">Club Rugby </span>
+          <span className="text-brand-gold">Tipping</span>
+        </h1>
+        <p className="text-gray-500 text-xs mt-1 tracking-wide uppercase font-medium">Create your account</p>
       </div>
 
       <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
@@ -260,7 +262,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full mt-2"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-2"
           >
             {loading ? (
               <>

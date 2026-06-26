@@ -84,7 +84,7 @@ export default async function LadderPage() {
       {/* Page heading */}
       <div>
         <p className="eyebrow mb-1">{compLabel}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-brand">Competition Ladder</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Competition Ladder</h1>
       </div>
 
       {standings.length === 0 ? (
@@ -100,7 +100,7 @@ export default async function LadderPage() {
           <section key={compId} className="space-y-4">
             <div className="flex items-center gap-2.5 mb-0.5">
               <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-              <h2 className="text-lg font-bold text-brand tracking-tight">
+              <h2 className="text-lg font-bold text-gray-900 tracking-tight">
                 {compHeading(compRows)}
               </h2>
             </div>
@@ -110,7 +110,7 @@ export default async function LadderPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[560px] text-sm">
                   <thead>
-                    <tr className="bg-brand text-white text-xs font-semibold uppercase tracking-wider">
+                    <tr className="bg-gray-100 text-gray-600 text-xs font-semibold uppercase tracking-wider">
                       <th className="px-3 py-3.5 text-center w-10">#</th>
                       <th className="px-4 py-3.5 text-left">Team</th>
                       <th className="px-3 py-3.5 text-center">P</th>
@@ -189,7 +189,7 @@ export default async function LadderPage() {
                           {val(row.bonus_points)}
                         </td>
                         <td className="px-3 py-3 text-center">
-                          <span className="tabular-nums font-bold text-brand">
+                          <span className="tabular-nums font-bold text-gray-900">
                             {val(row.match_points)}
                           </span>
                         </td>

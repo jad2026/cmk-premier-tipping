@@ -59,9 +59,8 @@ export default function ResetPasswordPage() {
   if (done) {
     return (
       <div className="max-w-md mx-auto mt-10 sm:mt-16">
-        <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-          <span className="text-3xl block mb-2 select-none">✅</span>
-          <h1 className="text-xl font-bold text-white tracking-tight">
+        <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
             Password updated!
           </h1>
         </div>
@@ -72,7 +71,7 @@ export default function ResetPasswordPage() {
           <div className="mt-4 flex justify-center">
             <span className="w-5 h-5 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
           </div>
-          <Link href="/tips" className="btn-primary mt-6 w-full">
+          <Link href="/tips" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed mt-6 w-full">
             Go to Tips now
           </Link>
         </div>
@@ -84,15 +83,14 @@ export default function ResetPasswordPage() {
   if (!sessionReady && error) {
     return (
       <div className="max-w-md mx-auto mt-10 sm:mt-16">
-        <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-          <span className="text-3xl block mb-2 select-none">⚠️</span>
-          <h1 className="text-xl font-bold text-white tracking-tight">
+        <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
             Link expired
           </h1>
         </div>
         <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-8 text-center">
           <p className="text-gray-600 text-sm">{error}</p>
-          <Link href="/forgot-password" className="btn-primary mt-6 w-full">
+          <Link href="/forgot-password" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed mt-6 w-full">
             Request a new link
           </Link>
         </div>
@@ -113,12 +111,11 @@ export default function ResetPasswordPage() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-16">
       {/* Brand bar */}
-      <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-        <span className="text-3xl block mb-2 select-none">🔒</span>
-        <h1 className="text-xl font-bold text-white tracking-tight">
+      <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+        <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
           Choose a new password
         </h1>
-        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">
+        <p className="text-gray-500 text-xs mt-1 tracking-wide uppercase font-medium">
           Make it a strong one
         </p>
       </div>
@@ -176,7 +173,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading || !password || password !== confirm}
-            className="btn-primary w-full mt-2"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-2"
           >
             {loading ? (
               <>

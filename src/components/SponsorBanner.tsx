@@ -23,7 +23,7 @@ function SponsorItem({ s, isLarge }: { s: Sponsor; isLarge: boolean }) {
       />
     </div>
   ) : (
-    <span className={`font-bold ${isLarge ? "text-white text-2xl" : "text-brand text-sm"}`}>
+    <span className={`font-bold ${isLarge ? "text-brand text-2xl" : "text-brand text-sm"}`}>
       {s.name}
     </span>
   );
@@ -75,11 +75,7 @@ export default function SponsorBanner({ sponsors, variant = "large" }: Props) {
   };
 
   return (
-    <div className="rounded-2xl bg-brand overflow-hidden py-6">
-      <p className="text-center text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40 mb-5">
-        Our Sponsors
-      </p>
-
+    <div className="overflow-hidden py-6">
       <div
         className="flex"
         style={{

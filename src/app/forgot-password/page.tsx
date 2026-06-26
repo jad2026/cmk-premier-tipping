@@ -33,9 +33,8 @@ export default function ForgotPasswordPage() {
   if (done) {
     return (
       <div className="max-w-md mx-auto mt-10 sm:mt-16">
-        <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-          <span className="text-3xl block mb-2 select-none">✉️</span>
-          <h1 className="text-xl font-bold text-white tracking-tight">
+        <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
             Check your email
           </h1>
         </div>
@@ -55,7 +54,7 @@ export default function ForgotPasswordPage() {
             </button>
             .
           </p>
-          <Link href="/login" className="btn-primary mt-6 w-full">
+          <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed mt-6 w-full">
             Back to sign in
           </Link>
         </div>
@@ -66,12 +65,11 @@ export default function ForgotPasswordPage() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-16">
       {/* Brand bar */}
-      <div className="bg-brand rounded-t-2xl px-8 py-6 text-center">
-        <span className="text-3xl block mb-2 select-none">🔑</span>
-        <h1 className="text-xl font-bold text-white tracking-tight">
+      <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
+        <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
           Reset your password
         </h1>
-        <p className="text-blue-200/70 text-xs mt-1 tracking-wide uppercase font-medium">
+        <p className="text-gray-500 text-xs mt-1 tracking-wide uppercase font-medium">
           We&apos;ll send you a reset link
         </p>
       </div>
@@ -107,7 +105,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full mt-2"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-2"
           >
             {loading ? (
               <>

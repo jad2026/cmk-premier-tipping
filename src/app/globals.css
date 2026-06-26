@@ -7,7 +7,18 @@
   to   { transform: translateX(-100%); }
 }
 
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .3; transform: scale(.75); }
+}
+
 :root {
+  /* ── Accent system (set per-competition in layout.tsx) ─────────────────── */
+  --accent: #D9A521;
+  --accent-text: #11151C;
+  --accent-wash: rgba(217,165,33,.12);
+
+  /* ── Legacy brand tokens (used by existing page bodies, will be phased out) */
   --brand: 26 58 92;
   --brand-dark: 17 38 56;
   --brand-light: 42 90 140;
@@ -35,67 +46,91 @@
   }
 
   body {
-    @apply text-gray-900;
+    color: #11151C;
     min-height: 100vh;
-    background-color: #f3f4f6;
+    background-color: #F2F0EA;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-barlow-condensed), var(--font-barlow), ui-sans-serif, sans-serif;
+    font-family: var(--font-archivo-black), var(--font-archivo), system-ui, sans-serif;
   }
 }
 
 @layer components {
   /* ── Card primitives ───────────────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-2xl shadow-card border border-gray-100;
+    @apply bg-white rounded-[18px] border border-[#E4E1D8];
+    box-shadow: 0 1px 2px rgba(17,21,28,.04);
   }
   .card-md {
-    @apply bg-white rounded-2xl shadow-card-md border border-gray-100;
+    @apply bg-white rounded-[18px] border border-[#E4E1D8];
+    box-shadow: 0 1px 2px rgba(17,21,28,.04);
   }
 
   /* ── Section label (small ALL-CAPS eyebrow) ──────────────────────────── */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-widest text-brand-gold;
+    @apply text-xs font-extrabold uppercase tracking-[.10em];
+    color: var(--accent);
   }
 
   /* ── Primary button ───────────────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
-           px-6 py-2.5 rounded-xl
-           bg-brand text-white font-semibold text-sm
+           px-6 py-2.5 rounded-[10px]
+           font-extrabold text-sm uppercase tracking-[.02em]
            shadow-sm
-           hover:bg-brand-light active:scale-[0.98]
+           active:scale-[0.98]
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--accent);
+    color: var(--accent-text);
   }
-
-  /* ── Gold/CTA button ──────────────────────────────────────────────────── */
-  .btn-gold {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-2.5 rounded-xl
-           bg-brand-gold text-white font-semibold text-sm
-           shadow-sm
-           hover:bg-brand-gold-dark active:scale-[0.98]
-           transition-all duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed;
+  .btn-primary:hover {
+    filter: brightness(1.06);
   }
 
   /* ── Ghost button ────────────────────────────────────────────────────── */
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2
-           px-5 py-2.5 rounded-xl
-           bg-white text-brand font-semibold text-sm
-           shadow-sm border border-gray-200
-           hover:bg-gray-50 active:scale-[0.98]
+           px-5 py-2.5 rounded-[10px]
+           font-extrabold text-sm uppercase tracking-[.02em]
+           active:scale-[0.98]
            transition-all duration-150;
+    color: #11151C;
+    border: 1.5px solid #E4E1D8;
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    background: rgba(0,0,0,.03);
+  }
+
+  /* ── Gold/CTA button (legacy, maps to accent now) ─────────────────────── */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-[10px]
+           font-extrabold text-sm uppercase tracking-[.02em]
+           shadow-sm
+           active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+  .btn-gold:hover {
+    filter: brightness(1.06);
   }
 
   /* ── Form inputs ─────────────────────────────────────────────────────── */
   .input {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-           bg-white placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
+    @apply w-full rounded-[10px] px-4 py-2.5 text-sm
+           bg-white placeholder-[#8B8676]
+           focus:outline-none focus:ring-2 focus:border-transparent
            transition-colors;
+    border: 1px solid #E4E1D8;
+    color: #11151C;
+  }
+  .input:focus {
+    --tw-ring-color: var(--accent);
+    --tw-ring-opacity: .3;
   }
 }
