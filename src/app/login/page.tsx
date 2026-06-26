@@ -5,6 +5,29 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  border: "1px solid #E4E1D8",
+  borderRadius: 10,
+  padding: "12px 16px",
+  fontSize: 15,
+  fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+  background: "#fff",
+  color: "#11151C",
+  outline: "none",
+  transition: "border-color .15s, box-shadow .15s",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: ".1em",
+  textTransform: "uppercase",
+  color: "#8B8676",
+  marginBottom: 6,
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -22,85 +45,127 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      // Hard redirect so the browser sends the freshly-set auth cookies on the
-      // next request and the middleware validates the session cleanly.
       window.location.href = "/tips";
     }
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 sm:mt-16">
-      {/* Brand bar */}
-      <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight uppercase">
-          <span className="text-gray-900">Club Rugby </span>
-          <span className="text-brand-gold">Tipping</span>
-        </h1>
-        <p className="text-gray-500 text-xs mt-1 tracking-wide uppercase font-medium">Sign in to your account</p>
-      </div>
+    <div
+      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", background: "#F2F0EA", minHeight: "100vh" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "40px 16px" }}>
+        <div style={{ width: "100%", maxWidth: 440, background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "40px 36px" }}>
+          {/* Wordmark */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="9" fill="var(--accent)" />
+                <path d="M7 9.5L8.5 11L11.5 7.5" stroke="var(--accent-text, #11151C)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="font-display" style={{ fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", color: "#11151C" }}>
+                Club Rugby Tipping
+              </span>
+            </div>
+            <h1
+              className="font-display uppercase"
+              style={{ fontSize: 32, lineHeight: 0.9, margin: 0, color: "#11151C" }}
+            >
+              Sign In<span style={{ color: "var(--accent)" }}>.</span>
+            </h1>
+          </div>
 
-      <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="input"
-            />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Password
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-brand/70 hover:text-brand transition-colors"
-              >
-                Forgot password?
-              </Link>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              />
             </div>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input"
-            />
-          </div>
-          {error && (
-            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-              <p className="text-sm text-red-600">{error}</p>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+                <Link
+                  href="/forgot-password"
+                  style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textDecoration: "none" }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              />
             </div>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-2"
-          >
-            {loading ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Signing in…
-              </>
-            ) : (
-              "Sign in"
+
+            {error && (
+              <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
+                <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{error}</p>
+              </div>
             )}
-          </button>
-        </form>
-        <p className="mt-5 text-center text-sm text-gray-400">
-          No account?{" "}
-          <Link href="/signup" className="text-brand font-semibold hover:text-brand-light transition-colors">
-            Sign up free
-          </Link>
-        </p>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                background: "var(--accent)",
+                color: "var(--accent-text, #11151C)",
+                padding: "14px 28px",
+                borderRadius: 12,
+                fontWeight: 800,
+                fontSize: 16,
+                textTransform: "uppercase",
+                letterSpacing: ".04em",
+                border: "none",
+                cursor: loading ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: loading ? 0.7 : 1,
+                transition: "opacity .15s",
+                marginTop: 4,
+              }}
+            >
+              {loading ? (
+                <>
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: "2px solid rgba(255,255,255,.3)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                  Signing in…
+                </>
+              ) : "Sign In"}
+            </button>
+          </form>
+
+          <p style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#8B8676" }}>
+            No account?{" "}
+            <Link href="/signup" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
+              Sign up free
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

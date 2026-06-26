@@ -7,6 +7,34 @@ import type { League } from "@/lib/supabase/types";
 
 type LeagueWithCount = League & { member_count: number };
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  border: "1px solid #E4E1D8",
+  borderRadius: 10,
+  padding: "12px 16px",
+  fontSize: 15,
+  fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+  background: "#fff",
+  color: "#11151C",
+  outline: "none",
+  transition: "border-color .15s, box-shadow .15s",
+};
+
+const btnAccent: React.CSSProperties = {
+  width: "100%",
+  background: "var(--accent)",
+  color: "var(--accent-text, #11151C)",
+  padding: "12px 20px",
+  borderRadius: 12,
+  fontWeight: 800,
+  fontSize: 14,
+  textTransform: "uppercase",
+  letterSpacing: ".04em",
+  border: "none",
+  cursor: "pointer",
+  transition: "opacity .15s",
+};
+
 export default function LeaguesClient({ initialLeagues }: { initialLeagues: LeagueWithCount[] }) {
   const [leagues, setLeagues] = useState(initialLeagues);
   const [isPending, startTransition] = useTransition();
@@ -56,27 +84,41 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* My Leagues */}
-      <div className="card p-6">
-        <h2 className="text-lg font-bold text-brand mb-4">My Leagues</h2>
+      <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "24px 28px" }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+          <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "var(--accent)" }} />
+          <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+            My Leagues
+          </h2>
+        </div>
+
         {leagues.length === 0 ? (
-          <p className="text-gray-500 text-sm">You haven&apos;t joined any leagues yet. Create one or enter an invite code below.</p>
+          <p style={{ fontSize: 14, color: "#8B8676" }}>You haven&apos;t joined any leagues yet. Create one or enter an invite code below.</p>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {leagues.map((league) => (
+          <div>
+            {leagues.map((league, i) => (
               <Link
                 key={league.id}
                 href={`/leagues/${league.id}`}
-                className="flex items-center justify-between py-3 group hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "14px 0",
+                  borderTop: i > 0 ? "1px solid #EFEDE6" : "none",
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
               >
                 <div>
-                  <p className="font-semibold text-brand group-hover:text-brand-light">{league.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {league.member_count} member{league.member_count !== 1 ? "s" : ""} · Code: <span className="font-mono font-bold">{league.invite_code}</span>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: "#11151C", margin: 0 }}>{league.name}</p>
+                  <p style={{ fontSize: 12, color: "#8B8676", marginTop: 2, margin: 0 }}>
+                    {league.member_count} member{league.member_count !== 1 ? "s" : ""} · Code: <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{league.invite_code}</span>
                   </p>
                 </div>
-                <span className="text-brand text-sm font-medium">View →</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>View →</span>
               </Link>
             ))}
           </div>
@@ -84,44 +126,56 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
       </div>
 
       {/* Create / Join */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        {/* Create */}
-        <div className="card p-6">
-          <h2 className="text-lg font-bold text-brand mb-3">Create a League</h2>
-          <form onSubmit={handleCreate} className="space-y-3">
+      <div className="grid sm:grid-cols-2" style={{ gap: 16 }}>
+        <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "24px 28px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+            <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "var(--accent)" }} />
+            <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+              Create a League
+            </h2>
+          </div>
+          <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input
-              className="input"
+              style={inputStyle}
               placeholder="League name"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
               maxLength={80}
               required
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
             />
-            <button className="btn-primary w-full" disabled={isPending}>
+            <button type="submit" disabled={isPending} style={{ ...btnAccent, opacity: isPending ? 0.7 : 1 }}>
               {isPending ? "Creating…" : "Create League"}
             </button>
-            {createError && <p className="text-red-600 text-sm">{createError}</p>}
-            {createFeedback && <p className="text-green-700 text-sm font-medium">{createFeedback}</p>}
+            {createError && <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{createError}</p>}
+            {createFeedback && <p style={{ fontSize: 13, color: "#1F9E5A", fontWeight: 600, margin: 0 }}>{createFeedback}</p>}
           </form>
         </div>
 
-        {/* Join */}
-        <div className="card p-6">
-          <h2 className="text-lg font-bold text-brand mb-3">Join a League</h2>
-          <form onSubmit={handleJoin} className="space-y-3">
+        <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "24px 28px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+            <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "var(--accent)" }} />
+            <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+              Join a League
+            </h2>
+          </div>
+          <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input
-              className="input font-mono uppercase"
+              style={{ ...inputStyle, fontFamily: "monospace", textTransform: "uppercase" }}
               placeholder="6-character invite code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               maxLength={6}
               required
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
             />
-            <button className="btn-gold w-full" disabled={isPending}>
+            <button type="submit" disabled={isPending} style={{ ...btnAccent, opacity: isPending ? 0.7 : 1 }}>
               {isPending ? "Joining…" : "Join League"}
             </button>
-            {joinError && <p className="text-red-600 text-sm">{joinError}</p>}
-            {joinFeedback && <p className="text-green-700 text-sm font-medium">{joinFeedback}</p>}
+            {joinError && <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{joinError}</p>}
+            {joinFeedback && <p style={{ fontSize: 13, color: "#1F9E5A", fontWeight: 600, margin: 0 }}>{joinFeedback}</p>}
           </form>
         </div>
       </div>

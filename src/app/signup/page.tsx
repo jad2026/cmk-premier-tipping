@@ -7,6 +7,29 @@ import { createClient } from "@/lib/supabase/client";
 import { triggerWelcomeEmail } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  border: "1px solid #E4E1D8",
+  borderRadius: 10,
+  padding: "12px 16px",
+  fontSize: 15,
+  fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+  background: "#fff",
+  color: "#11151C",
+  outline: "none",
+  transition: "border-color .15s, box-shadow .15s",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: ".1em",
+  textTransform: "uppercase",
+  color: "#8B8676",
+  marginBottom: 6,
+};
+
 export default function SignupPage() {
   const supabase = createClient();
   const [firstName, setFirstName] = useState("");
@@ -17,7 +40,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Avatar state
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -46,7 +68,6 @@ export default function SignupPage() {
 
     const trimmedTeamName = teamName.trim();
 
-    // Case-insensitive duplicate team name check
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
@@ -80,7 +101,6 @@ export default function SignupPage() {
     if (data.user) {
       const userId = data.user.id;
 
-      // Upload avatar if selected
       let avatarUrl: string | null = null;
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop() ?? "jpg";
@@ -106,7 +126,6 @@ export default function SignupPage() {
         { onConflict: "id" }
       );
 
-      // Auto-enroll in current competition + fire welcome email in background
       autoEnrollCurrentCompetition(userId).catch(
         (err) => console.error("[signup] auto-enroll failed:", err)
       );
@@ -120,166 +139,160 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 sm:mt-16">
-      <div className="bg-gray-50 rounded-t-2xl px-8 py-6 text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight uppercase">
-          <span className="text-gray-900">Club Rugby </span>
-          <span className="text-brand-gold">Tipping</span>
-        </h1>
-        <p className="text-gray-500 text-xs mt-1 tracking-wide uppercase font-medium">Create your account</p>
-      </div>
-
-      <div className="bg-white rounded-b-2xl shadow-card-md px-8 py-7">
-        {/* ── Avatar picker ─────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center mb-6">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="relative group focus:outline-none"
-            aria-label="Upload profile photo"
-          >
-            {/* Circle */}
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-dashed border-gray-300 group-hover:border-brand transition-colors bg-gray-50 flex items-center justify-center">
-              {avatarPreview ? (
-                <Image
-                  src={avatarPreview}
-                  alt="Your photo"
-                  width={96}
-                  height={96}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <svg className="w-10 h-10 text-gray-300 group-hover:text-brand/50 transition-colors" viewBox="0 0 40 40" fill="none">
-                  <circle cx="20" cy="16" r="7" stroke="currentColor" strokeWidth="2" />
-                  <path d="M6 34c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              )}
-            </div>
-
-            {/* Camera badge */}
-            <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand group-hover:bg-brand-light transition-colors border-2 border-white flex items-center justify-center shadow-sm">
-              <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 16 16" fill="none">
-                <path d="M6 2H10L11.5 4H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.5L6 2Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
-                <circle cx="8" cy="8.5" r="2.25" stroke="currentColor" strokeWidth="1.25" />
+    <div
+      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", background: "#F2F0EA", minHeight: "100vh" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "40px 16px" }}>
+        <div style={{ width: "100%", maxWidth: 440, background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "40px 36px" }}>
+          {/* Wordmark */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="9" fill="var(--accent)" />
+                <path d="M7 9.5L8.5 11L11.5 7.5" stroke="var(--accent-text, #11151C)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </span>
-          </button>
+              <span className="font-display" style={{ fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", color: "#11151C" }}>
+                Club Rugby Tipping
+              </span>
+            </div>
+            <h1
+              className="font-display uppercase"
+              style={{ fontSize: 32, lineHeight: 0.9, margin: 0, color: "#11151C" }}
+            >
+              Sign Up<span style={{ color: "var(--accent)" }}>.</span>
+            </h1>
+          </div>
 
-          <p className="text-[11px] text-gray-400 mt-2">
-            {avatarPreview ? "Tap to change photo" : "Add a profile photo (optional)"}
-          </p>
-          {avatarError && <p className="text-xs text-red-500 mt-1">{avatarError}</p>}
+          {/* Avatar picker */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{ position: "relative", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              <div style={{
+                width: 96, height: 96, borderRadius: "50%", overflow: "hidden",
+                border: "2px dashed #E4E1D8", background: "#F9F8F5",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {avatarPreview ? (
+                  <Image src={avatarPreview} alt="Your photo" width={96} height={96} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="16" r="7" stroke="#C9C5B8" strokeWidth="2" />
+                    <path d="M6 34c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="#C9C5B8" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                )}
+              </div>
+              <span style={{
+                position: "absolute", bottom: 0, right: 0,
+                width: 28, height: 28, borderRadius: "50%",
+                background: "var(--accent)", border: "2px solid #fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 1px 3px rgba(0,0,0,.12)",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 2H10L11.5 4H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.5L6 2Z" stroke="var(--accent-text, #11151C)" strokeWidth="1.25" strokeLinejoin="round" />
+                  <circle cx="8" cy="8.5" r="2.25" stroke="var(--accent-text, #11151C)" strokeWidth="1.25" />
+                </svg>
+              </span>
+            </button>
+            <p style={{ fontSize: 11, color: "#8B8676", marginTop: 8 }}>
+              {avatarPreview ? "Tap to change photo" : "Add a profile photo (optional)"}
+            </p>
+            {avatarError && <p style={{ fontSize: 12, color: "#B23A48", marginTop: 4 }}>{avatarError}</p>}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
+          </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarPick}
-          />
-        </div>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="grid grid-cols-2" style={{ gap: 12 }}>
+              <div>
+                <label style={labelStyle}>First Name</label>
+                <input type="text" required minLength={1} maxLength={50} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" style={inputStyle}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name</label>
+                <input type="text" required minLength={1} maxLength={50} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Smith" style={inputStyle}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+                />
+              </div>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                First Name
-              </label>
-              <input
-                type="text"
-                required
-                minLength={1}
-                maxLength={50}
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Jane"
-                className="input"
+              <label style={labelStyle}>Email</label>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
               />
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                Last Name
-              </label>
-              <input
-                type="text"
-                required
-                minLength={1}
-                maxLength={50}
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Smith"
-                className="input"
+              <label style={labelStyle}>Password</label>
+              <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters" style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 6 characters"
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Team Name
-            </label>
-            <input
-              type="text"
-              required
-              minLength={2}
-              maxLength={40}
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              placeholder="Your team name on the leaderboard"
-              className="input"
-            />
-          </div>
-          {error && (
-            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-              <p className="text-sm text-red-600">{error}</p>
+
+            <div>
+              <label style={labelStyle}>Team Name</label>
+              <input type="text" required minLength={2} maxLength={40} value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Your team name on the leaderboard" style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              />
             </div>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-sm shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full mt-2"
-          >
-            {loading ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Creating account…
-              </>
-            ) : (
-              "Create account"
+
+            {error && (
+              <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
+                <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{error}</p>
+              </div>
             )}
-          </button>
-        </form>
-        <p className="mt-5 text-center text-sm text-gray-400">
-          Already have an account?{" "}
-          <Link href="/login" className="text-brand font-semibold hover:text-brand-light transition-colors">
-            Sign in
-          </Link>
-        </p>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                background: "var(--accent)",
+                color: "var(--accent-text, #11151C)",
+                padding: "14px 28px",
+                borderRadius: 12,
+                fontWeight: 800,
+                fontSize: 16,
+                textTransform: "uppercase",
+                letterSpacing: ".04em",
+                border: "none",
+                cursor: loading ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: loading ? 0.7 : 1,
+                transition: "opacity .15s",
+                marginTop: 4,
+              }}
+            >
+              {loading ? (
+                <>
+                  <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                  Creating account…
+                </>
+              ) : "Create Account"}
+            </button>
+          </form>
+
+          <p style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#8B8676" }}>
+            Already have an account?{" "}
+            <Link href="/login" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

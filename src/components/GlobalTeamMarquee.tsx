@@ -7,7 +7,7 @@ export default async function GlobalTeamMarquee() {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
 
-  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "" || pathname === "/leaderboard" || pathname.startsWith("/leaderboard/") || pathname === "/ladder" || pathname === "/tips" || pathname === "/my-picks" || pathname === "/profile") return null;
+  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "" || pathname === "/leaderboard" || pathname.startsWith("/leaderboard/") || pathname === "/ladder" || pathname === "/tips" || pathname === "/my-picks" || pathname === "/profile" || pathname === "/leagues" || pathname.startsWith("/leagues/") || pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password") return null;
 
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
