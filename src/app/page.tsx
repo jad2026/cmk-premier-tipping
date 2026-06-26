@@ -176,8 +176,7 @@ export default async function HomePage() {
           "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
         )
         .eq("comp_id", menXplorerId)
-        .order("position", { ascending: true })
-        .limit(5);
+        .order("position", { ascending: true });
       ladderRows = (data ?? []) as LadderRow[];
     }
 
