@@ -77,11 +77,6 @@ function pct(correct: number, total: number): string {
   return `${Math.round((correct / total) * 100)}%`;
 }
 
-function pctNum(correct: number, total: number): number {
-  if (total === 0) return 0;
-  return Math.round((correct / total) * 100);
-}
-
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-NZ", {
     timeZone: "Pacific/Auckland",
@@ -100,6 +95,10 @@ function fmtDeadline(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function initials(name: string): string {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
 // ── Pick chip ─────────────────────────────────────────────────────────────────
@@ -181,26 +180,26 @@ function FixtureCard({
   });
 
   return (
-    <div className="card overflow-hidden">
-      <div className="px-5 pt-4 pb-3">
+    <div className="overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18 }}>
+      <div style={{ padding: "20px 22px 16px" }}>
         <div className="flex items-center gap-2 mb-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <TeamBadge team={fixture.home_team} size="sm" />
-            <span className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#11151C" }} className="leading-snug line-clamp-2">
               {fixture.home_team.name}
             </span>
           </div>
           {score ? (
-            <span className="shrink-0 px-3 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-sm font-bold tabular-nums whitespace-nowrap">
+            <span className="shrink-0" style={{ padding: "4px 12px", borderRadius: 999, background: "#E8F5ED", border: "1px solid #C3E6CF", color: "#1F9E5A", fontSize: 14, fontWeight: 700, fontFeatureSettings: "'tnum'" }}>
               {score.home} – {score.away}
             </span>
           ) : (
-            <span className="shrink-0 px-2.5 py-1 rounded-full bg-brand/8 text-brand text-[10px] font-bold tracking-widest">
+            <span className="shrink-0" style={{ padding: "4px 10px", borderRadius: 999, background: "rgba(var(--accent-rgb,217,165,33),.08)", fontSize: 10, fontWeight: 800, letterSpacing: ".12em", color: "var(--accent)" }}>
               VS
             </span>
           )}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-            <span className="text-sm font-semibold text-gray-800 leading-snug text-right line-clamp-2">
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#11151C" }} className="leading-snug text-right line-clamp-2">
               {fixture.away_team.name}
             </span>
             <TeamBadge team={fixture.away_team} size="sm" />
@@ -208,20 +207,20 @@ function FixtureCard({
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-gray-400">
+          <p style={{ fontSize: 12, color: "#8B8676", margin: 0 }}>
             {fmtDate(fixture.match_date)}
             {fixture.venue && (
-              <span className="before:content-['·'] before:mx-1.5 before:text-gray-300">
+              <span className="before:content-['·'] before:mx-1.5" style={{ color: "#8B8676" }}>
                 {fixture.venue}
               </span>
             )}
           </p>
           {fixture.is_draw ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5" style={{ padding: "4px 12px", borderRadius: 999, background: "#EFF6FF", color: "#2563EB", fontSize: 12, fontWeight: 700 }}>
               🤝 Draw
             </span>
           ) : hasResult && resultTeam ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5" style={{ padding: "4px 12px", borderRadius: 999, background: "#E8F5ED", color: "#1F9E5A", fontSize: 12, fontWeight: 700 }}>
               <span
                 className="w-2 h-2 rounded-full ring-1 ring-black/10 shrink-0"
                 style={{ backgroundColor: resultTeam.colour }}
@@ -229,17 +228,17 @@ function FixtureCard({
               {resultTeam.name} won
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-400 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5" style={{ padding: "4px 12px", borderRadius: 999, background: "#F5F4EF", color: "#8B8676", fontSize: 12, fontWeight: 600 }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#C7C2B5" }} />
               Pending
             </span>
           )}
         </div>
       </div>
 
-      <div className="px-5 py-3 bg-[#f8f9fb] border-t border-gray-100">
+      <div style={{ padding: "12px 22px", background: "#F9F8F5", borderTop: "1px solid #EFEDE6" }}>
         {sorted.length === 0 ? (
-          <p className="text-xs text-gray-400 italic">No picks submitted yet.</p>
+          <p style={{ fontSize: 12, color: "#8B8676", fontStyle: "italic", margin: 0 }}>No picks submitted yet.</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {sorted.map((pick) => (
@@ -257,127 +256,104 @@ function FixtureCard({
   );
 }
 
-// ── Leaderboard table ─────────────────────────────────────────────────────────
+// ── Podium card ──────────────────────────────────────────────────────────────
 
-function LeaderboardTable({ rows, seasonComplete }: { rows: LeaderboardEntry[]; seasonComplete: boolean }) {
-  // Build rank medals from distinct score levels so ties share the same medal
-  const distinctScores = Array.from(new Set(rows.map((e) => e.correct))).filter((s) => s > 0).sort((a, b) => b - a);
-  const medalForScore = new Map<number, "gold" | "silver" | "bronze">();
-  if (distinctScores[0] !== undefined) medalForScore.set(distinctScores[0], "gold");
-  if (distinctScores[1] !== undefined) medalForScore.set(distinctScores[1], "silver");
-  if (distinctScores[2] !== undefined) medalForScore.set(distinctScores[2], "bronze");
-
-  // Compute display rank (1, 1, 3, 4 — not 1, 1, 2, 3)
-  let rank = 0;
-  let prevCorrect = -1;
-  const rankForIndex: number[] = [];
-  for (const entry of rows) {
-    if (entry.correct !== prevCorrect) { rank++; prevCorrect = entry.correct; }
-    rankForIndex.push(rank);
-  }
+function PodiumCard({
+  entry,
+  rank,
+  isFirst,
+}: {
+  entry: LeaderboardEntry;
+  rank: number;
+  isFirst: boolean;
+}) {
+  const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
+  const colorIdx = entry.displayName.charCodeAt(0) % AVATAR_COLORS.length;
 
   return (
-    <div className="card overflow-hidden">
-      {/* Sticky header — lives outside the scroll container */}
-      <div className="grid grid-cols-[3rem_1fr_6rem_5rem_5rem] bg-brand text-white text-xs font-semibold uppercase tracking-wider sticky top-0 z-10">
-        <div className="px-4 py-3.5 text-center">#</div>
-        <div className="px-4 py-3.5">Tipper</div>
-        <div className="px-4 py-3.5 text-right">Correct</div>
-        <div className="px-4 py-3.5 text-right">Tipped</div>
-        <div className="px-4 py-3.5 text-right pr-5">%</div>
-      </div>
-
-      {/* Scrollable rows */}
+    <div
+      className="relative overflow-hidden"
+      style={{
+        background: isFirst ? "#0D1016" : "#fff",
+        border: `1px solid ${isFirst ? "#0D1016" : "#E4E1D8"}`,
+        borderRadius: 18,
+        padding: "24px 22px",
+        ...(isFirst ? { transform: "translateY(-14px)" } : {}),
+      }}
+    >
       <div
-        className="divide-y divide-gray-50 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#c9a84c_#f3f4f6]"
-        style={{ maxHeight: "600px" }}
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 18,
+          fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+          fontSize: 46,
+          lineHeight: 1,
+          color: isFirst ? "var(--accent)" : "rgba(17,21,28,.10)",
+          opacity: 0.9,
+        }}
       >
-        {rows.map((entry, idx) => {
-          const medal = medalForScore.get(entry.correct);
-          const isGold = medal === "gold";
-          const hitRate = pctNum(entry.correct, entry.total);
-          const displayRank = rankForIndex[idx];
-
-          return (
-            <div
-              key={entry.user_id}
-              className={`grid grid-cols-[3rem_1fr_6rem_5rem_5rem] items-center transition-colors ${
-                isGold
-                  ? "bg-brand-gold-light/60 border-l-4 border-l-brand-gold"
-                  : idx % 2 === 0
-                  ? "bg-white hover:bg-gray-50/70"
-                  : "bg-[#f9fafb] hover:bg-gray-50"
-              }`}
-            >
-              <div className="px-0 py-4 flex justify-center">
-                {medal === "gold" ? (
-                  <span className="text-lg leading-none select-none" title={seasonComplete ? "Season Winner" : "Leader"}>🥇</span>
-                ) : medal === "silver" ? (
-                  <span className="text-lg leading-none select-none" title="2nd place">🥈</span>
-                ) : medal === "bronze" ? (
-                  <span className="text-lg leading-none select-none" title="3rd place">🥉</span>
-                ) : (
-                  <span className="text-sm text-gray-400 tabular-nums font-medium">{displayRank}</span>
-                )}
-              </div>
-              <div className="px-4 py-3 flex items-center gap-2.5">
-                <Avatar url={entry.avatarUrl} name={entry.displayName} size={32} />
-                <span className={`text-sm ${isGold ? "font-bold text-brand" : "font-medium text-gray-800"}`}>
-                  {entry.displayName}
-                </span>
-              </div>
-              <div className="px-4 py-4 text-right">
-                <span className={`text-sm tabular-nums font-bold ${isGold ? "text-brand-gold-dark" : "text-green-700"}`}>
-                  {entry.correct}
-                </span>
-              </div>
-              <div className="px-4 py-4 text-right">
-                <span className="text-sm tabular-nums text-gray-500">{entry.total}</span>
-              </div>
-              <div className="px-4 pr-5 py-4 text-right">
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-xs tabular-nums font-semibold ${
-                    entry.total === 0 ? "text-gray-400" :
-                    hitRate >= 60 ? "text-green-600" : "text-gray-600"
-                  }`}>
-                    {pct(entry.correct, entry.total)}
-                  </span>
-                  {entry.total > 0 && (
-                    <div className="w-12 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          hitRate >= 60 ? "bg-green-500" :
-                          hitRate >= 40 ? "bg-amber-400" : "bg-gray-400"
-                        }`}
-                        style={{ width: `${hitRate}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {rank}
       </div>
-    </div>
-  );
-}
 
-// ── Section heading ───────────────────────────────────────────────────────────
-
-function SectionHeading({ title, sub, badge }: { title: string; sub?: string; badge?: string }) {
-  return (
-    <div className="flex items-start justify-between gap-4 flex-wrap">
-      <div>
-        <div className="flex items-center gap-2.5 mb-0.5">
-          <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-          <h2 className="text-lg font-bold text-brand tracking-tight">{title}</h2>
+      {entry.avatarUrl ? (
+        <div className="mb-4">
+          <Avatar url={entry.avatarUrl} name={entry.displayName} size={54} />
         </div>
-        {sub && <p className="text-xs text-gray-400 ml-3.5">{sub}</p>}
-      </div>
-      {badge && (
-        <span className="card px-3 py-1 text-xs text-gray-500 font-medium shadow-none">{badge}</span>
+      ) : (
+        <div
+          className="flex items-center justify-center rounded-full mb-4"
+          style={{
+            width: 54,
+            height: 54,
+            background: AVATAR_COLORS[colorIdx],
+            fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+            fontSize: 18,
+            color: "#fff",
+          }}
+        >
+          {initials(entry.displayName)}
+        </div>
       )}
+
+      <div
+        className="font-display uppercase"
+        style={{
+          fontSize: 21,
+          lineHeight: 1,
+          color: isFirst ? "#fff" : "#11151C",
+        }}
+      >
+        {entry.displayName}
+      </div>
+
+      <div style={{ fontSize: 13, color: isFirst ? "#9AA1AD" : "#8B8676", marginTop: 6, fontWeight: 600 }}>
+        {pct(entry.correct, entry.total)} hit rate
+      </div>
+
+      <div className="flex items-baseline gap-2" style={{ marginTop: 18 }}>
+        <span
+          className="font-display"
+          style={{
+            fontSize: 38,
+            lineHeight: 1,
+            color: isFirst ? "var(--accent)" : "#11151C",
+          }}
+        >
+          {entry.correct}
+        </span>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
+            color: isFirst ? "#9AA1AD" : "#8B8676",
+          }}
+        >
+          pts
+        </span>
+      </div>
     </div>
   );
 }
@@ -388,8 +364,11 @@ export default async function LeaderboardPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
-  // Wave 1 — items that don't need competition scoping, plus the competition's
-  // gameweek IDs which are required to scope everything else.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id ?? null;
+
   const [
     { data: compGwRows },
     { data: profiles },
@@ -408,8 +387,6 @@ export default async function LeaderboardPage() {
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
-  // Wave 2 — queries scoped to this competition via compGwIds.
-  // Also pre-fetch all fixture IDs for this competition so we can scope picks.
   const [
     { data: openGameweek },
     { data: closedGameweeks },
@@ -442,7 +419,6 @@ export default async function LeaderboardPage() {
 
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
-  // Overall picks — scoped to this competition's fixtures.
   const { data: allPicksRaw } = compFixtureIds.length > 0
     ? await supabase.from("picks").select("user_id, is_correct").in("fixture_id", compFixtureIds)
     : { data: [] as { user_id: string; is_correct: boolean | null }[] };
@@ -460,13 +436,13 @@ export default async function LeaderboardPage() {
     (profiles ?? []).map((p: Profile) => [p.id, p.avatar_url])
   );
 
-  // Gameweek IDs that have at least one result
   const gwIdsWithResults = new Set((fixturesWithResults ?? []).map((f) => f.gameweek_id));
-
-  // Past rounds = closed and have results
   const pastRounds = (closedGameweeks ?? []).filter((gw) => gwIdsWithResults.has(gw.id));
 
-  // This week's fixtures and picks
+  const latestCompletedRound = pastRounds.length > 0
+    ? Math.max(...pastRounds.map((gw) => gw.number))
+    : null;
+
   let weekFixtures: RichFixture[] = [];
   let weekPicksByFixture = new Map<string, RichPick[]>();
 
@@ -493,7 +469,6 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // Overall leaderboard — seed from competition participants (not all profiles)
   const participantIds = new Set((participants ?? []).map((p) => p.user_id));
   const lbMap = new Map<string, { correct: number; total: number }>(
     Array.from(participantIds).map((id) => [id, { correct: 0, total: 0 }])
@@ -522,7 +497,34 @@ export default async function LeaderboardPage() {
 
   const noRoundsPlayed = leaderboard.length > 0 && leaderboard.every((e) => e.total === 0);
 
-  // ── Season summary data (only when season is complete) ───────────────────
+  // This-round scores per user
+  const thisRoundScores = new Map<string, { correct: number; total: number }>();
+  if (openGameweek) {
+    for (const [, picks] of Array.from(weekPicksByFixture)) {
+      for (const pick of picks) {
+        const s = thisRoundScores.get(pick.user_id) ?? { correct: 0, total: 0 };
+        s.total += 1;
+        if (pick.is_correct) s.correct += 1;
+        thisRoundScores.set(pick.user_id, s);
+      }
+    }
+  }
+
+  // Rank calculation (1, 1, 3 style)
+  const ranks: number[] = [];
+  let rank = 0;
+  let prevCorrect = -1;
+  for (const entry of leaderboard) {
+    if (entry.correct !== prevCorrect) { rank++; prevCorrect = entry.correct; }
+    ranks.push(rank);
+  }
+
+  // Podium: 2nd | 1st | 3rd
+  const podiumEntries = leaderboard.length >= 3
+    ? [leaderboard[1], leaderboard[0], leaderboard[2]]
+    : [];
+
+  // Season summary data
   let summaryGameweeks: Gameweek[] = [];
   const summaryFixturesByGw = new Map<string, RichFixture[]>();
   const summaryPicksByFixture = new Map<string, RichPick[]>();
@@ -564,164 +566,349 @@ export default async function LeaderboardPage() {
     }
   }
 
+  const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
+
   return (
-    <div className="space-y-10">
+    <div
+      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
+    >
 
-      {/* ── Page title ──────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 flex-wrap">
-        <div>
-          <p className="eyebrow mb-1">{seasonName}</p>
-          <h1 className="text-2xl font-bold tracking-tight text-brand">Leaderboard</h1>
+      {/* ── Dark header ──────────────────────────────────────────────── */}
+      <section style={{ background: "#0B0E13", color: "#fff" }}>
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#C7CCD4" }}>
+              {seasonComplete ? "Final standings" : latestCompletedRound ? `Season standings · After Round ${latestCompletedRound}` : "Season standings"}
+              {seasonComplete && (
+                <span style={{ marginLeft: 10, padding: "3px 10px", borderRadius: 999, background: "rgba(var(--accent-rgb,217,165,33),.15)", color: "var(--accent)", fontSize: 10, fontWeight: 800 }}>
+                  🏆 COMPLETE
+                </span>
+              )}
+            </span>
+          </div>
+          <h1
+            className="font-display uppercase"
+            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
+          >
+            Leaderboard<span style={{ color: "var(--accent)" }}>.</span>
+          </h1>
+          <p style={{ fontSize: 16, color: "#AEB4BE", margin: "14px 0 0", maxWidth: 480 }}>
+            Every correct tip is worth a point.{" "}
+            {leaderboard.length > 0 && `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""} in the comp this season.`}
+          </p>
         </div>
-        {seasonComplete && (
-          <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 border border-brand-gold/30 text-brand-gold-dark text-xs font-semibold uppercase tracking-wide">
-            🏆 Season Complete
-          </span>
-        )}
-      </div>
-
-      {/* ── 1. Overall Standings ────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <SectionHeading
-          title={seasonComplete ? "Final Standings" : "Overall Standings"}
-          badge={leaderboard.length > 0 ? `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""}` : undefined}
-        />
-        {noRoundsPlayed && (
-          <div className="rounded-xl bg-blue-50 border border-blue-200 px-5 py-3.5 flex items-center gap-3">
-            <span className="text-xl shrink-0">🏉</span>
-            <p className="text-sm text-blue-800 font-medium">No rounds played yet — scores will appear here once the first round is complete.</p>
-          </div>
-        )}
-        {leaderboard.length === 0 ? (
-          <div className="card px-6 py-12 text-center">
-            <span className="text-4xl mb-3 block">📋</span>
-            <p className="font-medium text-gray-600">No participants yet</p>
-            <p className="text-sm text-gray-400 mt-1">Registered users will appear here once they sign up.</p>
-          </div>
-        ) : (
-          <LeaderboardTable rows={leaderboard} seasonComplete={seasonComplete} />
-        )}
       </section>
 
-      {/* ── 2. This Week ────────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <SectionHeading
-          title={openGameweek ? `This Week — ${openGameweek.label}` : "This Week's Results"}
-          sub={openGameweek ? `Deadline ${fmtDeadline(openGameweek.deadline)}` : undefined}
-          badge={openGameweek ? `${weekFixtures.length} fixture${weekFixtures.length !== 1 ? "s" : ""}` : undefined}
-        />
-
-        {!openGameweek ? (
-          <div className="card px-6 py-10 text-center">
-            <p className="font-medium text-gray-600">No round currently open</p>
-            <p className="text-sm text-gray-400 mt-1">Check back when the next round opens for tipping.</p>
-          </div>
-        ) : weekFixtures.length === 0 ? (
-          <div className="card px-6 py-10 text-center text-sm text-gray-500">
-            No fixtures scheduled for this round yet.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {weekFixtures.map((fixture) => (
-              <FixtureCard
-                key={fixture.id}
-                fixture={fixture}
-                picks={weekPicksByFixture.get(fixture.id) ?? []}
-                teamMap={teamMap}
-                profileMap={profileMap}
-                score={findScore(fixture, matchResults)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── 3. Past Rounds ──────────────────────────────────────────────── */}
-      {!seasonComplete && pastRounds.length > 0 && (
-        <section className="space-y-4">
-          <SectionHeading
-            title="Past Rounds"
-            badge={`${pastRounds.length} round${pastRounds.length !== 1 ? "s" : ""}`}
-          />
-          <div className="card overflow-hidden divide-y divide-gray-50">
-            {pastRounds.map((gw) => (
-              <Link
-                key={gw.id}
-                href={`/leaderboard/round/${gw.number}`}
-                className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/70 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-brand/10 text-brand text-xs font-bold flex items-center justify-center tabular-nums">
-                    {gw.number}
-                  </span>
-                  <span className="font-medium text-gray-800 text-sm">{gw.label}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-400">
-                  <span className="text-xs">View results</span>
-                  <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 14 14" fill="none">
-                    <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </Link>
-            ))}
+      {/* ── Podium ───────────────────────────────────────────────────── */}
+      {podiumEntries.length === 3 && !noRoundsPlayed && (
+        <section className="mx-auto" style={{ maxWidth: 1100, padding: "34px 32px 16px" }}>
+          <div className="grid grid-cols-3 items-end" style={{ gap: 16 }}>
+            {podiumEntries.map((entry, idx) => {
+              const isFirst = idx === 1;
+              const podiumRank = idx === 0 ? 2 : idx === 1 ? 1 : 3;
+              return (
+                <PodiumCard
+                  key={entry.user_id}
+                  entry={entry}
+                  rank={podiumRank}
+                  isFirst={isFirst}
+                />
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* ── 4. Season Summary (season complete only) ────────────────────── */}
-      {seasonComplete && summaryGameweeks.length > 0 && (
-        <section className="space-y-6">
-          <SectionHeading
-            title="Season Summary"
-            sub="Complete results for every round"
-            badge={`${summaryGameweeks.length} round${summaryGameweeks.length !== 1 ? "s" : ""}`}
-          />
+      {/* ── Full table ───────────────────────────────────────────────── */}
+      <section className="mx-auto" style={{ maxWidth: 1100, padding: "18px 32px 70px" }}>
+        {noRoundsPlayed && (
+          <div className="flex items-center gap-3" style={{ borderRadius: 14, background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "14px 20px", marginBottom: 18 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>🏉</span>
+            <p style={{ fontSize: 14, color: "#1E40AF", fontWeight: 600, margin: 0 }}>No rounds played yet — scores will appear here once the first round is complete.</p>
+          </div>
+        )}
 
-          {summaryGameweeks.map((gw) => {
-            const fixtures = summaryFixturesByGw.get(gw.id) ?? [];
-            if (fixtures.length === 0) return null;
-            const roundCorrect = fixtures.reduce((sum, f) => {
-              const picks = summaryPicksByFixture.get(f.id) ?? [];
-              return sum + picks.filter((p) => p.is_correct).length;
-            }, 0);
-            const roundTotal = fixtures.reduce((sum, f) => {
-              return sum + (summaryPicksByFixture.get(f.id)?.length ?? 0);
-            }, 0);
+        {leaderboard.length === 0 ? (
+          <div className="text-center" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "48px 24px" }}>
+            <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>📋</span>
+            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No participants yet</p>
+            <p style={{ fontSize: 14, color: "#8B8676", marginTop: 4 }}>Registered users will appear here once they sign up.</p>
+          </div>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "54px 1fr 92px 78px 70px",
+                padding: "15px 22px",
+                background: "#0D1016",
+                color: "#9AA1AD",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: ".1em",
+                textTransform: "uppercase",
+              }}
+            >
+              <span>#</span>
+              <span>Tipper</span>
+              <span style={{ textAlign: "center" }}>This rd</span>
+              <span style={{ textAlign: "center" }}>Hit %</span>
+              <span style={{ textAlign: "right" }}>Pts</span>
+            </div>
 
-            return (
-              <div key={gw.id} className="space-y-3">
-                {/* Round sub-header */}
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-brand/10 text-brand text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
+            <div style={{ maxHeight: 700, overflowY: "auto" }}>
+              {leaderboard.map((entry, idx) => {
+                const isYou = currentUserId === entry.user_id;
+                const displayRank = ranks[idx];
+                const thisRound = thisRoundScores.get(entry.user_id);
+                const thisRoundCorrect = thisRound?.correct ?? null;
+                const colorIdx = entry.displayName.charCodeAt(0) % AVATAR_COLORS.length;
+
+                return (
+                  <div
+                    key={entry.user_id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "54px 1fr 92px 78px 70px",
+                      alignItems: "center",
+                      padding: "15px 22px",
+                      borderTop: "1px solid #EFEDE6",
+                      background: isYou ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
+                      borderLeft: isYou ? "3px solid var(--accent)" : "3px solid transparent",
+                    }}
+                  >
+                    <span
+                      className="font-display"
+                      style={{
+                        fontSize: 16,
+                        color: displayRank <= 3 ? "var(--accent)" : "#11151C",
+                      }}
+                    >
+                      {displayRank}
+                    </span>
+
+                    <span className="flex items-center" style={{ gap: 12 }}>
+                      {entry.avatarUrl ? (
+                        <Avatar url={entry.avatarUrl} name={entry.displayName} size={34} />
+                      ) : (
+                        <span
+                          className="flex items-center justify-center rounded-full shrink-0"
+                          style={{
+                            width: 34,
+                            height: 34,
+                            background: isYou ? "var(--accent)" : AVATAR_COLORS[colorIdx],
+                            fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                            fontSize: 12,
+                            color: "#fff",
+                          }}
+                        >
+                          {initials(entry.displayName)}
+                        </span>
+                      )}
+                      <span className="flex flex-col">
+                        <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C" }}>{entry.displayName}</span>
+                      </span>
+                      {isYou && (
+                        <span
+                          style={{
+                            marginLeft: 4,
+                            padding: "3px 9px",
+                            borderRadius: 999,
+                            background: "var(--accent)",
+                            color: "var(--accent-text, #11151C)",
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: ".08em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          You
+                        </span>
+                      )}
+                    </span>
+
+                    <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
+                      {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
+                    </span>
+
+                    <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                      {pct(entry.correct, entry.total)}
+                    </span>
+
+                    <span
+                      className="font-display"
+                      style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}
+                    >
+                      {entry.correct}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── This Week ────────────────────────────────────────────────── */}
+      {openGameweek && weekFixtures.length > 0 && (
+        <section style={{ background: "#F2F0EA" }}>
+          <div className="mx-auto" style={{ maxWidth: 1100, padding: "40px 32px 50px" }}>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+              <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+                This Week — {openGameweek.label}
+              </h2>
+            </div>
+            <p style={{ fontSize: 13, color: "#8B8676", marginLeft: 36, marginBottom: 20 }}>
+              Deadline {fmtDeadline(openGameweek.deadline)} · {weekFixtures.length} fixture{weekFixtures.length !== 1 ? "s" : ""}
+            </p>
+            <div className="space-y-3">
+              {weekFixtures.map((fixture) => (
+                <FixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  picks={weekPicksByFixture.get(fixture.id) ?? []}
+                  teamMap={teamMap}
+                  profileMap={profileMap}
+                  score={findScore(fixture, matchResults)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Past Rounds ──────────────────────────────────────────────── */}
+      {!seasonComplete && pastRounds.length > 0 && (
+        <section style={{ background: "#F2F0EA" }}>
+          <div className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px 50px" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+              <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+                Past Rounds
+              </h2>
+              <span style={{ fontSize: 12, color: "#8B8676", fontWeight: 600 }}>
+                {pastRounds.length} round{pastRounds.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden" }}>
+              {pastRounds.map((gw, i) => (
+                <Link
+                  key={gw.id}
+                  href={`/leaderboard/round/${gw.number}`}
+                  className="flex items-center justify-between group"
+                  style={{
+                    padding: "14px 22px",
+                    borderTop: i > 0 ? "1px solid #EFEDE6" : "none",
+                    textDecoration: "none",
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex items-center justify-center shrink-0"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "rgba(var(--accent-rgb,217,165,33),.12)",
+                        color: "var(--accent)",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        fontFeatureSettings: "'tnum'",
+                      }}
+                    >
                       {gw.number}
                     </span>
-                    <span className="font-semibold text-gray-800 text-sm">{gw.label}</span>
+                    <span style={{ fontWeight: 600, color: "#11151C", fontSize: 14 }}>{gw.label}</span>
                   </div>
-                  {roundTotal > 0 && (
-                    <span className="text-xs text-gray-500">
-                      <span className="font-semibold text-green-700">{roundCorrect}</span>
-                      {" / "}
-                      {roundTotal} correct picks
-                    </span>
-                  )}
-                </div>
+                  <div className="flex items-center gap-2" style={{ color: "#8B8676" }}>
+                    <span style={{ fontSize: 12 }}>View results</span>
+                    <svg className="group-hover:translate-x-0.5 transition-transform" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
-                <div className="space-y-3">
-                  {fixtures.map((fixture) => (
-                    <FixtureCard
-                      key={fixture.id}
-                      fixture={fixture}
-                      picks={summaryPicksByFixture.get(fixture.id) ?? []}
-                      teamMap={teamMap}
-                      profileMap={profileMap}
-                      score={findScore(fixture, matchResults)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+      {/* ── Season Summary ───────────────────────────────────────────── */}
+      {seasonComplete && summaryGameweeks.length > 0 && (
+        <section style={{ background: "#F2F0EA" }}>
+          <div className="mx-auto" style={{ maxWidth: 1100, padding: "40px 32px 60px" }}>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+              <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+                Season Summary
+              </h2>
+            </div>
+            <p style={{ fontSize: 13, color: "#8B8676", marginLeft: 36, marginBottom: 24 }}>
+              Complete results for every round · {summaryGameweeks.length} round{summaryGameweeks.length !== 1 ? "s" : ""}
+            </p>
+
+            <div className="space-y-8">
+              {summaryGameweeks.map((gw) => {
+                const fixtures = summaryFixturesByGw.get(gw.id) ?? [];
+                if (fixtures.length === 0) return null;
+                const roundCorrect = fixtures.reduce((sum, f) => {
+                  const picks = summaryPicksByFixture.get(f.id) ?? [];
+                  return sum + picks.filter((p) => p.is_correct).length;
+                }, 0);
+                const roundTotal = fixtures.reduce((sum, f) => {
+                  return sum + (summaryPicksByFixture.get(f.id)?.length ?? 0);
+                }, 0);
+
+                return (
+                  <div key={gw.id}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="flex items-center justify-center shrink-0"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            background: "rgba(var(--accent-rgb,217,165,33),.12)",
+                            color: "var(--accent)",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            fontFeatureSettings: "'tnum'",
+                          }}
+                        >
+                          {gw.number}
+                        </span>
+                        <span style={{ fontWeight: 700, color: "#11151C", fontSize: 14 }}>{gw.label}</span>
+                      </div>
+                      {roundTotal > 0 && (
+                        <span style={{ fontSize: 12, color: "#8B8676" }}>
+                          <span style={{ fontWeight: 700, color: "#1F9E5A" }}>{roundCorrect}</span>
+                          {" / "}
+                          {roundTotal} correct picks
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {fixtures.map((fixture) => (
+                        <FixtureCard
+                          key={fixture.id}
+                          fixture={fixture}
+                          picks={summaryPicksByFixture.get(fixture.id) ?? []}
+                          teamMap={teamMap}
+                          profileMap={profileMap}
+                          score={findScore(fixture, matchResults)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </section>
       )}
     </div>
