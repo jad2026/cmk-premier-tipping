@@ -56,7 +56,7 @@ export default function EnterResultsForm({ fixtures, teams }: Props) {
   if (fixtures.length === 0) {
     return (
       <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-bold text-brand mb-2">Enter Results</h2>
+        <div className="flex items-center gap-3 mb-2"><span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} /><h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Enter Results</h2></div>
         <p className="text-sm text-gray-500">
           All fixtures have results entered. Nothing to do here!
         </p>
@@ -66,7 +66,7 @@ export default function EnterResultsForm({ fixtures, teams }: Props) {
 
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-lg font-bold text-brand mb-5">Enter Results</h2>
+      <div className="flex items-center gap-3 mb-5"><span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} /><h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Enter Results</h2></div>
       <p className="text-xs text-gray-400 mb-4">
         Showing fixtures without a result. Select the winner (or Draw) then hit
         Save. Picks will be scored automatically.

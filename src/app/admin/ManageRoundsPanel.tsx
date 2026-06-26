@@ -147,7 +147,10 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
       </div>
 
       <div className="mt-6">
-        <h2 className="text-lg font-bold text-brand mb-4">Fixtures</h2>
+        <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+          <span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} />
+          <h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Fixtures</h2>
+        </div>
         <FixtureListPanel teams={teams} />
       </div>
     </div>

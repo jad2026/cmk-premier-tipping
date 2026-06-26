@@ -35,7 +35,10 @@ export default function AddFixtureForm({ teams }: { teams: Team[] }) {
   return (
     <>
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-lg font-bold text-brand mb-5">Add Fixture</h2>
+      <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+        <span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} />
+        <h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Add Fixture</h2>
+      </div>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Gameweek number */}
@@ -152,7 +155,10 @@ export default function AddFixtureForm({ teams }: { teams: Team[] }) {
     </section>
 
     <div className="mt-6">
-      <h2 className="text-lg font-bold text-brand mb-4">All Fixtures</h2>
+      <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+        <span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} />
+        <h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>All Fixtures</h2>
+      </div>
       <FixtureListPanel teams={teams} />
     </div>
     </>

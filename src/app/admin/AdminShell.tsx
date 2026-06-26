@@ -46,45 +46,62 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
     >
       {/* Dark header */}
       <section style={{ background: "#0B0E13", color: "#fff" }}>
-        <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 0" }}>
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
             <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#C7CCD4" }}>
-              Competition management
+              Site management
             </span>
           </div>
           <h1
             className="font-display uppercase"
-            style={{ fontSize: 60, lineHeight: 0.86, margin: "0 0 28px" }}
+            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
           >
             Admin<span style={{ color: "var(--accent)" }}>.</span>
           </h1>
+        </div>
+      </section>
 
-          {/* Tab bar */}
-          <div style={{ overflowX: "auto", marginLeft: -32, marginRight: -32, paddingLeft: 32, paddingRight: 32 }}
+      {/* Tab bar */}
+      <section style={{ background: "#F2F0EA" }}>
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "24px 32px 0" }}>
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #E4E1D8",
+              borderRadius: 12,
+              padding: 4,
+              overflowX: "auto",
+            }}
             className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            <div style={{ display: "flex", minWidth: "max-content", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+            <div style={{ display: "flex", minWidth: "max-content" }}>
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   style={{
-                    padding: "12px 20px",
+                    padding: "10px 18px",
+                    borderRadius: 9,
                     fontSize: 13,
                     fontWeight: 700,
-                    letterSpacing: ".04em",
+                    letterSpacing: ".02em",
                     textTransform: "uppercase",
                     whiteSpace: "nowrap",
-                    background: "transparent",
                     border: "none",
-                    borderBottom: activeTab === tab.id ? "2px solid var(--accent)" : "2px solid transparent",
-                    color: activeTab === tab.id ? "var(--accent)" : "rgba(255,255,255,.5)",
                     cursor: "pointer",
-                    transition: "color .15s, border-color .15s",
+                    transition: "background .15s, color .15s",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
+                    background: activeTab === tab.id ? "var(--accent)" : "transparent",
+                    color: activeTab === tab.id ? "var(--accent-text, #11151C)" : "#8B8676",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab.id) e.currentTarget.style.background = "#F4F2EC";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab.id) e.currentTarget.style.background = "transparent";
                   }}
                 >
                   {tab.label}
@@ -92,7 +109,8 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
                     <span style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
                       width: 18, height: 18, borderRadius: "50%",
-                      background: "var(--accent)", color: "var(--accent-text, #11151C)",
+                      background: activeTab === tab.id ? "rgba(0,0,0,.15)" : "var(--accent)",
+                      color: activeTab === tab.id ? "#fff" : "var(--accent-text, #11151C)",
                       fontSize: 10, fontWeight: 800,
                     }}>
                       {pendingFixtures.length}
@@ -103,10 +121,8 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Tab panels */}
-      <section style={{ background: "#F2F0EA" }}>
+        {/* Tab panels */}
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "28px 32px 60px" }}>
           {activeTab === "add" && <AddFixtureForm teams={teams} />}
           {activeTab === "bulk" && <BulkImportForm teams={teams} />}

@@ -446,7 +446,7 @@ export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string |
     .from("gameweeks")
     .select("*")
     .eq("competition_id", compId)
-    .order("number");
+    .order("number", { ascending: false });
 
   if (gwErr) return { data: [], error: gwErr.message };
 
@@ -715,7 +715,7 @@ export async function fetchResultsHistory(): Promise<{ data: RoundHistoryRow[]; 
   // Wave 1: gameweeks, fixtures with results, and teams in parallel
   const [{ data: gameweeks }, { data: fixtures }, { data: teams }] =
     await Promise.all([
-      supabase.from("gameweeks").select("id, label, number").eq("competition_id", compId).order("number"),
+      supabase.from("gameweeks").select("id, label, number").eq("competition_id", compId).order("number", { ascending: false }),
       supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id").in("gameweek_id", compGwIds).not("result_team_id", "is", null),
       // TODO: scope teams to competition once teams have a competition_id FK
       supabase.from("teams").select("id, name"),

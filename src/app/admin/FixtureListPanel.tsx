@@ -125,7 +125,7 @@ export default function FixtureListPanel({ teams }: Props) {
     if (!grouped.has(key)) grouped.set(key, { label: f.gameweek_label, number: f.gameweek_number, fixtures: [] });
     grouped.get(key)!.fixtures.push(f);
   }
-  const rounds = Array.from(grouped.values()).sort((a, b) => a.number - b.number);
+  const rounds = Array.from(grouped.values()).sort((a, b) => b.number - a.number);
 
   if (rounds.length === 0 && !isPending) {
     return (
