@@ -35,7 +35,7 @@ function fmtDeadline(iso: string) {
 }
 
 function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
-  if (fixtures.length > 0 && fixtures.every((f) => f.result_team_id !== null)) return "completed";
+  if (fixtures.length > 0 && fixtures.every((f) => f.result_team_id !== null || f.is_draw)) return "completed";
   if (gw.is_open) return "open";
   return "upcoming";
 }
@@ -72,7 +72,7 @@ export default async function HomePage() {
   const compGwIds = gameweeks.map((g) => g.id);
 
   const { data: allFixtures } = compGwIds.length > 0
-    ? await supabase.from("fixtures").select("id, gameweek_id, result_team_id").in("gameweek_id", compGwIds)
+    ? await supabase.from("fixtures").select("id, gameweek_id, result_team_id, is_draw").in("gameweek_id", compGwIds)
     : { data: [] };
 
   const fixturesByGw = new Map<string, Fixture[]>();
@@ -88,7 +88,7 @@ export default async function HomePage() {
       gameweek: gw,
       status: roundStatus(gw, fixtures),
       total: fixtures.length,
-      resultsIn: fixtures.filter((f) => f.result_team_id !== null).length,
+      resultsIn: fixtures.filter((f) => f.result_team_id !== null || f.is_draw).length,
     };
   });
 

@@ -110,7 +110,7 @@ export default async function TipsPage() {
 
   const gameweeks = (openGameweeks ?? []).filter((_, i) => {
     const fixtures = fixtureResults[i].data ?? [];
-    return fixtures.length > 0 && fixtures.some((f) => f.result_team_id === null);
+    return fixtures.length > 0 && fixtures.some((f) => f.result_team_id === null && !f.is_draw);
   });
 
   if (gameweeks.length === 0) {

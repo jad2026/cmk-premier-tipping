@@ -119,8 +119,8 @@ function FixtureCard({
   profileMap: Map<string, string | null>;
   score: MatchScore | null;
 }) {
-  const hasResult = fixture.result_team_id !== null;
-  const resultTeam = hasResult ? teamMap.get(fixture.result_team_id!) : null;
+  const hasResult = fixture.result_team_id !== null || fixture.is_draw;
+  const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
 
   const correctPicks = picks.filter((p) => p.is_correct === true);
   const wrongPicks   = picks.filter((p) => p.is_correct === false);
@@ -305,7 +305,7 @@ export default async function RoundPage({
 
   // Round summary stats
   const totalFixtures = fixtures.length;
-  const resultsEntered = fixtures.filter((f) => f.result_team_id !== null).length;
+  const resultsEntered = fixtures.filter((f) => f.result_team_id !== null || f.is_draw).length;
   const allPicks = Array.from(picksByFixture.values()).flat();
   const totalCorrect = allPicks.filter((p) => p.is_correct === true).length;
 

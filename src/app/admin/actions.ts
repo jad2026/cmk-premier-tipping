@@ -231,13 +231,13 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
     // Fetch all fixtures for this gameweek
     const { data: fixtures } = await supabase
       .from("fixtures")
-      .select("id, result_team_id, home_team_id, away_team_id, match_date")
+      .select("id, result_team_id, is_draw, home_team_id, away_team_id, match_date")
       .eq("gameweek_id", gwId)
       .order("match_date");
     if (!fixtures || fixtures.length === 0) { console.warn(`[resultsEmail] No fixtures for ${gw.label} — skipping`); continue; }
 
     // Only send if all fixtures in this round have results
-    if (fixtures.some((f) => f.result_team_id === null)) {
+    if (fixtures.some((f) => f.result_team_id === null && !f.is_draw)) {
       console.log(`[resultsEmail] ${gw.label} has incomplete results — skipping email`);
       continue;
     }
@@ -452,7 +452,7 @@ export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string |
 
   const { data: fixtures, error: fixErr } = await supabase
     .from("fixtures")
-    .select("id, gameweek_id, result_team_id");
+    .select("id, gameweek_id, result_team_id, is_draw");
 
   if (fixErr) return { data: [], error: fixErr.message };
 
@@ -460,7 +460,7 @@ export async function fetchRounds(): Promise<{ data: RoundRow[]; error: string |
   const resultedByGw = new Map<string, number>();
   for (const f of fixtures ?? []) {
     totalByGw.set(f.gameweek_id, (totalByGw.get(f.gameweek_id) ?? 0) + 1);
-    if (f.result_team_id) {
+    if (f.result_team_id || f.is_draw) {
       resultedByGw.set(f.gameweek_id, (resultedByGw.get(f.gameweek_id) ?? 0) + 1);
     }
   }
@@ -716,7 +716,7 @@ export async function fetchResultsHistory(): Promise<{ data: RoundHistoryRow[]; 
   const [{ data: gameweeks }, { data: fixtures }, { data: teams }] =
     await Promise.all([
       supabase.from("gameweeks").select("id, label, number").eq("competition_id", compId).order("number", { ascending: false }),
-      supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id").in("gameweek_id", compGwIds).not("result_team_id", "is", null),
+      supabase.from("fixtures").select("id, gameweek_id, home_team_id, away_team_id, result_team_id, is_draw").in("gameweek_id", compGwIds).or("result_team_id.not.is.null,is_draw.eq.true"),
       // TODO: scope teams to competition once teams have a competition_id FK
       supabase.from("teams").select("id, name"),
     ]);

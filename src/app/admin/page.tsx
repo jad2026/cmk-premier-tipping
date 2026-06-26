@@ -42,6 +42,7 @@ export default async function AdminPage() {
         )
         .in("gameweek_id", compGwIds)
         .is("result_team_id", null)
+        .eq("is_draw", false)
         .order("match_date")
     : { data: [] };
 
