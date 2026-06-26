@@ -11,7 +11,7 @@ type AccentConfig = {
 const ACCENTS: Record<AccentName, AccentConfig> = {
   Amber:        { hex: "#D9A521", text: "#11151C", wash: "rgba(217,165,33,.12)" },
   Magenta:      { hex: "#E6007E", text: "#FFFFFF", wash: "rgba(230,0,126,.06)" },
-  "Light Blue": { hex: "#2C9FD4", text: "#FFFFFF", wash: "rgba(44,159,212,.06)" },
+  "Light Blue": { hex: "#2C9FD4", text: "#FFFFFF", wash: "rgba(44,159,212,.12)" },
   Green:        { hex: "#12A150", text: "#FFFFFF", wash: "rgba(18,161,80,.06)" },
   Chocolate:    { hex: "#7A4B36", text: "#FFFFFF", wash: "rgba(122,75,54,.06)" },
 };
@@ -27,8 +27,7 @@ export function getAccentForCompetition(compId: string): AccentName {
     case CMK_COMPETITION_ID:
       return "Amber";
     case NPC_COMPETITION_ID:
-      // TODO: set the NPC accent once decided (e.g. "Light Blue")
-      return "Amber";
+      return "Light Blue";
     default:
       return "Amber";
   }
