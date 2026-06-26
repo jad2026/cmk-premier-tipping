@@ -12,7 +12,7 @@ export default function ClubsMarquee({ children }: { children: ReactNode }) {
     const track = trackRef.current;
     if (!track) return;
     const half = track.scrollWidth / 2;
-    if (half > 0) setDuration(half / 30);
+    if (half > 0) setDuration(half / 60);
   }, []);
 
   return (
