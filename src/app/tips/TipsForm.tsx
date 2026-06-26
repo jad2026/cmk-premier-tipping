@@ -145,7 +145,7 @@ export default function TipsForm({ rounds }: Props) {
           borderBottom: "1px solid #E0DDD3",
         }}
       >
-        <div className="max-w-content-inner mx-auto px-4 sm:px-8 py-3.5 flex items-center gap-4">
+        <div className="max-w-content-inner mx-auto flex items-center gap-[18px]" style={{ padding: "14px 32px" }}>
           <div className="flex-1 h-2 rounded-full bg-[#E2DFD5] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-300 ease-out"
@@ -159,7 +159,7 @@ export default function TipsForm({ rounds }: Props) {
       </div>
 
       {/* ── Match cards ─────────────────────────────────────────────────── */}
-      <section className="max-w-content-inner mx-auto px-4 sm:px-8 py-8 flex flex-col gap-4">
+      <section className="max-w-content-inner mx-auto flex flex-col gap-4" style={{ padding: "30px 32px 40px" }}>
         {rounds.map((round) => {
           const isPastDeadline = isRoundDeadlinePassed(round.deadline);
           return round.fixtures.map((fixture) => (
@@ -187,7 +187,7 @@ export default function TipsForm({ rounds }: Props) {
             borderTop: "1px solid rgba(255,255,255,.1)",
           }}
         >
-          <div className="max-w-content-inner mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-5">
+          <div className="max-w-content-inner mx-auto flex items-center justify-between gap-5" style={{ padding: "16px 32px" }}>
             <div className="text-white min-w-0">
               <div className="font-display text-[18px] uppercase leading-none">
                 {pickedCount} of {totalPickable} tipped
@@ -204,14 +204,15 @@ export default function TipsForm({ rounds }: Props) {
             <button
               onClick={handleSave}
               disabled={isPending || pickedCount === 0}
-              className="shrink-0 inline-flex items-center gap-2.5 px-7 sm:px-8 py-4 rounded-[12px] text-[16px] font-extrabold uppercase tracking-[.02em] transition-all duration-150 disabled:cursor-not-allowed"
-              style={
-                saved
+              className="shrink-0 inline-flex items-center gap-2.5 rounded-[12px] text-[16px] font-extrabold uppercase tracking-[.02em] transition-all duration-150 disabled:cursor-not-allowed"
+              style={{
+                padding: "16px 34px",
+                ...(saved
                   ? { background: "#2CC36B", color: "#fff" }
                   : allPicked
                   ? { background: "var(--accent)", color: "var(--accent-text)" }
-                  : { background: "rgba(255,255,255,.14)", color: "#737A86" }
-              }
+                  : { background: "rgba(255,255,255,.14)", color: "#737A86" }),
+              }}
             >
               {isPending ? (
                 <>
@@ -229,7 +230,7 @@ export default function TipsForm({ rounds }: Props) {
       )}
 
       {!hasAnyPickable && (
-        <div className="max-w-content-inner mx-auto px-4 sm:px-8 pb-8">
+        <div className="max-w-content-inner mx-auto pb-8" style={{ padding: "0 32px 32px" }}>
           <div className="card px-5 py-3.5 flex items-center gap-3">
             <span className="text-md-text-muted text-base">🔒</span>
             <p className="text-sm font-medium text-md-text-secondary">
@@ -250,9 +251,9 @@ function TipsHeader({ rounds, deadline }: { rounds: RoundData[]; deadline: strin
 
   return (
     <section className="bg-ink text-white">
-      <div className="max-w-content-inner mx-auto px-4 sm:px-8 pt-10 pb-8">
+      <div className="max-w-content-inner mx-auto" style={{ padding: "40px 32px 34px" }}>
         {/* Pulsing dot + eyebrow */}
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-[18px]">
           <span
             className="w-[9px] h-[9px] rounded-full bg-live-green shrink-0"
             style={{ animation: "pulseDot 1.6s ease-in-out infinite" }}
@@ -265,11 +266,11 @@ function TipsHeader({ rounds, deadline }: { rounds: RoundData[]; deadline: strin
         {/* Title + countdown */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div>
-            <h1 className="font-display text-[40px] sm:text-[60px] leading-[.86] uppercase m-0">
+            <h1 className="font-display text-[60px] leading-[.86] uppercase m-0">
               {rounds.length === 1 ? `Round ${primaryRound.number}` : `${rounds.length} Rounds`}
               <span style={{ color: "var(--accent)" }}>.</span>
             </h1>
-            <p className="text-[16px] text-[#AEB4BE] mt-3.5">
+            <p className="text-[16px] text-[#AEB4BE] mt-[14px]">
               Pick a winner in every match. Tips lock at the first kickoff.
             </p>
           </div>
@@ -348,8 +349,8 @@ function FixtureCard({
     >
       {/* Header strip */}
       <div
-        className="flex items-center justify-between px-4 sm:px-[22px] py-3"
-        style={{ background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
+        className="flex items-center justify-between"
+        style={{ padding: "13px 22px", background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
       >
         <span className="text-[11px] font-extrabold tracking-[.1em] uppercase text-[#A39E8C]">
           {fixture.venue || "TBC"}
@@ -370,8 +371,9 @@ function FixtureCard({
         <button
           onClick={() => onSelect(home.id)}
           disabled={isLocked}
-          className="flex items-center gap-3 sm:gap-3.5 px-4 sm:px-[22px] py-5 text-left transition-colors duration-150 disabled:cursor-not-allowed"
+          className="flex items-center gap-[14px] text-left transition-colors duration-150 disabled:cursor-not-allowed"
           style={{
+            padding: "20px 22px",
             background: homePicked && !resultLocked ? "var(--accent-wash)" : "#fff",
             boxShadow: homePicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
           }}
@@ -384,7 +386,7 @@ function FixtureCard({
         >
           <TeamBadge team={home} size="lg" className="!w-[46px] !h-[46px]" />
           <span className="flex flex-col items-start min-w-0">
-            <span className="font-display text-[15px] sm:text-[19px] leading-none uppercase truncate max-w-full">
+            <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
               {home.short_name || home.name}
             </span>
             <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Home</span>
@@ -415,8 +417,9 @@ function FixtureCard({
         <button
           onClick={() => onSelect(away.id)}
           disabled={isLocked}
-          className="flex items-center gap-3 sm:gap-3.5 px-4 sm:px-[22px] py-5 text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
+          className="flex items-center gap-[14px] text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
           style={{
+            padding: "20px 22px",
             background: awayPicked && !resultLocked ? "var(--accent-wash)" : "#fff",
             boxShadow: awayPicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
           }}
@@ -436,7 +439,7 @@ function FixtureCard({
             </span>
           )}
           <span className="flex flex-col items-end min-w-0">
-            <span className="font-display text-[15px] sm:text-[19px] leading-none uppercase truncate max-w-full">
+            <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
               {away.short_name || away.name}
             </span>
             <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Away</span>
@@ -472,7 +475,7 @@ function FixtureCard({
 
       {/* Locked footer */}
       {resultLocked && (
-        <div className="px-4 sm:px-[22px] py-2.5 flex items-center gap-2" style={{ borderTop: "1px solid #EFEDE6", background: "#FAF9F5" }}>
+        <div className="flex items-center gap-2" style={{ padding: "10px 22px", borderTop: "1px solid #EFEDE6", background: "#FAF9F5" }}>
           {drawPicked ? (
             <p className="text-xs text-md-text-muted">Your pick: <span className="font-semibold text-md-text">Draw</span></p>
           ) : picked ? (
