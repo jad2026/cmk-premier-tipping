@@ -387,7 +387,7 @@ function FixtureCard({
           <TeamBadge team={home} size="lg" className="!w-[46px] !h-[46px]" />
           <span className="flex flex-col items-start min-w-0">
             <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
-              {home.short_name || home.name}
+              {home.name}
             </span>
             <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Home</span>
           </span>
@@ -440,7 +440,7 @@ function FixtureCard({
           )}
           <span className="flex flex-col items-end min-w-0">
             <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
-              {away.short_name || away.name}
+              {away.name}
             </span>
             <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Away</span>
           </span>

@@ -86,10 +86,10 @@ export default function EnterResultsForm({ fixtures, teams }: Props) {
               <div>
                 <p className="text-sm font-medium text-gray-800">
                   <TeamDot colour={home.colour} />
-                  {home.short_name}
+                  {home.name}
                   <span className="mx-2 text-gray-400">vs</span>
                   <TeamDot colour={away.colour} />
-                  {away.short_name}
+                  {away.name}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {new Date(fixture.match_date).toLocaleString("en-NZ", {

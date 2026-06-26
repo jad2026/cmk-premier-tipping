@@ -169,15 +169,15 @@ export default function FixtureListPanel({ teams }: Props) {
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 shrink-0">
                         {homeTeam && <TeamBadge team={homeTeam} size="xs" />}
-                        <span className="text-sm font-medium text-gray-800 truncate max-w-[80px]">
-                          {homeTeam?.short_name ?? homeTeam?.name ?? "—"}
+                        <span className="text-sm font-medium text-gray-800 truncate max-w-[140px]">
+                          {homeTeam?.name ?? "—"}
                         </span>
                       </div>
                       <span className="text-xs text-gray-400 shrink-0">vs</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {awayTeam && <TeamBadge team={awayTeam} size="xs" />}
-                        <span className="text-sm font-medium text-gray-800 truncate max-w-[80px]">
-                          {awayTeam?.short_name ?? awayTeam?.name ?? "—"}
+                        <span className="text-sm font-medium text-gray-800 truncate max-w-[140px]">
+                          {awayTeam?.name ?? "—"}
                         </span>
                       </div>
                     </div>

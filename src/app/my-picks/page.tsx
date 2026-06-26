@@ -376,7 +376,7 @@ export default async function MyPicksPage() {
                                   }}
                                 >
                                   <TeamBadge team={pickedTeam} size="xs" />
-                                  {pickedTeam.short_name || pickedTeam.name}
+                                  {pickedTeam.name}
                                 </span>
                               ) : null}
                             </div>
