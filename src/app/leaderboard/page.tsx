@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamBadge from "@/components/TeamBadge";
 import Avatar from "@/components/Avatar";
+import LeaderboardTable from "./LeaderboardTable";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -649,6 +650,9 @@ export default async function LeaderboardPage() {
                 fontWeight: 800,
                 letterSpacing: ".1em",
                 textTransform: "uppercase",
+                position: "sticky",
+                top: 0,
+                zIndex: 2,
               }}
             >
               <span>#</span>
@@ -658,7 +662,7 @@ export default async function LeaderboardPage() {
               <span style={{ textAlign: "right" }}>Pts</span>
             </div>
 
-            <div style={{ maxHeight: 700, overflowY: "auto" }}>
+            <LeaderboardTable totalCount={leaderboard.length}>
               {leaderboard.map((entry, idx) => {
                 const isYou = currentUserId === entry.user_id;
                 const displayRank = ranks[idx];
@@ -746,7 +750,7 @@ export default async function LeaderboardPage() {
                   </div>
                 );
               })}
-            </div>
+            </LeaderboardTable>
           </div>
         )}
       </section>
