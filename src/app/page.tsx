@@ -348,13 +348,13 @@ export default async function HomePage() {
               <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} sides</div>
             </div>
             <div
-              className="clubs-rail flex flex-nowrap gap-[18px] overflow-x-auto py-1"
+              className="clubs-rail flex flex-nowrap gap-[28px] overflow-x-auto py-1"
               style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch", minWidth: 0 }}
             >
-              {dedupedTeams.map((t) => (
-                <div key={t.id} className="flex flex-col items-center gap-[9px] w-[66px]" style={{ flexShrink: 0 }}>
-                  <TeamBadge team={t} size="lg" />
-                  <span className="text-[11px] text-[#9AA1AD] text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[66px]">
+              {dedupedTeams.map((t, i) => (
+                <div key={t.id} className="flex flex-col items-center gap-[9px]" style={{ flexShrink: 0, paddingRight: i === dedupedTeams.length - 1 ? 32 : 0 }}>
+                  <TeamBadge team={t} size="rail" />
+                  <span className="text-[12px] text-[#9AA1AD] text-center whitespace-nowrap">
                     {t.name}
                   </span>
                 </div>

@@ -1,13 +1,14 @@
 import Image from "next/image";
 import type { Team } from "@/lib/supabase/types";
 
-type Size = "xs" | "sm" | "md" | "lg" | "xl";
+type Size = "xs" | "sm" | "md" | "lg" | "rail" | "xl";
 
 const SIZE_PX: Record<Size, number> = {
   xs: 24,
   sm: 32,
   md: 40,
   lg: 56,
+  rail: 72,
   xl: 80,
 };
 
@@ -16,6 +17,7 @@ const TEXT_CLASS: Record<Size, string> = {
   sm: "text-[11px]",
   md: "text-xs",
   lg: "text-sm font-semibold",
+  rail: "text-sm font-semibold",
   xl: "text-base font-bold",
 };
 
