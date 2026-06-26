@@ -5,6 +5,7 @@ import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from 
 import Avatar from "@/components/Avatar";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import TeamBadge from "@/components/TeamBadge";
+import ClubsMarquee from "@/components/ClubsMarquee";
 import type { Gameweek, Fixture, Team } from "@/lib/supabase/types";
 import { HomeCountdown, FeaturedCountdown } from "./HomeCountdown";
 
@@ -341,25 +342,21 @@ export default async function HomePage() {
       {/* ── 2. Clubs rail ────────────────────────────────────────────────────── */}
       {teamCount > 0 && (
         <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
-          <style>{`.clubs-rail::-webkit-scrollbar { display: none; }`}</style>
           <div className="max-w-content mx-auto flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
               <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>The clubs</div>
               <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} sides</div>
             </div>
-            <div
-              className="clubs-rail flex flex-nowrap gap-[28px] overflow-x-auto py-1"
-              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch", minWidth: 0 }}
-            >
-              {dedupedTeams.map((t, i) => (
-                <div key={t.id} className="flex flex-col items-center gap-[9px]" style={{ flexShrink: 0, paddingRight: i === dedupedTeams.length - 1 ? 32 : 0 }}>
+            <ClubsMarquee>
+              {dedupedTeams.map((t) => (
+                <div key={t.id} className="flex flex-col items-center gap-[9px]" style={{ flexShrink: 0 }}>
                   <TeamBadge team={t} size="rail" />
                   <span className="text-[12px] text-[#9AA1AD] text-center whitespace-nowrap">
                     {t.name}
                   </span>
                 </div>
               ))}
-            </div>
+            </ClubsMarquee>
           </div>
         </section>
       )}
