@@ -1,9 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+
+function useSiteName() {
+  const [name, setName] = useState("Club Rugby Tipping");
+  useEffect(() => {
+    if (document.documentElement.classList.contains("theme-npc")) setName("NPC Tipping");
+  }, []);
+  return name;
+}
 import { triggerWelcomeEmail } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
 
@@ -32,6 +40,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function SignupPage() {
   const supabase = createClient();
+  const siteName = useSiteName();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -153,7 +162,7 @@ export default function SignupPage() {
                 <path d="M7 9.5L8.5 11L11.5 7.5" stroke="var(--accent-text, #11151C)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="font-display" style={{ fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", color: "#11151C" }}>
-                Club Rugby Tipping
+                {siteName}
               </span>
             </div>
             <h1

@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+
+function useSiteName() {
+  const [name, setName] = useState("Club Rugby Tipping");
+  useEffect(() => {
+    if (document.documentElement.classList.contains("theme-npc")) setName("NPC Tipping");
+  }, []);
+  return name;
+}
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -31,6 +39,7 @@ const labelStyle: React.CSSProperties = {
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const siteName = useSiteName();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +73,7 @@ export default function LoginPage() {
                 <path d="M7 9.5L8.5 11L11.5 7.5" stroke="var(--accent-text, #11151C)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="font-display" style={{ fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", color: "#11151C" }}>
-                Club Rugby Tipping
+                {siteName}
               </span>
             </div>
             <h1
