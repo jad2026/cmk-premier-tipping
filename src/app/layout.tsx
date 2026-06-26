@@ -25,15 +25,19 @@ export const viewport: Viewport = {
   themeColor: "#0B0E13",
 };
 
-export const metadata: Metadata = {
-  title: "Club Rugby Tipping",
-  description: "Rugby tipping competition — pick the winners and top the table.",
-  appleWebApp: {
-    capable: true,
-    title: "CRT Tipping",
-    statusBarStyle: "default",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const compId = await getCurrentCompetitionId();
+  const isNpc = compId === NPC_COMPETITION_ID;
+  return {
+    title: isNpc ? "NPC Tipping" : "Club Rugby Tipping",
+    description: "Rugby tipping competition — pick the winners and top the table.",
+    appleWebApp: {
+      capable: true,
+      title: isNpc ? "NPC Tipping" : "CRT Tipping",
+      statusBarStyle: "default",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -41,7 +45,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const compId = await getCurrentCompetitionId();
-  const themeClass = compId === NPC_COMPETITION_ID ? "theme-npc" : "";
+  const isNpc = compId === NPC_COMPETITION_ID;
+  const themeClass = isNpc ? "theme-npc" : "";
+  const siteName = isNpc ? "NPC Tipping" : "Club Rugby Tipping";
   const accentName = getAccentForCompetition(compId);
   const accentVars = getAccentCSSVars(accentName);
 
@@ -52,7 +58,7 @@ export default async function RootLayout({
       style={accentVars as React.CSSProperties}
     >
       <body className={`${archivo.className} min-h-screen`}>
-        <Navbar />
+        <Navbar siteName={siteName} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
@@ -66,7 +72,7 @@ export default async function RootLayout({
                 style={{ background: "var(--accent)" }}
               />
               <span className="font-display text-[14px] uppercase tracking-[.06em] text-white">
-                Club Rugby Tipping
+                {siteName}
               </span>
             </div>
             <span className="text-[12px] text-[#8C93A0]">

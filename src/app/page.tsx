@@ -281,12 +281,14 @@ export default async function HomePage() {
           )}
 
           <h1 className="font-display text-[92px] leading-[.86] tracking-[-.01em] uppercase max-w-[760px] mb-[22px]">
-            Make your<br />call<span style={{ color: "var(--accent)" }}>.</span>
+            {isNpc ? <>Back your<br />province</> : <>Make your<br />call</>}<span style={{ color: "var(--accent)" }}>.</span>
           </h1>
 
           {activeRound && activeMode === "open" && (
             <p className="text-[19px] leading-[1.5] text-[#C2C7D0] max-w-[480px] mb-[38px]">
-              {activeRound.gameweek.label} is open. Lock your tips before kickoff, back your clubs and climb the leaderboard.
+              {isNpc
+                ? "The Bunnings NPC is here. Pick the winners, back your province, and climb the national leaderboard."
+                : `${activeRound.gameweek.label} is open. Lock your tips before kickoff, back your clubs and climb the leaderboard.`}
             </p>
           )}
           {activeMode === "picks-closed" && activeRound && (
@@ -344,8 +346,8 @@ export default async function HomePage() {
         <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
           <div className="max-w-content mx-auto flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
-              <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>The clubs</div>
-              <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} sides</div>
+              <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>{isNpc ? "The provinces" : "The clubs"}</div>
+              <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} {isNpc ? "unions" : "sides"}</div>
             </div>
             <ClubsMarquee>
               {dedupedTeams.map((t) => (
@@ -591,7 +593,7 @@ export default async function HomePage() {
               <>
                 <div className="flex items-center gap-[13px] mb-[22px]">
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
-                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Men</h2>
+                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{isNpc ? compLabel : `${compLabel} Men`}</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
                   <Link
                     href="/ladder"
@@ -680,8 +682,8 @@ export default async function HomePage() {
               </>
             )}
 
-            {/* Women's ladder */}
-            {womenLadderRows.length > 0 && (
+            {/* Women's ladder (CMK only — NPC has no women's comp) */}
+            {!isNpc && womenLadderRows.length > 0 && (
               <>
                 <div className="flex items-center gap-[13px] mb-[22px]" style={{ marginTop: ladderRows.length > 0 ? 44 : 0 }}>
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />

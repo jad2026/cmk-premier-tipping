@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
-export default function Navbar() {
+export default function Navbar({ siteName = "Club Rugby Tipping" }: { siteName?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -98,7 +98,7 @@ export default function Navbar() {
             style={{ background: "var(--accent)" }}
           />
           <span className="font-display text-[17px] uppercase tracking-[.06em] text-white">
-            Club Rugby Tipping
+            {siteName}
           </span>
         </Link>
 
