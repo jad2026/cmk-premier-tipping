@@ -125,7 +125,7 @@ export default async function LadderPage() {
   // For each comp, determine total row count for zone borders
   function getBarColor(rank: number, total: number): string {
     if (rank <= 4) return "var(--accent)";
-    if (total >= 6 && rank >= total - 2) return "#D98C8C";
+
     return "#E4E1D8";
   }
 
@@ -189,12 +189,6 @@ export default async function LadderPage() {
                     <span style={{ width: 12, height: 12, borderRadius: 3, background: "#C9C5B8" }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#5A5546" }}>Mid-table</span>
                   </div>
-                  {total >= 6 && (
-                    <div className="flex items-center" style={{ gap: 8 }}>
-                      <span style={{ width: 12, height: 12, borderRadius: 3, background: "#D98C8C" }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#5A5546" }}>Relegation risk</span>
-                    </div>
-                  )}
                 </div>
               </section>
 
