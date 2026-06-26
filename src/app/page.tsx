@@ -61,11 +61,12 @@ export default async function HomePage() {
 
   const CMK_WOMEN_COMPETITION_ID = "952743a7-9e79-4c5b-b15c-7fe07c4ca420";
 
-  const [{ data: compGwRows }, { data: seasonConfig }, { data: teams }] =
+  const [{ data: compGwRows }, { data: seasonConfig }, { data: teams }, { data: womenTeams }] =
     await Promise.all([
       supabase.from("gameweeks").select("*").eq("competition_id", compId).order("number"),
       supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
       supabase.from("teams").select("*").eq("competition_id", compId).order("name"),
+      supabase.from("teams").select("*").eq("competition_id", CMK_WOMEN_COMPETITION_ID).order("name"),
     ]);
 
   const gameweeks = compGwRows ?? [];
@@ -152,34 +153,49 @@ export default async function HomePage() {
   };
 
   let ladderRows: LadderRow[] = [];
+  let womenLadderRows: LadderRow[] = [];
   {
     const tenantIds = compId === CMK_COMPETITION_ID
-      ? [CMK_COMPETITION_ID]
+      ? [CMK_COMPETITION_ID, CMK_WOMEN_COMPETITION_ID]
       : [compId];
 
     const { data: activeComps } = await supabase
       .from("competitions")
-      .select("comp_id")
+      .select("id, comp_id")
       .in("id", tenantIds)
       .eq("is_active", true);
-    const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
-    if (activeXplorerIds.length > 0) {
+    const comps = (activeComps ?? []) as { id: string; comp_id: string }[];
+    const menXplorerId = comps.find((c) => c.id === CMK_COMPETITION_ID)?.comp_id;
+    const womenXplorerId = comps.find((c) => c.id === CMK_WOMEN_COMPETITION_ID)?.comp_id;
+
+    if (menXplorerId) {
       const { data } = await supabase
         .from("ladder_standings")
         .select(
           "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
         )
-        .in("comp_id", activeXplorerIds)
+        .eq("comp_id", menXplorerId)
         .order("position", { ascending: true })
         .limit(5);
       ladderRows = (data ?? []) as LadderRow[];
     }
+
+    if (womenXplorerId) {
+      const { data } = await supabase
+        .from("ladder_standings")
+        .select(
+          "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
+        )
+        .eq("comp_id", womenXplorerId)
+        .order("position", { ascending: true });
+      womenLadderRows = (data ?? []) as LadderRow[];
+    }
   }
 
-  // Build a map of team colours from the teams table
+  // Build a map of team colours from the teams table (Men's + Women's)
   const teamColorMap = new Map<string, { colour: string; short_name: string; logo_url: string | null; name: string }>();
-  for (const t of (teams ?? []) as Team[]) {
+  for (const t of [...(teams ?? []), ...(womenTeams ?? [])] as Team[]) {
     teamColorMap.set(t.name, { colour: t.colour, short_name: t.short_name, logo_url: t.logo_url, name: t.name });
   }
 
@@ -326,14 +342,18 @@ export default async function HomePage() {
       {/* ── 2. Clubs rail ────────────────────────────────────────────────────── */}
       {teamCount > 0 && (
         <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
-          <div className="max-w-content mx-auto py-5 flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
+          <div className="max-w-content mx-auto flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
               <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>The clubs</div>
               <div className="text-[13px] text-[#8C93A0] mt-[3px]">{compLabel} · {teamCount} sides</div>
             </div>
-            <div className="flex gap-[18px] overflow-x-auto py-1" style={{ scrollbarWidth: "none" }}>
+            <div
+              className="clubs-rail flex flex-nowrap gap-[18px] overflow-x-auto py-1"
+              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+            >
+              <style>{`.clubs-rail::-webkit-scrollbar { display: none; }`}</style>
               {dedupedTeams.map((t) => (
-                <div key={t.id} className="flex flex-col items-center gap-[9px] shrink-0 w-[66px]">
+                <div key={t.id} className="flex flex-col items-center gap-[9px] w-[66px]" style={{ flexShrink: 0 }}>
                   <TeamBadge team={t} size="lg" />
                   <span className="text-[11px] text-[#9AA1AD] text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[66px]">
                     {t.name}
@@ -565,121 +585,241 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── 6. Ladder snapshot ────────────────────────────────────────────────── */}
-      {ladderRows.length > 0 && (
+      {/* ── 6. Ladder snapshots ───────────────────────────────────────────────── */}
+      {(ladderRows.length > 0 || womenLadderRows.length > 0) && (
         <section style={{ background: "#F2F0EA" }}>
           <div className="max-w-content mx-auto" style={{ padding: "14px 32px 70px" }}>
-            <div className="flex items-center gap-[13px] mb-[22px]">
-              <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
-              <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Men</h2>
-              <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
-              <Link
-                href="/ladder"
-                className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
-                style={{ color: "var(--accent)" }}
-              >
-                Full ladder →
-              </Link>
-            </div>
 
-            <div className="overflow-hidden rounded-[18px]" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
-              {/* Header */}
-              <div
-                className="hidden sm:grid items-center text-[11px] font-extrabold tracking-[.1em] uppercase text-[#9AA1AD]"
-                style={{
-                  gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                  padding: "15px 20px",
-                  background: "#0D1016",
-                }}
-              >
-                <span>#</span>
-                <span>Team</span>
-                <span className="text-center">P</span>
-                <span className="text-center">W</span>
-                <span className="text-center">L</span>
-                <span className="text-center">PF</span>
-                <span className="text-center">PA</span>
-                <span className="text-center">PD</span>
-                <span className="text-right">Pts</span>
-              </div>
+            {/* Men's ladder */}
+            {ladderRows.length > 0 && (
+              <>
+                <div className="flex items-center gap-[13px] mb-[22px]">
+                  <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
+                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Men</h2>
+                  <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
+                  <Link
+                    href="/ladder"
+                    className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    Full ladder →
+                  </Link>
+                </div>
 
-              {ladderRows.map((row, i) => {
-                const teamInfo = teamColorMap.get(row.team_name);
-                const pd = row.points_diff;
-                const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
-                const barColor = i === 0 ? "var(--accent)" : "transparent";
-
-                return (
+                <div className="overflow-hidden rounded-[18px]" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
                   <div
-                    key={row.team_id}
-                    className="hidden sm:grid items-center"
+                    className="hidden sm:grid items-center text-[11px] font-extrabold tracking-[.1em] uppercase text-[#9AA1AD]"
                     style={{
                       gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
-                      padding: "16px 20px",
-                      borderTop: "1px solid #EFEDE6",
-                      borderLeft: `3px solid ${barColor}`,
+                      padding: "15px 20px",
+                      background: "#0D1016",
                     }}
                   >
-                    <span className="font-display text-[16px] text-ink">{row.position ?? i + 1}</span>
-                    <span className="flex items-center gap-3 font-bold text-[15px] text-ink">
-                      {teamInfo ? (
-                        <TeamBadge
-                          team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                          size="sm"
-                        />
-                      ) : (
-                        <span
-                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                          style={{ background: "#2B3A52" }}
-                        >
-                          {row.team_name.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      {row.team_name}
-                    </span>
-                    <span className="text-center text-[14px] text-[#5A6371]">{val(row.matches_played)}</span>
-                    <span className="text-center text-[14px] font-bold text-[#169B63]">{val(row.matches_won)}</span>
-                    <span className="text-center text-[14px] text-[#B23A48]">{val(row.matches_lost)}</span>
-                    <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_for)}</span>
-                    <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_against)}</span>
-                    <span className="text-center text-[14px] font-bold" style={{ color: pdColor }}>{signed(row.points_diff)}</span>
-                    <span className="text-right font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                    <span>#</span>
+                    <span>Team</span>
+                    <span className="text-center">P</span>
+                    <span className="text-center">W</span>
+                    <span className="text-center">L</span>
+                    <span className="text-center">PF</span>
+                    <span className="text-center">PA</span>
+                    <span className="text-center">PD</span>
+                    <span className="text-right">Pts</span>
                   </div>
-                );
-              })}
 
-              {/* Mobile ladder rows */}
-              {ladderRows.map((row, i) => {
-                const teamInfo = teamColorMap.get(row.team_name);
-                const barColor = i === 0 ? "var(--accent)" : "transparent";
-                return (
-                  <div
-                    key={`m-${row.team_id}`}
-                    className="sm:hidden flex items-center justify-between px-4 py-3"
-                    style={{ borderTop: "1px solid #EFEDE6", borderLeft: `3px solid ${barColor}` }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-display text-[16px] text-ink w-5">{row.position ?? i + 1}</span>
-                      {teamInfo ? (
-                        <TeamBadge
-                          team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
-                          size="sm"
-                        />
-                      ) : (
-                        <span
-                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
-                          style={{ background: "#2B3A52" }}
-                        >
-                          {row.team_name.slice(0, 2).toUpperCase()}
+                  {ladderRows.map((row, i) => {
+                    const teamInfo = teamColorMap.get(row.team_name);
+                    const pd = row.points_diff;
+                    const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
+                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+
+                    return (
+                      <div
+                        key={row.team_id}
+                        className="hidden sm:grid items-center"
+                        style={{
+                          gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
+                          padding: "16px 20px",
+                          borderTop: "1px solid #EFEDE6",
+                          borderLeft: `3px solid ${barColor}`,
+                        }}
+                      >
+                        <span className="font-display text-[16px] text-ink">{row.position ?? i + 1}</span>
+                        <span className="flex items-center gap-3 font-bold text-[15px] text-ink">
+                          {teamInfo ? (
+                            <TeamBadge
+                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
+                              size="sm"
+                            />
+                          ) : (
+                            <span
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
+                              style={{ background: "#2B3A52" }}
+                            >
+                              {row.team_name.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          {row.team_name}
                         </span>
-                      )}
-                      <span className="font-bold text-[14px] text-ink">{row.team_name}</span>
-                    </div>
-                    <span className="font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.matches_played)}</span>
+                        <span className="text-center text-[14px] font-bold text-[#169B63]">{val(row.matches_won)}</span>
+                        <span className="text-center text-[14px] text-[#B23A48]">{val(row.matches_lost)}</span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_for)}</span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_against)}</span>
+                        <span className="text-center text-[14px] font-bold" style={{ color: pdColor }}>{signed(row.points_diff)}</span>
+                        <span className="text-right font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                      </div>
+                    );
+                  })}
+
+                  {ladderRows.map((row, i) => {
+                    const teamInfo = teamColorMap.get(row.team_name);
+                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+                    return (
+                      <div
+                        key={`m-${row.team_id}`}
+                        className="sm:hidden flex items-center justify-between px-4 py-3"
+                        style={{ borderTop: "1px solid #EFEDE6", borderLeft: `3px solid ${barColor}` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-display text-[16px] text-ink w-5">{row.position ?? i + 1}</span>
+                          {teamInfo ? (
+                            <TeamBadge
+                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
+                              size="sm"
+                            />
+                          ) : (
+                            <span
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
+                              style={{ background: "#2B3A52" }}
+                            >
+                              {row.team_name.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="font-bold text-[14px] text-ink">{row.team_name}</span>
+                        </div>
+                        <span className="font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Women's ladder */}
+            {womenLadderRows.length > 0 && (
+              <>
+                <div className="flex items-center gap-[13px] mb-[22px]" style={{ marginTop: ladderRows.length > 0 ? 44 : 0 }}>
+                  <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
+                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Women</h2>
+                  <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
+                  <Link
+                    href="/ladder"
+                    className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    Full ladder →
+                  </Link>
+                </div>
+
+                <div className="overflow-hidden rounded-[18px]" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
+                  <div
+                    className="hidden sm:grid items-center text-[11px] font-extrabold tracking-[.1em] uppercase text-[#9AA1AD]"
+                    style={{
+                      gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
+                      padding: "15px 20px",
+                      background: "#0D1016",
+                    }}
+                  >
+                    <span>#</span>
+                    <span>Team</span>
+                    <span className="text-center">P</span>
+                    <span className="text-center">W</span>
+                    <span className="text-center">L</span>
+                    <span className="text-center">PF</span>
+                    <span className="text-center">PA</span>
+                    <span className="text-center">PD</span>
+                    <span className="text-right">Pts</span>
                   </div>
-                );
-              })}
-            </div>
+
+                  {womenLadderRows.map((row, i) => {
+                    const teamInfo = teamColorMap.get(row.team_name);
+                    const pd = row.points_diff;
+                    const pdColor = pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371";
+                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+
+                    return (
+                      <div
+                        key={row.team_id}
+                        className="hidden sm:grid items-center"
+                        style={{
+                          gridTemplateColumns: "46px 1fr 46px 46px 46px 64px 64px 64px 58px",
+                          padding: "16px 20px",
+                          borderTop: "1px solid #EFEDE6",
+                          borderLeft: `3px solid ${barColor}`,
+                        }}
+                      >
+                        <span className="font-display text-[16px] text-ink">{row.position ?? i + 1}</span>
+                        <span className="flex items-center gap-3 font-bold text-[15px] text-ink">
+                          {teamInfo ? (
+                            <TeamBadge
+                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
+                              size="sm"
+                            />
+                          ) : (
+                            <span
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
+                              style={{ background: "#2B3A52" }}
+                            >
+                              {row.team_name.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          {row.team_name}
+                        </span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.matches_played)}</span>
+                        <span className="text-center text-[14px] font-bold text-[#169B63]">{val(row.matches_won)}</span>
+                        <span className="text-center text-[14px] text-[#B23A48]">{val(row.matches_lost)}</span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_for)}</span>
+                        <span className="text-center text-[14px] text-[#5A6371]">{val(row.points_against)}</span>
+                        <span className="text-center text-[14px] font-bold" style={{ color: pdColor }}>{signed(row.points_diff)}</span>
+                        <span className="text-right font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                      </div>
+                    );
+                  })}
+
+                  {womenLadderRows.map((row, i) => {
+                    const teamInfo = teamColorMap.get(row.team_name);
+                    const barColor = i === 0 ? "var(--accent)" : "transparent";
+                    return (
+                      <div
+                        key={`m-${row.team_id}`}
+                        className="sm:hidden flex items-center justify-between px-4 py-3"
+                        style={{ borderTop: "1px solid #EFEDE6", borderLeft: `3px solid ${barColor}` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-display text-[16px] text-ink w-5">{row.position ?? i + 1}</span>
+                          {teamInfo ? (
+                            <TeamBadge
+                              team={{ name: teamInfo.name, short_name: teamInfo.short_name, colour: teamInfo.colour, logo_url: teamInfo.logo_url }}
+                              size="sm"
+                            />
+                          ) : (
+                            <span
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-display text-[11px] text-white shrink-0"
+                              style={{ background: "#2B3A52" }}
+                            >
+                              {row.team_name.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="font-bold text-[14px] text-ink">{row.team_name}</span>
+                        </div>
+                        <span className="font-display text-[18px] text-ink">{val(row.match_points)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
           </div>
         </section>
       )}
