@@ -9,6 +9,7 @@ import type { RoundData } from "./page";
 type Props = {
   rounds: RoundData[];
   userId: string;
+  compLabel: string;
 };
 
 function useCountdown(deadline: string) {
@@ -32,7 +33,7 @@ function formatCountdown(d: number, h: number, m: number, s: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function TipsForm({ rounds }: Props) {
+export default function TipsForm({ rounds, compLabel }: Props) {
   const supabase = createClient();
 
   const [picks, setPicks] = useState<Record<string, string>>(() =>
@@ -132,6 +133,7 @@ export default function TipsForm({ rounds }: Props) {
       <TipsHeader
         rounds={rounds}
         deadline={primaryDeadline}
+        compLabel={compLabel}
       />
 
       {/* ── Sticky progress bar ─────────────────────────────────────────── */}
@@ -245,7 +247,7 @@ export default function TipsForm({ rounds }: Props) {
 
 // ── Tips dark header ─────────────────────────────────────────────────────────
 
-function TipsHeader({ rounds, deadline }: { rounds: RoundData[]; deadline: string }) {
+function TipsHeader({ rounds, deadline, compLabel }: { rounds: RoundData[]; deadline: string; compLabel: string }) {
   const { d, h, m, s, expired } = useCountdown(deadline);
   const primaryRound = rounds[0];
 
@@ -259,7 +261,7 @@ function TipsHeader({ rounds, deadline }: { rounds: RoundData[]; deadline: strin
             style={{ animation: "pulseDot 1.6s ease-in-out infinite" }}
           />
           <span className="text-[12px] font-extrabold tracking-[.18em] uppercase text-live-green">
-            Open · CMK Premier · Taranaki
+            Open · {compLabel}
           </span>
         </div>
 
