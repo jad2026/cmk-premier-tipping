@@ -27,7 +27,13 @@ function val(n: number | null): string {
 
 function signed(n: number | null): string {
   if (n == null) return "—";
-  return n > 0 ? `+${n}` : String(n);
+  return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0";
+}
+
+function teamMonogram(name: string): string {
+  const words = name.replace(/[^a-zA-Z\s]/g, "").trim().split(/\s+/);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
 }
 
 export default async function LadderPage() {
@@ -39,11 +45,26 @@ export default async function LadderPage() {
     ? [CMK_COMPETITION_ID, CMK_WOMEN_COMPETITION_ID]
     : [compId];
 
-  const { data: activeComps } = await supabase
-    .from("competitions")
-    .select("comp_id")
-    .in("id", tenantIds)
-    .eq("is_active", true);
+  const [
+    { data: activeComps },
+    { data: teams },
+    { data: closedGameweeks },
+  ] = await Promise.all([
+    supabase
+      .from("competitions")
+      .select("comp_id")
+      .in("id", tenantIds)
+      .eq("is_active", true),
+    supabase.from("teams").select("name, colour"),
+    supabase
+      .from("gameweeks")
+      .select("number")
+      .eq("competition_id", compId)
+      .eq("is_open", false)
+      .order("number", { ascending: false })
+      .limit(1),
+  ]);
+
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
   const { data: rows, error } = activeXplorerIds.length > 0
@@ -60,8 +81,24 @@ export default async function LadderPage() {
 
   const standings = (rows ?? []) as LadderRow[];
 
+  // Build team colour map from teams table
+  const teamColourMap = new Map<string, string>();
+  for (const t of teams ?? []) {
+    teamColourMap.set(t.name.toLowerCase(), t.colour);
+  }
+  const FALLBACK_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
+
+  function getTeamColour(name: string, idx: number): string {
+    const lower = name.toLowerCase();
+    for (const [key, colour] of Array.from(teamColourMap)) {
+      if (lower.includes(key) || key.includes(lower)) return colour;
+    }
+    return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+  }
+
   const isNpc = compId === NPC_COMPETITION_ID;
   const compLabel = isNpc ? "Bunnings NPC" : "CMK Premier";
+  const latestRound = closedGameweeks?.[0]?.number ?? null;
 
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
@@ -70,7 +107,13 @@ export default async function LadderPage() {
     return compLabel;
   }
 
-  // Group by comp_id so multiple competitions each get their own table
+  function compEyebrow(rows: LadderRow[]): string {
+    const heading = compHeading(rows);
+    const roundSuffix = latestRound ? ` · After Round ${latestRound}` : "";
+    return `${heading}${roundSuffix}`;
+  }
+
+  // Group by comp_id
   const comps = Array.from(
     standings.reduce((map, row) => {
       if (!map.has(row.comp_id)) map.set(row.comp_id, { rows: [] });
@@ -79,133 +122,232 @@ export default async function LadderPage() {
     }, new Map<string, { rows: LadderRow[] }>())
   );
 
-  return (
-    <div className="space-y-10">
-      {/* Page heading */}
-      <div>
-        <p className="eyebrow mb-1">{compLabel}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Competition Ladder</h1>
-      </div>
+  // For each comp, determine total row count for zone borders
+  function getBarColor(rank: number, total: number): string {
+    if (rank <= 4) return "var(--accent)";
+    if (total >= 6 && rank >= total - 2) return "#D98C8C";
+    return "#E4E1D8";
+  }
 
-      {standings.length === 0 ? (
-        <div className="card px-6 py-14 text-center">
-          <span className="text-4xl mb-3 block">🏉</span>
-          <p className="font-medium text-gray-600">No ladder data available yet</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Standings will appear here once competition data is available.
+  return (
+    <div
+      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
+    >
+
+      {/* ── Dark header ──────────────────────────────────────────────── */}
+      <section style={{ background: "#0B0E13", color: "#fff" }}>
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#C7CCD4" }}>
+              {comps.length > 0 ? compEyebrow(comps[0][1].rows) : compLabel}
+            </span>
+          </div>
+          <h1
+            className="font-display uppercase"
+            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
+          >
+            The Ladder<span style={{ color: "var(--accent)" }}>.</span>
+          </h1>
+          <p style={{ fontSize: 16, color: "#AEB4BE", margin: "14px 0 0", maxWidth: 480 }}>
+            Four points a win, two a draw, bonus for four tries or a loss inside seven.
           </p>
         </div>
-      ) : (
-        comps.map(([compId, { rows: compRows }]) => (
-          <section key={compId} className="space-y-4">
-            <div className="flex items-center gap-2.5 mb-0.5">
-              <span className="w-1 h-5 rounded-full bg-brand-gold shrink-0" />
-              <h2 className="text-lg font-bold text-gray-900 tracking-tight">
-                {compHeading(compRows)}
-              </h2>
-            </div>
+      </section>
 
-            {/* Horizontally scrollable on mobile */}
-            <div className="card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-600 text-xs font-semibold uppercase tracking-wider">
-                      <th className="px-3 py-3.5 text-center w-10">#</th>
-                      <th className="px-4 py-3.5 text-left">Team</th>
-                      <th className="px-3 py-3.5 text-center">P</th>
-                      <th className="px-3 py-3.5 text-center">W</th>
-                      <th className="px-3 py-3.5 text-center">D</th>
-                      <th className="px-3 py-3.5 text-center">L</th>
-                      <th className="px-3 py-3.5 text-center">PF</th>
-                      <th className="px-3 py-3.5 text-center">PA</th>
-                      <th className="px-3 py-3.5 text-center">PD</th>
-                      <th className="px-3 py-3.5 text-center">BP</th>
-                      <th className="px-3 py-3.5 text-center font-bold">Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {compRows.map((row, idx) => (
-                      <tr
-                        key={row.team_id}
-                        className={`transition-colors ${
-                          idx % 2 === 0
-                            ? "bg-white hover:bg-gray-50/70"
-                            : "bg-[#f9fafb] hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-3 py-3 text-center">
-                          <span className="text-sm text-gray-400 tabular-nums font-medium">
-                            {row.position ?? idx + 1}
+      {/* ── Tables per competition ────────────────────────────────────── */}
+      {standings.length === 0 ? (
+        <section className="mx-auto" style={{ maxWidth: 1100, padding: "40px 32px 70px" }}>
+          <div className="text-center" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "56px 24px" }}>
+            <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>🏉</span>
+            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No ladder data available yet</p>
+            <p style={{ fontSize: 14, color: "#8B8676", marginTop: 4 }}>Standings will appear here once competition data is available.</p>
+          </div>
+        </section>
+      ) : (
+        comps.map(([cId, { rows: compRows }], compIdx) => {
+          const total = compRows.length;
+          return (
+            <div key={cId}>
+              {/* Legend */}
+              <section className="mx-auto" style={{ maxWidth: 1100, padding: compIdx === 0 ? "30px 32px 18px" : "40px 32px 18px" }}>
+                {comps.length > 1 && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+                    <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+                      {compHeading(compRows)}
+                    </h2>
+                  </div>
+                )}
+                <div className="flex items-center flex-wrap" style={{ gap: 20 }}>
+                  <div className="flex items-center" style={{ gap: 8 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: 3, background: "var(--accent)" }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#5A5546" }}>Top 4 · Semi-finals</span>
+                  </div>
+                  <div className="flex items-center" style={{ gap: 8 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: 3, background: "#C9C5B8" }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#5A5546" }}>Mid-table</span>
+                  </div>
+                  {total >= 6 && (
+                    <div className="flex items-center" style={{ gap: 8 }}>
+                      <span style={{ width: 12, height: 12, borderRadius: 3, background: "#D98C8C" }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#5A5546" }}>Relegation risk</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Table */}
+              <section className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px 70px" }}>
+                <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
+                  <div className="overflow-x-auto">
+                    {/* Header */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "46px 1fr 42px 42px 42px 42px 58px 58px 58px 56px",
+                        padding: "15px 20px",
+                        background: "#0D1016",
+                        color: "#9AA1AD",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: ".08em",
+                        textTransform: "uppercase",
+                        minWidth: 560,
+                      }}
+                    >
+                      <span>#</span>
+                      <span>Club</span>
+                      <span style={{ textAlign: "center" }}>P</span>
+                      <span style={{ textAlign: "center" }}>W</span>
+                      <span style={{ textAlign: "center" }}>D</span>
+                      <span style={{ textAlign: "center" }}>L</span>
+                      <span style={{ textAlign: "center" }}>PF</span>
+                      <span style={{ textAlign: "center" }}>PA</span>
+                      <span style={{ textAlign: "center" }}>PD</span>
+                      <span style={{ textAlign: "right" }}>Pts</span>
+                    </div>
+
+                    {/* Rows */}
+                    {compRows.map((row, idx) => {
+                      const rank = row.position ?? idx + 1;
+                      const barColor = getBarColor(rank, total);
+                      const teamColor = getTeamColour(row.team_name, idx);
+                      const pd = row.points_diff;
+
+                      return (
+                        <div
+                          key={row.team_id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "46px 1fr 42px 42px 42px 42px 58px 58px 58px 56px",
+                            alignItems: "center",
+                            padding: "15px 20px",
+                            borderTop: "1px solid #EFEDE6",
+                            borderLeft: `4px solid ${barColor}`,
+                            minWidth: 560,
+                          }}
+                        >
+                          {/* Rank */}
+                          <span
+                            className="font-display"
+                            style={{ fontSize: 16, color: "#11151C" }}
+                          >
+                            {rank}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
+
+                          {/* Club */}
+                          <span className="flex items-center" style={{ gap: 12, minWidth: 0 }}>
                             {row.crest ? (
                               <Image
                                 src={row.crest}
                                 alt={row.team_name}
-                                width={24}
-                                height={24}
-                                className="w-6 h-6 object-contain shrink-0"
+                                width={32}
+                                height={32}
+                                className="rounded-full object-contain shrink-0"
+                                style={{ width: 32, height: 32 }}
                                 unoptimized
                               />
                             ) : (
-                              <span className="w-6 h-6 rounded-full bg-brand/10 shrink-0" />
+                              <span
+                                className="flex items-center justify-center rounded-full shrink-0"
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  background: teamColor,
+                                  fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                                  fontSize: 11,
+                                  color: "#fff",
+                                }}
+                              >
+                                {teamMonogram(row.team_name)}
+                              </span>
                             )}
-                            <span className="font-medium text-gray-800 whitespace-nowrap">
-                              {row.team_name}
+                            <span className="flex flex-col" style={{ minWidth: 0 }}>
+                              <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {row.team_name}
+                              </span>
                             </span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-gray-600">
-                          {val(row.matches_played)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums font-semibold text-green-700">
-                          {val(row.matches_won)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-gray-500">
-                          {val(row.matches_drawn)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-red-500">
-                          {val(row.matches_lost)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-gray-600">
-                          {val(row.points_for)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-gray-600">
-                          {val(row.points_against)}
-                        </td>
-                        <td className={`px-3 py-3 text-center tabular-nums font-medium ${
-                          (row.points_diff ?? 0) > 0
-                            ? "text-green-600"
-                            : (row.points_diff ?? 0) < 0
-                            ? "text-red-500"
-                            : "text-gray-400"
-                        }`}>
-                          {signed(row.points_diff)}
-                        </td>
-                        <td className="px-3 py-3 text-center tabular-nums text-gray-500">
-                          {val(row.bonus_points)}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <span className="tabular-nums font-bold text-gray-900">
+                          </span>
+
+                          {/* P */}
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                            {val(row.matches_played)}
+                          </span>
+
+                          {/* W */}
+                          <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: "#169B63" }}>
+                            {val(row.matches_won)}
+                          </span>
+
+                          {/* D */}
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#8B8676" }}>
+                            {val(row.matches_drawn)}
+                          </span>
+
+                          {/* L */}
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#B23A48" }}>
+                            {val(row.matches_lost)}
+                          </span>
+
+                          {/* PF */}
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                            {val(row.points_for)}
+                          </span>
+
+                          {/* PA */}
+                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                            {val(row.points_against)}
+                          </span>
+
+                          {/* PD */}
+                          <span style={{
+                            textAlign: "center",
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: pd != null && pd > 0 ? "#1F9E5A" : pd != null && pd < 0 ? "#B23A48" : "#5A6371",
+                          }}>
+                            {signed(pd)}
+                          </span>
+
+                          {/* Pts */}
+                          <span
+                            className="font-display"
+                            style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}
+                          >
                             {val(row.match_points)}
                           </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
-        ))
+          );
+        })
       )}
-
-      <p className="text-xs text-gray-400 text-right">
-        Updated automatically every 10 minutes
-      </p>
     </div>
   );
 }
