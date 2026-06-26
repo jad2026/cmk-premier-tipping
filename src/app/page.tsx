@@ -122,6 +122,15 @@ export default async function HomePage() {
     activeMode = "coming-soon";
   }
 
+  let heroSubtitle = "Next round opens soon";
+  if (activeOpenRound && new Date(activeOpenRound.gameweek.deadline) > new Date()) {
+    heroSubtitle = `${activeOpenRound.gameweek.label} — Tips close ${fmtDeadline(activeOpenRound.gameweek.deadline)}`;
+  } else if (activeOpenRound) {
+    heroSubtitle = `${activeOpenRound.gameweek.label} — Picks closed, results pending`;
+  } else if (seasonComplete) {
+    heroSubtitle = `${seasonName} — Season complete`;
+  }
+
   // ── Top player (season complete banner only) ─────────────────────────────
   let winner: string | null = null;
   let winnerAvatarUrl: string | null = null;
@@ -154,35 +163,19 @@ export default async function HomePage() {
         <Image src={compId === NPC_COMPETITION_ID ? "/npc-hero.jpg" : "/hero.jpg"} alt="" fill priority
           sizes="100vw"
           className="object-cover pointer-events-none" />
-        <div className="absolute inset-0 bg-brand-dark/75 pointer-events-none" />
-        <div className="absolute inset-0 bg-hero-pattern pointer-events-none" />
-        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-brand-light/30 blur-3xl pointer-events-none" />
-        <div className="relative px-8 sm:px-12 py-10 sm:py-12 text-center">
-          <span className="inline-block mb-4 px-3 py-1 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-semibold uppercase tracking-widest">
-            2026 Season
-          </span>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.85), rgba(0,0,0,0.3))" }} />
+        <div className="relative px-6 sm:px-10 py-14 md:py-20 text-left">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-3 leading-[1.1]">
             Club Rugby<br />
             <span className="text-brand-gold">Tipping</span>
           </h1>
-          <p className="text-blue-200/80 text-lg mb-8 max-w-sm mx-auto">
-            Pick the winners. Top the table. Win the glory.
-          </p>
-          <div className="flex justify-center gap-3 flex-wrap">
+          <p className="text-sm sm:text-base text-white/60 font-medium mb-6">{heroSubtitle}</p>
+          <div className="flex justify-start gap-3 flex-wrap">
             <Link href="/tips" className="btn-gold shadow-lg">Make Your Tips →</Link>
             <Link href="/leaderboard" className="btn-ghost">Leaderboard</Link>
           </div>
         </div>
       </section>
-
-      {/* ── Season name banner ───────────────────────────────────────────────── */}
-      {!seasonComplete && (
-        <div className="rounded-2xl bg-brand py-4 px-6 flex items-center justify-center gap-3">
-          <span className="text-xl select-none">🏉</span>
-          <span className="text-[20px] font-bold text-brand-gold tracking-tight">{seasonName}</span>
-        </div>
-      )}
 
       {/* ── NPC cross-promotion ────────────────────────────────────────────── */}
       {compId !== NPC_COMPETITION_ID && (
@@ -190,8 +183,6 @@ export default async function HomePage() {
           href="https://npc.clubrugbytipping.com"
           className="card-md group relative overflow-hidden flex items-center gap-5 px-6 py-5 hover:shadow-card-lg transition-shadow"
         >
-          <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-brand-gold/10 blur-2xl pointer-events-none" />
-          <span className="text-4xl select-none shrink-0">🏉</span>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold uppercase tracking-widest text-brand-gold mb-1">Tip the NPC</p>
             <p className="text-sm text-gray-600 leading-snug">
@@ -234,10 +225,7 @@ export default async function HomePage() {
         ) : (
           <section key={r.gameweek.id} className="card-md px-6 py-5 flex items-start sm:items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <span className="flex w-10 h-10 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg">🟢</span>
-                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 animate-ping opacity-70" />
-              </div>
+              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shrink-0" />
               <div>
                 <p className="eyebrow mb-0.5">Open Now</p>
                 <h2 className="text-lg font-bold text-brand leading-tight">{r.gameweek.label}</h2>
