@@ -394,6 +394,10 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+      <footer className="mt-8 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
+        <span>Club Rugby Tipping &copy; 2026</span>
+        <span>clubrugbytipping.com</span>
+      </footer>
     </div>
   );
 }
