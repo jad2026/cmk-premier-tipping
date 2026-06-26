@@ -334,15 +334,14 @@ export default async function MyPicksPage() {
                                 <span
                                   title="Auto-picked"
                                   style={{
-                                    padding: "2px 6px",
-                                    borderRadius: 4,
-                                    background: "#F5F4EF",
-                                    border: "1px solid #E4E1D8",
-                                    fontSize: 9,
-                                    fontWeight: 800,
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    background: "#8B8676",
+                                    fontSize: 10,
+                                    fontWeight: 700,
                                     textTransform: "uppercase",
-                                    letterSpacing: ".06em",
-                                    color: "#8B8676",
+                                    letterSpacing: ".04em",
+                                    color: "#fff",
                                   }}
                                 >
                                   Auto
