@@ -3,9 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const NPC_COMPETITION_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
 const CMK_COMPETITION_ID = "b3dbe30d-91ef-40c3-9680-3586c6d17ef8";
+const BRIDLINGTON_COMPETITION_ID = "7a27f36c-aab6-4ba8-86e3-2bd9b182361e";
 
 const HOST_TO_COMPETITION_ID: Record<string, string> = {
   "npc.clubrugbytipping.com": NPC_COMPETITION_ID,
+  "bridlington.clubrugbytipping.com": BRIDLINGTON_COMPETITION_ID,
+  // Local dev hostnames
+  "bridlington": BRIDLINGTON_COMPETITION_ID,
 };
 
 export async function middleware(request: NextRequest) {
