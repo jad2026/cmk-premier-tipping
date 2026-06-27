@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
+import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
 
@@ -63,9 +64,9 @@ function resolveDisplayName(
   return name || `Player ${userId.slice(0, 5).toUpperCase()}`;
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-NZ", {
-    timeZone: "Pacific/Auckland",
+function fmtDate(iso: string, tz: TzLocale) {
+  return new Date(iso).toLocaleDateString(tz.locale, {
+    timeZone: tz.timezone,
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -112,12 +113,14 @@ function FixtureCard({
   teamMap,
   profileMap,
   score,
+  tz,
 }: {
   fixture: RichFixture;
   picks: RichPick[];
   teamMap: Map<string, Team>;
   profileMap: Map<string, string | null>;
   score: MatchScore | null;
+  tz: TzLocale;
 }) {
   const hasResult = fixture.result_team_id !== null || fixture.is_draw;
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
@@ -167,7 +170,7 @@ function FixtureCard({
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs text-gray-400">
-            {fmtDate(fixture.match_date)}
+            {fmtDate(fixture.match_date, tz)}
             {fixture.venue && (
               <span className="before:content-['·'] before:mx-1.5 before:text-gray-300">
                 {fixture.venue}
@@ -244,6 +247,7 @@ export default async function RoundPage({
 
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+  const tz = await getCompetitionTimezone(compId);
 
   // Fetch gameweek, teams, profiles, and match scores in parallel.
   // Filter by competition_id so "Round 1" from one competition doesn't
@@ -362,6 +366,7 @@ export default async function RoundPage({
               teamMap={teamMap}
               profileMap={profileMap}
               score={findScore(fixture, matchResults)}
+              tz={tz}
             />
           ))}
         </div>

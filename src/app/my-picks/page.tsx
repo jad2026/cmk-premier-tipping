@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
+import { fmtDate as fmtDateTz } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team } from "@/lib/supabase/types";
 
@@ -44,22 +45,13 @@ function pct(correct: number, total: number) {
   return `${Math.round((correct / total) * 100)}%`;
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function MyPicksPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+  const tzLocale = await getCompetitionTimezone(compId);
+  const fmtDate = (iso: string) => fmtDateTz(iso, tzLocale);
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

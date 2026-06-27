@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
+import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import Avatar from "@/components/Avatar";
 import LeaderboardTable from "./LeaderboardTable";
@@ -78,18 +79,18 @@ function pct(correct: number, total: number): string {
   return `${Math.round((correct / total) * 100)}%`;
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-NZ", {
-    timeZone: "Pacific/Auckland",
+function fmtDate(iso: string, tz: TzLocale) {
+  return new Date(iso).toLocaleDateString(tz.locale, {
+    timeZone: tz.timezone,
     weekday: "short",
     day: "numeric",
     month: "short",
   });
 }
 
-function fmtDeadline(iso: string) {
-  return new Date(iso).toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
+function fmtDeadline(iso: string, tz: TzLocale) {
+  return new Date(iso).toLocaleString(tz.locale, {
+    timeZone: tz.timezone,
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -159,12 +160,14 @@ function FixtureCard({
   teamMap,
   profileMap,
   score,
+  tz,
 }: {
   fixture: RichFixture;
   picks: RichPick[];
   teamMap: Map<string, Team>;
   profileMap: Map<string, string | null>;
   score: MatchScore | null;
+  tz: TzLocale;
 }) {
   const hasResult = fixture.result_team_id !== null || fixture.is_draw;
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
@@ -209,7 +212,7 @@ function FixtureCard({
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p style={{ fontSize: 12, color: "#8B8676", margin: 0 }}>
-            {fmtDate(fixture.match_date)}
+            {fmtDate(fixture.match_date, tz)}
             {fixture.venue && (
               <span className="before:content-['·'] before:mx-1.5" style={{ color: "#8B8676" }}>
                 {fixture.venue}
@@ -364,6 +367,7 @@ function PodiumCard({
 export default async function LeaderboardPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+  const tz = await getCompetitionTimezone(compId);
 
   const {
     data: { user },
@@ -766,7 +770,7 @@ export default async function LeaderboardPage() {
               </h2>
             </div>
             <p style={{ fontSize: 13, color: "#8B8676", marginLeft: 36, marginBottom: 20 }}>
-              Deadline {fmtDeadline(openGameweek.deadline)} · {weekFixtures.length} fixture{weekFixtures.length !== 1 ? "s" : ""}
+              Deadline {fmtDeadline(openGameweek.deadline, tz)} · {weekFixtures.length} fixture{weekFixtures.length !== 1 ? "s" : ""}
             </p>
             <div className="space-y-3">
               {weekFixtures.map((fixture) => (
@@ -777,6 +781,7 @@ export default async function LeaderboardPage() {
                   teamMap={teamMap}
                   profileMap={profileMap}
                   score={findScore(fixture, matchResults)}
+                  tz={tz}
                 />
               ))}
             </div>
@@ -905,6 +910,7 @@ export default async function LeaderboardPage() {
                           teamMap={teamMap}
                           profileMap={profileMap}
                           score={findScore(fixture, matchResults)}
+                          tz={tz}
                         />
                       ))}
                     </div>

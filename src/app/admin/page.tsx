@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { getCurrentCompetitionId } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
 import AdminShell from "./AdminShell";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export default async function AdminPage() {
   if (!profile?.is_admin) redirect("/");
 
   const compId = await getCurrentCompetitionId();
+  const tzLocale = await getCompetitionTimezone(compId);
 
   // Wave 1: teams scoped to competition, compGwIds for fixture scoping, and season config
   const [{ data: teams }, { data: compGwRows }, { data: seasonConfig }] =
@@ -53,6 +54,8 @@ export default async function AdminPage() {
       seasonComplete={seasonConfig?.season_complete ?? false}
       seasonName={seasonConfig?.season_name ?? "2026 Season"}
       compId={compId}
+      timezone={tzLocale.timezone}
+      locale={tzLocale.locale}
     />
   );
 }

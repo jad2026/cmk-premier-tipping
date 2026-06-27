@@ -5,7 +5,7 @@ import { fetchRounds, setRoundOpen, autoFillRandomPicks, type RoundRow } from ".
 import FixtureListPanel from "./FixtureListPanel";
 import type { Team } from "@/lib/supabase/types";
 
-export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
+export default function ManageRoundsPanel({ teams, timezone, locale }: { teams: Team[]; timezone: string; locale: string }) {
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -47,8 +47,8 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
   }
 
   function fmtDeadline(iso: string) {
-    return new Date(iso).toLocaleString("en-NZ", {
-      timeZone: "Pacific/Auckland",
+    return new Date(iso).toLocaleString(locale, {
+      timeZone: timezone,
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -212,7 +212,7 @@ export default function ManageRoundsPanel({ teams }: { teams: Team[] }) {
           <span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} />
           <h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Fixtures</h2>
         </div>
-        <FixtureListPanel teams={teams} />
+        <FixtureListPanel teams={teams} timezone={timezone} locale={locale} />
       </div>
     </div>
   );

@@ -19,13 +19,15 @@ export type ReminderEmailPayload = {
   picksCount?: number;
   totalFixtures?: number;
   competitionName?: string;
+  timezone?: string;
+  locale?: string;
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
+function formatDate(iso: string, timezone = "Pacific/Auckland", locale = "en-NZ"): string {
+  return new Date(iso).toLocaleString(locale, {
+    timeZone: timezone,
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -36,7 +38,7 @@ function formatDate(iso: string): string {
 }
 
 function buildHtml(p: ReminderEmailPayload): string {
-  const { firstName, teamName, roundLabel, deadline, fixtures, sponsors = [], variant, picksCount = 0, totalFixtures = fixtures.length } = p;
+  const { firstName, teamName, roundLabel, deadline, fixtures, sponsors = [], variant, picksCount = 0, totalFixtures = fixtures.length, timezone = "Pacific/Auckland", locale = "en-NZ" } = p;
   const isPartial = picksCount > 0 && picksCount < totalFixtures;
   const remaining = totalFixtures - picksCount;
   const tipsUrl = `${APP_URL}/tips`;
@@ -50,8 +52,8 @@ function buildHtml(p: ReminderEmailPayload): string {
   const badgeText = is24h ? "⏰ DEADLINE SOON" : "🏉 REMINDER";
 
   const fixtureRows = fixtures.map((f) => {
-    const date = new Date(f.matchDate).toLocaleString("en-NZ", {
-      timeZone: "Pacific/Auckland",
+    const date = new Date(f.matchDate).toLocaleString(locale, {
+      timeZone: timezone,
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -133,7 +135,7 @@ function buildHtml(p: ReminderEmailPayload): string {
               <tr>
                 <td style="background:${is24h ? "#fef2f2" : "#f0f6ff"};border:1px solid ${is24h ? "#fecaca" : "#bfdbfe"};border-radius:10px;padding:14px 18px;">
                   <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${is24h ? "#991b1b" : "#1e40af"};">Picks deadline</p>
-                  <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:${is24h ? "#b91c1c" : "#1e3a5f"};">${formatDate(deadline)}</p>
+                  <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:${is24h ? "#b91c1c" : "#1e3a5f"};">${formatDate(deadline, timezone, locale)}</p>
                   <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">New Zealand time (NZT)</p>
                 </td>
               </tr>

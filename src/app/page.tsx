@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
+import { fmtDeadline as fmtDeadlineTz } from "@/lib/datetime";
 import Avatar from "@/components/Avatar";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import TeamBadge from "@/components/TeamBadge";
@@ -24,16 +25,7 @@ type RoundInfo = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtDeadline(iso: string) {
-  return new Date(iso).toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+// fmtDeadline is created per-request inside HomePage() with the competition's timezone
 
 function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
   if (fixtures.length > 0 && fixtures.every((f) => f.result_team_id !== null || f.is_draw)) return "completed";
@@ -46,6 +38,8 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 export default async function HomePage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+  const tzLocale = await getCompetitionTimezone(compId);
+  const fmtDeadline = (iso: string) => fmtDeadlineTz(iso, tzLocale);
 
   const { data: { user } } = await supabase.auth.getUser();
 

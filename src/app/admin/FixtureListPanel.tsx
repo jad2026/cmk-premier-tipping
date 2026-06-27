@@ -5,7 +5,7 @@ import { fetchAllFixtures, updateFixture, deleteFixture, type FixtureAdminRow } 
 import TeamBadge from "@/components/TeamBadge";
 import type { Team } from "@/lib/supabase/types";
 
-type Props = { teams: Team[] };
+type Props = { teams: Team[]; timezone: string; locale: string };
 
 type EditState = {
   fixtureId: string;
@@ -17,9 +17,9 @@ type EditState = {
 
 type DeleteState = { fixtureId: string; picks_count: number };
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
+function fmtDate(iso: string, timezone: string, locale: string) {
+  return new Date(iso).toLocaleString(locale, {
+    timeZone: timezone,
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -37,7 +37,7 @@ function toLocalDatetimeValue(iso: string) {
 const inputClass =
   "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white";
 
-export default function FixtureListPanel({ teams }: Props) {
+export default function FixtureListPanel({ teams, timezone, locale }: Props) {
   const [fixtures, setFixtures] = useState<FixtureAdminRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState<EditState | null>(null);
@@ -184,7 +184,7 @@ export default function FixtureListPanel({ teams }: Props) {
 
                     {/* Date + venue */}
                     <div className="flex flex-col sm:items-end min-w-0 shrink-0">
-                      <span className="text-xs text-gray-500">{fmtDate(f.match_date)}</span>
+                      <span className="text-xs text-gray-500">{fmtDate(f.match_date, timezone, locale)}</span>
                       {f.venue && <span className="text-xs text-gray-400 truncate max-w-[160px]">{f.venue}</span>}
                     </div>
 

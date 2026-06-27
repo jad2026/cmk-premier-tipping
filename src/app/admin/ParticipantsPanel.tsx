@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { fetchParticipants, type ParticipantRow } from "./actions";
 
-export default function ParticipantsPanel() {
+export default function ParticipantsPanel({ timezone, locale }: { timezone: string; locale: string }) {
   const [rows, setRows] = useState<ParticipantRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -17,11 +17,11 @@ export default function ParticipantsPanel() {
   }, []);
 
   function fmtDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-NZ", {
+    return new Date(iso).toLocaleDateString(locale, {
       day: "numeric",
       month: "short",
       year: "numeric",
-      timeZone: "Pacific/Auckland",
+      timeZone: timezone,
     });
   }
 

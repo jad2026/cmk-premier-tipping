@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID, getCompetitionTimezone } from "@/lib/competition";
 import TipsForm from "./TipsForm";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Fixture, Pick } from "@/lib/supabase/types";
@@ -21,6 +21,7 @@ export default async function TipsPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
   const compLabel = compId === NPC_COMPETITION_ID ? "Bunnings NPC" : "CMK Premier · Taranaki";
+  const tzLocale = await getCompetitionTimezone(compId);
 
   const {
     data: { user },
@@ -159,7 +160,7 @@ export default async function TipsPage() {
 
   return (
     <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
-      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} />
+      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} timezone={tzLocale.timezone} locale={tzLocale.locale} />
     </div>
   );
 }

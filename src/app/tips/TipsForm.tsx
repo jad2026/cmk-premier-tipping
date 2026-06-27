@@ -10,6 +10,8 @@ type Props = {
   rounds: RoundData[];
   userId: string;
   compLabel: string;
+  timezone: string;
+  locale: string;
 };
 
 function useCountdown(deadline: string) {
@@ -33,7 +35,7 @@ function formatCountdown(d: number, h: number, m: number, s: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function TipsForm({ rounds, compLabel }: Props) {
+export default function TipsForm({ rounds, compLabel, timezone, locale }: Props) {
   const supabase = createClient();
 
   const [picks, setPicks] = useState<Record<string, string>>(() =>
@@ -134,6 +136,8 @@ export default function TipsForm({ rounds, compLabel }: Props) {
         rounds={rounds}
         deadline={primaryDeadline}
         compLabel={compLabel}
+        timezone={timezone}
+        locale={locale}
       />
 
       {/* ── Sticky progress bar ─────────────────────────────────────────── */}
@@ -173,6 +177,8 @@ export default function TipsForm({ rounds, compLabel }: Props) {
               onSelect={(value) =>
                 selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
               }
+              timezone={timezone}
+              locale={locale}
             />
           ));
         })}
@@ -247,7 +253,7 @@ export default function TipsForm({ rounds, compLabel }: Props) {
 
 // ── Tips dark header ─────────────────────────────────────────────────────────
 
-function TipsHeader({ rounds, deadline, compLabel }: { rounds: RoundData[]; deadline: string; compLabel: string }) {
+function TipsHeader({ rounds, deadline, compLabel, timezone, locale }: { rounds: RoundData[]; deadline: string; compLabel: string; timezone: string; locale: string }) {
   const { d, h, m, s, expired } = useCountdown(deadline);
   const primaryRound = rounds[0];
 
@@ -281,8 +287,8 @@ function TipsHeader({ rounds, deadline, compLabel }: { rounds: RoundData[]; dead
               <div className="text-right">
                 <div className="text-[11px] font-bold tracking-[.14em] uppercase text-[#8C93A0]">Tips close</div>
                 <div className="text-[15px] font-bold text-[#E6E8EC]">
-                  {new Date(deadline).toLocaleString("en-NZ", {
-                    timeZone: "Pacific/Auckland",
+                  {new Date(deadline).toLocaleString(locale, {
+                    timeZone: timezone,
                     weekday: "short",
                     day: "numeric",
                     month: "short",
@@ -320,11 +326,15 @@ function FixtureCard({
   picks,
   isPastDeadline,
   onSelect,
+  timezone,
+  locale,
 }: {
   fixture: Fixture;
   picks: Record<string, string>;
   isPastDeadline: boolean;
   onSelect: (value: string) => void;
+  timezone: string;
+  locale: string;
 }) {
   const home = fixture.home_team!;
   const away = fixture.away_team!;
@@ -358,8 +368,8 @@ function FixtureCard({
           {fixture.venue || "TBC"}
         </span>
         <span className="text-[11px] font-extrabold tracking-[.1em] uppercase text-[#A39E8C]">
-          {new Date(fixture.match_date).toLocaleString("en-NZ", {
-            timeZone: "Pacific/Auckland",
+          {new Date(fixture.match_date).toLocaleString(locale, {
+            timeZone: timezone,
             weekday: "short",
             hour: "2-digit",
             minute: "2-digit",

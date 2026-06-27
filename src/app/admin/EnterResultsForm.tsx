@@ -7,11 +7,13 @@ import type { Fixture, Team } from "@/lib/supabase/types";
 type Props = {
   fixtures: Fixture[];
   teams: Team[];
+  timezone: string;
+  locale: string;
 };
 
 const DRAW = "draw";
 
-export default function EnterResultsForm({ fixtures, teams }: Props) {
+export default function EnterResultsForm({ fixtures, teams, timezone, locale }: Props) {
   const [results, setResults] = useState<Record<string, string>>(
     Object.fromEntries(fixtures.map((f) => [f.id, ""]))
   );
@@ -92,8 +94,8 @@ export default function EnterResultsForm({ fixtures, teams }: Props) {
                   {away.name}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {new Date(fixture.match_date).toLocaleString("en-NZ", {
-                    timeZone: "Pacific/Auckland",
+                  {new Date(fixture.match_date).toLocaleString(locale, {
+                    timeZone: timezone,
                     weekday: "short",
                     day: "numeric",
                     month: "short",

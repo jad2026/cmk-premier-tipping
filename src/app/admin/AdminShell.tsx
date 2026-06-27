@@ -34,9 +34,11 @@ type Props = {
   seasonComplete: boolean;
   seasonName: string;
   compId: string;
+  timezone: string;
+  locale: string;
 };
 
-export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId, timezone, locale }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("add");
 
   return (
@@ -124,19 +126,19 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
 
         {/* Tab panels */}
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "28px 32px 60px" }}>
-          {activeTab === "add" && <AddFixtureForm teams={teams} />}
+          {activeTab === "add" && <AddFixtureForm teams={teams} timezone={timezone} locale={locale} />}
           {activeTab === "bulk" && <BulkImportForm teams={teams} />}
           {activeTab === "results" && (
-            <EnterResultsForm fixtures={pendingFixtures} teams={teams} />
+            <EnterResultsForm fixtures={pendingFixtures} teams={teams} timezone={timezone} locale={locale} />
           )}
-          {activeTab === "rounds" && <ManageRoundsPanel teams={teams} />}
+          {activeTab === "rounds" && <ManageRoundsPanel teams={teams} timezone={timezone} locale={locale} />}
           {activeTab === "teams" && (
             <TeamManagementPanel initialTeams={teams} compId={compId} />
           )}
           {activeTab === "season" && (
             <SeasonManagementPanel seasonComplete={seasonComplete} seasonName={seasonName} />
           )}
-          {activeTab === "participants" && <ParticipantsPanel />}
+          {activeTab === "participants" && <ParticipantsPanel timezone={timezone} locale={locale} />}
           {activeTab === "history" && <ResultsHistoryPanel />}
           {activeTab === "sponsors" && <SponsorsPanel compId={compId} />}
           {activeTab === "try" && <TryOfTheWeekPanel compId={compId} />}
