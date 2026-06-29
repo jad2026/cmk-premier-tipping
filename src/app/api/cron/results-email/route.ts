@@ -73,11 +73,13 @@ export async function GET(request: Request) {
 
     const [
       { data: seasonConfig },
+      { data: compConfig },
       { data: participants },
       { data: fixtures },
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
+      admin.from("competitions").select("accent_color, accent_text_color").eq("id", compId).single(),
       admin.from("competition_participants").select("user_id").eq("competition_id", compId),
       admin
         .from("fixtures")
@@ -95,6 +97,8 @@ export async function GET(request: Request) {
     ]);
 
     const competitionName = seasonConfig?.season_name ?? "Club Rugby Tipping";
+    const accentColor = compConfig?.accent_color ?? "#D9A521";
+    const accentTextColor = compConfig?.accent_text_color ?? "#11151C";
     const enrolledUserIds = new Set((participants ?? []).map((p: { user_id: string }) => p.user_id));
     const fixtureIds = (fixtures ?? []).map((f: { id: string }) => f.id);
     const totalFixtures = fixtureIds.length;
@@ -199,6 +203,8 @@ export async function GET(request: Request) {
         seasonCorrect: overallMap.get(userId) ?? 0,
         sponsors: sponsors ?? [],
         competitionName,
+        accentColor,
+        accentTextColor,
       });
 
       sent++;
