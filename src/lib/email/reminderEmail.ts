@@ -21,9 +21,31 @@ export type ReminderEmailPayload = {
   competitionName?: string;
   timezone?: string;
   locale?: string;
+  accentColor?: string;
+  accentTextColor?: string;
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
+
+// ── Theme helper ──────────────────────────────────────────────────────────────
+
+function getTheme(accent?: string, accentText?: string) {
+  return {
+    accent: accent || "#D9A521",
+    accentText: accentText || "#11151C",
+    ink: "#0B0E13",
+    canvas: "#F2F0EA",
+    card: "#FFFFFF",
+    border: "#E4E1D8",
+    borderRow: "#EFEDE6",
+    textPrimary: "#11151C",
+    textSecondary: "#5A6371",
+    textMuted: "#8B8676",
+    textOnDark: "#FFFFFF",
+    textMutedOnDark: "#9AA1AD",
+    urgentRed: "#B23A48",
+  };
+}
 
 function formatDate(iso: string, timezone = "Pacific/Auckland", locale = "en-NZ"): string {
   return new Date(iso).toLocaleString(locale, {
@@ -39,16 +61,13 @@ function formatDate(iso: string, timezone = "Pacific/Auckland", locale = "en-NZ"
 
 function buildHtml(p: ReminderEmailPayload): string {
   const { firstName, teamName, roundLabel, deadline, fixtures, sponsors = [], variant, picksCount = 0, totalFixtures = fixtures.length, timezone = "Pacific/Auckland", locale = "en-NZ" } = p;
+  const t = getTheme(p.accentColor, p.accentTextColor);
   const isPartial = picksCount > 0 && picksCount < totalFixtures;
   const remaining = totalFixtures - picksCount;
   const tipsUrl = `${APP_URL}/tips`;
 
   const is24h = variant === "24h";
-  const subjectLine = is24h
-    ? `⏰ Last chance! ${roundLabel} closes soon`
-    : `🏉 Midweek reminder — have you made your picks?`;
-
-  const headerBg = is24h ? "#b91c1c" : "#1e3a5f";
+  const headerBg = is24h ? t.urgentRed : t.ink;
   const badgeText = is24h ? "⏰ DEADLINE SOON" : "🏉 REMINDER";
 
   const fixtureRows = fixtures.map((f) => {
@@ -63,12 +82,12 @@ function buildHtml(p: ReminderEmailPayload): string {
     });
     return `
       <tr>
-        <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;color:#374151;font-size:14px;">
-          <strong style="color:#1e3a5f;">${f.homeTeam}</strong>
-          <span style="color:#9ca3af;font-size:12px;padding:0 6px;">vs</span>
-          <strong style="color:#1e3a5f;">${f.awayTeam}</strong>
+        <td style="padding:12px 20px;border-bottom:1px solid ${t.borderRow};color:${t.textPrimary};font-family:'Archivo',system-ui,sans-serif;font-size:14px;font-weight:500;">
+          <strong style="color:${t.textPrimary};">${f.homeTeam}</strong>
+          <span style="color:${t.textMuted};font-size:12px;padding:0 6px;">vs</span>
+          <strong style="color:${t.textPrimary};">${f.awayTeam}</strong>
         </td>
-        <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#6b7280;">
+        <td style="padding:12px 20px;border-bottom:1px solid ${t.borderRow};text-align:right;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textSecondary};">
           ${date}
         </td>
       </tr>`;
@@ -76,8 +95,8 @@ function buildHtml(p: ReminderEmailPayload): string {
 
   const sponsorBlock = sponsors.length > 0 ? `
     <tr>
-      <td style="padding:20px 32px;border-top:1px solid #f0f0f0;text-align:center;">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#d1d5db;">Our Sponsors</p>
+      <td style="padding:24px 32px;border-top:1px solid ${t.border};text-align:center;">
+        <p style="margin:0 0 12px;font-family:'Archivo',system-ui,sans-serif;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${t.textMuted};">Our Sponsors</p>
         <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
           <tr>
             ${sponsors.map((s) => `
@@ -85,7 +104,7 @@ function buildHtml(p: ReminderEmailPayload): string {
                 ${s.website_url ? `<a href="${s.website_url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">` : ""}
                 ${s.logo_url
                   ? `<img src="${s.logo_url}" alt="${s.name}" height="32" style="display:block;max-height:32px;max-width:100px;object-fit:contain;" />`
-                  : `<span style="font-size:13px;font-weight:700;color:#1e3a5f;">${s.name}</span>`}
+                  : `<span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:${t.textPrimary};">${s.name}</span>`}
                 ${s.website_url ? `</a>` : ""}
               </td>`).join("")}
           </tr>
@@ -95,48 +114,53 @@ function buildHtml(p: ReminderEmailPayload): string {
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:${t.canvas};font-family:'Archivo',system-ui,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${t.canvas};padding:32px 16px;">
     <tr><td align="center">
-      <table width="100%" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <table width="100%" style="max-width:580px;background:${t.card};border-radius:18px;overflow:hidden;border:1px solid ${t.border};">
 
         <!-- Header -->
         <tr>
-          <td style="background:${headerBg};padding:28px 32px 24px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.5);">${badgeText}</p>
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Club Rugby Tipping</h1>
-            <p style="margin:6px 0 0;font-size:15px;color:rgba(255,255,255,0.8);">${roundLabel}</p>
+          <td style="background:${headerBg};padding:32px 32px 28px;text-align:center;">
+            <p style="margin:0 0 10px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,0.5);">${badgeText}</p>
+            <div style="width:26px;height:3px;background:${is24h ? "#FFFFFF" : t.accent};border-radius:2px;margin:0 auto 14px;"></div>
+            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">Club Rugby Tipping</h1>
+            <p style="margin:8px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:rgba(255,255,255,0.7);">${roundLabel}</p>
           </td>
         </tr>
 
         <!-- Greeting -->
         <tr>
           <td style="padding:28px 32px 0;">
-            <p style="margin:0 0 12px;font-size:16px;color:#374151;line-height:1.6;">
-              G'day <strong style="color:#1e3a5f;">${firstName || teamName}</strong>! 👋
+            <p style="margin:0 0 12px;font-family:'Archivo',system-ui,sans-serif;font-size:16px;color:${t.textPrimary};line-height:1.6;">
+              G'day <strong>${firstName || teamName}</strong> 👋
             </p>
-            <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6;">
+            <p style="margin:0 0 20px;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:${t.textSecondary};line-height:1.6;">
               ${is24h
                 ? isPartial
-                  ? `The deadline for <strong>${roundLabel}</strong> is coming up fast — you've picked <strong style="color:#b91c1c;">${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
-                  : `The deadline for <strong>${roundLabel}</strong> is coming up fast — <strong style="color:#b91c1c;">you haven't made your picks yet!</strong> Don't miss out — get them in before the round closes.`
+                  ? `The deadline for <strong style="color:${t.textPrimary};">${roundLabel}</strong> is coming up fast — you've picked <strong style="color:${t.urgentRed};">${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
+                  : `The deadline for <strong style="color:${t.textPrimary};">${roundLabel}</strong> is coming up fast — <strong style="color:${t.urgentRed};">you haven't made your picks yet!</strong> Don't miss out — get them in before the round closes.`
                 : isPartial
-                  ? `It's the middle of the week and <strong>${roundLabel}</strong> is open for picks. Your team <strong style="color:#1e3a5f;">${teamName}</strong> has picked <strong style="color:#1e3a5f;">${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
-                  : `It's the middle of the week and <strong>${roundLabel}</strong> is open for picks. Your team <strong style="color:#1e3a5f;">${teamName}</strong> hasn't submitted picks yet — don't forget!`}
+                  ? `It's the middle of the week and <strong style="color:${t.textPrimary};">${roundLabel}</strong> is open for picks. Your team <strong style="color:${t.textPrimary};">${teamName}</strong> has picked <strong>${picksCount} of ${totalFixtures} games</strong> — don't forget the remaining ${remaining}!`
+                  : `It's the middle of the week and <strong style="color:${t.textPrimary};">${roundLabel}</strong> is open for picks. Your team <strong style="color:${t.textPrimary};">${teamName}</strong> hasn't submitted picks yet — don't forget!`}
             </p>
           </td>
         </tr>
 
         <!-- Deadline callout -->
         <tr>
-          <td style="padding:0 32px 20px;">
+          <td style="padding:0 32px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="background:${is24h ? "#fef2f2" : "#f0f6ff"};border:1px solid ${is24h ? "#fecaca" : "#bfdbfe"};border-radius:10px;padding:14px 18px;">
-                  <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${is24h ? "#991b1b" : "#1e40af"};">Picks deadline</p>
-                  <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:${is24h ? "#b91c1c" : "#1e3a5f"};">${formatDate(deadline, timezone, locale)}</p>
-                  <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">New Zealand time (NZT)</p>
+                <td style="background:${is24h ? "#FDF5F5" : t.canvas};border:1px solid ${is24h ? "#F5D5D5" : t.border};border-radius:14px;padding:16px 20px;">
+                  <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${is24h ? t.urgentRed : t.textMuted};">Picks deadline</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:17px;font-weight:400;text-transform:uppercase;color:${is24h ? t.urgentRed : t.textPrimary};">${formatDate(deadline, timezone, locale)}</p>
                 </td>
               </tr>
             </table>
@@ -145,10 +169,21 @@ function buildHtml(p: ReminderEmailPayload): string {
 
         <!-- Fixtures -->
         <tr>
-          <td style="padding:0 32px 24px;">
-            <h2 style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a5f;">Fixtures this round</h2>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:10px;overflow:hidden;">
-              ${fixtureRows}
+          <td style="padding:0 32px 28px;">
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+              <tr>
+                <td style="width:4px;height:16px;background:${t.accent};border-radius:2px;"></td>
+                <td style="padding-left:10px;font-family:'Archivo Black',sans-serif;font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:${t.textPrimary};">Fixtures This Round</td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${t.border};border-radius:12px;overflow:hidden;">
+              <thead>
+                <tr style="background:${t.ink};">
+                  <th style="padding:10px 20px;text-align:left;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Match</th>
+                  <th style="padding:10px 20px;text-align:right;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Kickoff</th>
+                </tr>
+              </thead>
+              <tbody>${fixtureRows}</tbody>
             </table>
           </td>
         </tr>
@@ -159,7 +194,7 @@ function buildHtml(p: ReminderEmailPayload): string {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td align="center">
-                  <a href="${tipsUrl}" style="display:inline-block;padding:16px 40px;background:#c9a84c;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:12px;">
+                  <a href="${tipsUrl}" style="display:inline-block;padding:16px 40px;background:${t.accent};color:${t.accentText};font-family:'Archivo',system-ui,sans-serif;font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none;border-radius:12px;">
                     Make Your Picks →
                   </a>
                 </td>
@@ -172,9 +207,10 @@ function buildHtml(p: ReminderEmailPayload): string {
 
         <!-- Footer -->
         <tr>
-          <td style="padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
-            <p style="margin:0;font-size:12px;color:#9ca3af;">Club Rugby Tipping</p>
-            <p style="margin:4px 0 0;font-size:11px;color:#d1d5db;">You're receiving this because you ${isPartial ? `have only completed ${picksCount} of ${totalFixtures} picks` : "haven't made your picks yet"} for ${roundLabel}.</p>
+          <td style="background:${t.ink};padding:24px 32px;text-align:center;">
+            <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you ${isPartial ? `have only completed ${picksCount} of ${totalFixtures} picks` : "haven't made your picks yet"} for ${roundLabel}.</p>
           </td>
         </tr>
 

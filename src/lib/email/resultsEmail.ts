@@ -29,22 +29,46 @@ export type ResultsEmailPayload = {
   seasonCorrect: number;
   sponsors?: Sponsor[];
   competitionName?: string;
+  accentColor?: string;
+  accentTextColor?: string;
 };
+
+// ── Theme helper ──────────────────────────────────────────────────────────────
+
+function getTheme(accent?: string, accentText?: string) {
+  return {
+    accent: accent || "#D9A521",
+    accentText: accentText || "#11151C",
+    ink: "#0B0E13",
+    canvas: "#F2F0EA",
+    card: "#FFFFFF",
+    border: "#E4E1D8",
+    borderRow: "#EFEDE6",
+    textPrimary: "#11151C",
+    textSecondary: "#5A6371",
+    textMuted: "#8B8676",
+    textOnDark: "#FFFFFF",
+    textMutedOnDark: "#9AA1AD",
+    winGreen: "#1F9E5A",
+    lossRed: "#B23A48",
+  };
+}
 
 // ── HTML template ──────────────────────────────────────────────────────────────
 
 function buildHtml(p: ResultsEmailPayload): string {
   const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonCorrect, sponsors = [] } = p;
+  const t = getTheme(p.accentColor, p.accentTextColor);
 
   const fixtureRows = fixtures
     .map(
       (f) => `
       <tr>
-        <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;color:#374151;font-size:14px;">
-          ${f.homeTeam} <span style="color:#9ca3af;font-size:12px;">vs</span> ${f.awayTeam}
+        <td style="padding:12px 20px;border-bottom:1px solid ${t.borderRow};color:${t.textPrimary};font-family:'Archivo',system-ui,sans-serif;font-size:14px;font-weight:500;">
+          ${f.homeTeam} <span style="color:${t.textMuted};font-size:12px;padding:0 4px;">vs</span> ${f.awayTeam}
         </td>
-        <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px;font-weight:600;color:#1e3a5f;">
-          ${f.winner ?? '<span style="color:#9ca3af;font-weight:400;">Draw</span>'}
+        <td style="padding:12px 20px;border-bottom:1px solid ${t.borderRow};text-align:right;font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;color:${t.textPrimary};">
+          ${f.winner ?? `<span style="color:${t.textMuted};font-family:'Archivo',system-ui,sans-serif;font-weight:500;text-transform:none;">Draw</span>`}
         </td>
       </tr>`
     )
@@ -53,22 +77,22 @@ function buildHtml(p: ResultsEmailPayload): string {
   const pickRows = picks
     .map((pk) => {
       const icon = pk.isCorrect
-        ? `<span style="color:#16a34a;font-weight:700;">✓</span>`
-        : `<span style="color:#dc2626;font-weight:700;">✗</span>`;
+        ? `<span style="color:${t.winGreen};font-weight:700;">✓</span>`
+        : `<span style="color:${t.lossRed};font-weight:700;">✗</span>`;
       const auto = pk.autoPicked
-        ? `<span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:4px;">auto</span>`
+        ? `<span style="font-size:10px;color:${t.textMuted};font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-left:6px;">auto</span>`
         : "";
-      const bg = pk.isCorrect ? "#f0fdf4" : "#fff5f5";
-      const border = pk.isCorrect ? "#bbf7d0" : "#fecaca";
+      const bg = pk.isCorrect ? "#F0FAF4" : "#FDF5F5";
+      const border = pk.isCorrect ? "#C6EECF" : "#F5D5D5";
       return `
       <tr style="background:${bg};">
-        <td style="padding:10px 16px;border-bottom:1px solid ${border};color:#374151;font-size:14px;">
-          ${pk.homeTeam} <span style="color:#9ca3af;font-size:12px;">vs</span> ${pk.awayTeam}
+        <td style="padding:12px 20px;border-bottom:1px solid ${border};color:${t.textPrimary};font-family:'Archivo',system-ui,sans-serif;font-size:14px;font-weight:500;">
+          ${pk.homeTeam} <span style="color:${t.textMuted};font-size:12px;padding:0 4px;">vs</span> ${pk.awayTeam}
         </td>
-        <td style="padding:10px 16px;border-bottom:1px solid ${border};font-size:14px;font-weight:600;color:#374151;">
+        <td style="padding:12px 20px;border-bottom:1px solid ${border};font-family:'Archivo',system-ui,sans-serif;font-size:14px;font-weight:700;color:${t.textPrimary};">
           ${pk.pickedTeam}${auto}
         </td>
-        <td style="padding:10px 16px;border-bottom:1px solid ${border};text-align:center;font-size:18px;">
+        <td style="padding:12px 20px;border-bottom:1px solid ${border};text-align:center;font-size:18px;">
           ${icon}
         </td>
       </tr>`;
@@ -84,41 +108,47 @@ function buildHtml(p: ResultsEmailPayload): string {
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:${t.canvas};font-family:'Archivo',system-ui,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${t.canvas};padding:32px 16px;">
     <tr><td align="center">
-      <table width="100%" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <table width="100%" style="max-width:580px;background:${t.card};border-radius:18px;overflow:hidden;border:1px solid ${t.border};">
 
         <!-- Header -->
         <tr>
-          <td style="background:#1e3a5f;padding:28px 32px;text-align:center;">
-            <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.5);">Club Rugby Tipping</p>
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">${roundLabel} Results</h1>
+          <td style="background:${t.ink};padding:32px 32px 28px;text-align:center;">
+            <div style="width:26px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 14px;"></div>
+            <p style="margin:0 0 6px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">${roundLabel} Results<span style="color:${t.accent};">.</span></h1>
           </td>
         </tr>
 
         <!-- Score summary -->
         <tr>
-          <td style="background:#f8faff;padding:20px 32px;border-bottom:2px solid #e5e9f0;">
+          <td style="background:${t.card};padding:24px 32px;border-bottom:1px solid ${t.border};">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="text-align:center;padding:0 8px;">
-                  <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">This round</p>
-                  <p style="margin:4px 0 0;font-size:32px;font-weight:800;color:#1e3a5f;">${correct}/${total}</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${scorePct}% correct</p>
+                  <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${t.textMuted};">This round</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;font-weight:400;color:${t.textPrimary};">${correct}/${total}</p>
+                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">${scorePct}% correct</p>
                 </td>
-                <td style="width:1px;background:#e5e9f0;"></td>
+                <td style="width:1px;background:${t.border};"></td>
                 <td style="text-align:center;padding:0 8px;">
-                  <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">Season total</p>
-                  <p style="margin:4px 0 0;font-size:32px;font-weight:800;color:#1e3a5f;">${seasonCorrect}</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">correct picks</p>
+                  <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${t.textMuted};">Season total</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;font-weight:400;color:${t.textPrimary};">${seasonCorrect}</p>
+                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">correct picks</p>
                 </td>
-                <td style="width:1px;background:#e5e9f0;"></td>
+                <td style="width:1px;background:${t.border};"></td>
                 <td style="text-align:center;padding:0 8px;">
-                  <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;">Position</p>
-                  <p style="margin:4px 0 0;font-size:32px;font-weight:800;color:#1e3a5f;">${positionLabel}</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">of ${totalPlayers}</p>
+                  <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${t.textMuted};">Position</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;font-weight:400;color:${t.textPrimary};">${positionLabel}</p>
+                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">of ${totalPlayers}</p>
                 </td>
               </tr>
             </table>
@@ -127,14 +157,19 @@ function buildHtml(p: ResultsEmailPayload): string {
 
         <!-- Your picks -->
         <tr>
-          <td style="padding:24px 32px 8px;">
-            <h2 style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a5f;">Your Picks</h2>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid #e5e9f0;">
+          <td style="padding:28px 32px 8px;">
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+              <tr>
+                <td style="width:4px;height:16px;background:${t.accent};border-radius:2px;"></td>
+                <td style="padding-left:10px;font-family:'Archivo Black',sans-serif;font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:${t.textPrimary};">Your Picks</td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid ${t.border};">
               <thead>
-                <tr style="background:#f8faff;">
-                  <th style="padding:8px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;">Fixture</th>
-                  <th style="padding:8px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;">Pick</th>
-                  <th style="padding:8px 16px;text-align:center;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;">Result</th>
+                <tr style="background:${t.ink};">
+                  <th style="padding:10px 20px;text-align:left;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Fixture</th>
+                  <th style="padding:10px 20px;text-align:left;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Pick</th>
+                  <th style="padding:10px 20px;text-align:center;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Result</th>
                 </tr>
               </thead>
               <tbody>${pickRows}</tbody>
@@ -144,13 +179,18 @@ function buildHtml(p: ResultsEmailPayload): string {
 
         <!-- Round results -->
         <tr>
-          <td style="padding:24px 32px 8px;">
-            <h2 style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a5f;">Round Results</h2>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid #e5e9f0;">
+          <td style="padding:28px 32px 8px;">
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+              <tr>
+                <td style="width:4px;height:16px;background:${t.accent};border-radius:2px;"></td>
+                <td style="padding-left:10px;font-family:'Archivo Black',sans-serif;font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:${t.textPrimary};">Round Results</td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid ${t.border};">
               <thead>
-                <tr style="background:#f8faff;">
-                  <th style="padding:8px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;">Fixture</th>
-                  <th style="padding:8px 16px;text-align:right;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;">Winner</th>
+                <tr style="background:${t.ink};">
+                  <th style="padding:10px 20px;text-align:left;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Fixture</th>
+                  <th style="padding:10px 20px;text-align:right;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Winner</th>
                 </tr>
               </thead>
               <tbody>${fixtureRows}</tbody>
@@ -161,8 +201,8 @@ function buildHtml(p: ResultsEmailPayload): string {
         <!-- Sponsors -->
         ${sponsors.length > 0 ? `
         <tr>
-          <td style="padding:20px 32px;border-top:1px solid #f0f0f0;text-align:center;">
-            <p style="margin:0 0 12px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#d1d5db;">Our Sponsors</p>
+          <td style="padding:24px 32px;border-top:1px solid ${t.border};text-align:center;">
+            <p style="margin:0 0 12px;font-family:'Archivo',system-ui,sans-serif;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${t.textMuted};">Our Sponsors</p>
             <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
               <tr>
                 ${sponsors.map((s) => `
@@ -172,7 +212,7 @@ function buildHtml(p: ResultsEmailPayload): string {
                       : ""}
                     ${s.logo_url
                       ? `<img src="${s.logo_url}" alt="${s.name}" height="32" style="display:block;max-height:32px;max-width:100px;object-fit:contain;" />`
-                      : `<span style="font-size:13px;font-weight:700;color:#1e3a5f;">${s.name}</span>`}
+                      : `<span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:${t.textPrimary};">${s.name}</span>`}
                     ${s.website_url ? `</a>` : ""}
                   </td>`).join("")}
               </tr>
@@ -182,8 +222,10 @@ function buildHtml(p: ResultsEmailPayload): string {
 
         <!-- Footer -->
         <tr>
-          <td style="padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
-            <p style="margin:0;font-size:12px;color:#9ca3af;">Club Rugby Tipping · You're receiving this because you have an account.</p>
+          <td style="background:${t.ink};padding:24px 32px;text-align:center;">
+            <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you have an account.</p>
           </td>
         </tr>
 
