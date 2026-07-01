@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState, useMemo, forwardRef, useImperativeHandle } from "react";
+import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 
-const ITEM_H = 38;
+const ITEM_H = 28;
 const VISIBLE = 5;
 const HEIGHT = ITEM_H * VISIBLE;
 const MAX = 100;
@@ -10,19 +10,6 @@ const PAD = Math.floor(VISIBLE / 2) * ITEM_H;
 const TOTAL = MAX * 2 + 1;
 
 const VALUES = Array.from({ length: TOTAL }, (_, i) => MAX - i);
-
-const itemStyle: React.CSSProperties = {
-  height: ITEM_H,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  scrollSnapAlign: "center",
-  fontSize: 17,
-  fontWeight: 600,
-  color: "#B4B0A2",
-  userSelect: "none",
-  WebkitUserSelect: "none",
-};
 
 export type MarginWheelHandle = { scrollTo(v: number): void };
 
@@ -84,32 +71,16 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
     clearTimeout(timer.current);
   }, []);
 
-  const items = useMemo(
-    () => VALUES.map((n) => <div key={n} style={itemStyle}>{Math.abs(n)}</div>),
-    [],
-  );
-
-  const tint = current > 0 ? homeColor : current < 0 ? awayColor : undefined;
-  const tintAlpha = tint ? Math.min(Math.abs(current) / 50, 0.12) : 0;
+  const centerColor =
+    current > 0
+      ? homeColor || "#11151C"
+      : current < 0
+      ? awayColor || "#11151C"
+      : "#8B8676";
 
   return (
-    <div style={{ position: "relative", height: HEIGHT, borderRadius: 12, overflow: "hidden" }}>
-      {/* Team colour tint */}
-      {tint && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: tint,
-            opacity: tintAlpha,
-            pointerEvents: "none",
-            zIndex: 3,
-            transition: "opacity .15s, background .2s",
-          }}
-        />
-      )}
-
-      {/* Centre highlight band with value overlay */}
+    <div style={{ position: "relative", height: HEIGHT, overflow: "hidden" }}>
+      {/* Centre highlight band */}
       <div
         style={{
           position: "absolute",
@@ -117,9 +88,22 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           left: 0,
           right: 0,
           height: ITEM_H,
-          background: "#fff",
-          borderTop: "1.5px solid #E4E1D8",
-          borderBottom: "1.5px solid #E4E1D8",
+          background: "rgba(0,0,0,.03)",
+          borderTop: "1px solid #E4E1D8",
+          borderBottom: "1px solid #E4E1D8",
+          pointerEvents: "none",
+          zIndex: 2,
+        }}
+      />
+
+      {/* Centre value overlay */}
+      <div
+        style={{
+          position: "absolute",
+          top: PAD,
+          left: 0,
+          right: 0,
+          height: ITEM_H,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -130,13 +114,8 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         <span
           style={{
             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-            fontSize: 26,
-            color:
-              current > 0
-                ? homeColor || "#11151C"
-                : current < 0
-                ? awayColor || "#11151C"
-                : "var(--accent, #D9A521)",
+            fontSize: 22,
+            color: centerColor,
             transition: "color .15s",
           }}
         >
@@ -151,20 +130,38 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         className="margin-wheel"
         style={{
           height: HEIGHT,
-          overflowY: disabled ? "hidden" : "scroll",
+          overflowY: disabled ? "hidden" : "auto",
           scrollSnapType: "y mandatory",
           overscrollBehavior: "contain",
           position: "relative",
           zIndex: 1,
-          background: "#FAFAF7",
           maskImage:
-            "linear-gradient(to bottom, transparent, rgba(0,0,0,.35) 28%, rgba(0,0,0,.35) 72%, transparent)",
+            "linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.45) 25%, transparent 42%, transparent 58%, rgba(0,0,0,.45) 75%, rgba(0,0,0,.25))",
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent, rgba(0,0,0,.35) 28%, rgba(0,0,0,.35) 72%, transparent)",
+            "linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.45) 25%, transparent 42%, transparent 58%, rgba(0,0,0,.45) 75%, rgba(0,0,0,.25))",
         }}
       >
         <div style={{ height: PAD }} />
-        {items}
+        {VALUES.map((n) => (
+          <div
+            key={n}
+            style={{
+              height: ITEM_H,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              scrollSnapAlign: "center",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#B4B0A2",
+              borderBottom: "1px solid #F0EDE5",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+            }}
+          >
+            {Math.abs(n)}
+          </div>
+        ))}
         <div style={{ height: PAD }} />
       </div>
 
