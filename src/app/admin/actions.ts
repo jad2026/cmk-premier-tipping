@@ -235,7 +235,9 @@ export async function saveResults(
       .not("predicted_margin", "is", null);
 
     for (const mp of marginPicks ?? []) {
-      const correct = mp.predicted_margin === actualMarginBucket;
+      const predicted = Number(mp.predicted_margin);
+      const predictedBucket = predicted <= 12 ? "1-12" : predicted <= 24 ? "13-24" : "25+";
+      const correct = predictedBucket === actualMarginBucket;
       await admin.from("picks").update({ margin_correct: correct }).eq("id", mp.id);
     }
     console.log(`[saveResults] Scored margins for fixture ${fixtureId} (actual: ${actualMarginBucket}, ${(marginPicks ?? []).length} margin picks)`);

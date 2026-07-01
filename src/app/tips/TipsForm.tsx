@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Fixture } from "@/lib/supabase/types";
 import TeamBadge from "@/components/TeamBadge";
+import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
-
-const MARGIN_OPTIONS = ["1-12", "13-24", "25+"] as const;
-type MarginOption = typeof MARGIN_OPTIONS[number];
 
 type Props = {
   rounds: RoundData[];
@@ -51,12 +49,12 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       )
     )
   );
-  const [margins, setMargins] = useState<Record<string, MarginOption>>(() =>
+  const [margins, setMargins] = useState<Record<string, number>>(() =>
     Object.fromEntries(
       rounds.flatMap((r) =>
         r.existingPicks
-          .filter((p) => p.predicted_margin)
-          .map((p) => [p.fixture_id, p.predicted_margin as MarginOption])
+          .filter((p) => typeof p.predicted_margin === "number")
+          .map((p) => [p.fixture_id, p.predicted_margin as number])
       )
     )
   );
@@ -77,18 +75,19 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
   function selectPick(fixtureId: string, value: string, deadline: string, resultLocked: boolean) {
     if (isRoundDeadlinePassed(deadline) || resultLocked) return;
     setPicks((prev) => ({ ...prev, [fixtureId]: value }));
-    if (value === "draw") {
-      setMargins((prev) => { const next = { ...prev }; delete next[fixtureId]; return next; });
-    }
     setSaved(false);
   }
 
-  function selectMargin(fixtureId: string, value: MarginOption, deadline: string, resultLocked: boolean) {
+  function handleWheelChange(fixtureId: string, value: number, homeTeamId: string, awayTeamId: string, deadline: string, resultLocked: boolean) {
     if (isRoundDeadlinePassed(deadline) || resultLocked) return;
-    setMargins((prev) => prev[fixtureId] === value
-      ? (() => { const next = { ...prev }; delete next[fixtureId]; return next; })()
-      : { ...prev, [fixtureId]: value }
-    );
+    if (value > 0) {
+      setPicks((prev) => ({ ...prev, [fixtureId]: homeTeamId }));
+    } else if (value < 0) {
+      setPicks((prev) => ({ ...prev, [fixtureId]: awayTeamId }));
+    } else {
+      setPicks((prev) => ({ ...prev, [fixtureId]: "draw" }));
+    }
+    setMargins((prev) => ({ ...prev, [fixtureId]: Math.abs(value) }));
     setSaved(false);
   }
 
@@ -207,8 +206,8 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
               onSelect={(value) =>
                 selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
               }
-              onSelectMargin={(value) =>
-                selectMargin(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
+              onWheelChange={(value) =>
+                handleWheelChange(fixture.id, value, fixture.home_team_id, fixture.away_team_id, round.deadline, fixture.result_team_id !== null || fixture.is_draw)
               }
               timezone={timezone}
               locale={locale}
@@ -361,17 +360,17 @@ function FixtureCard({
   marginPicking,
   isPastDeadline,
   onSelect,
-  onSelectMargin,
+  onWheelChange,
   timezone,
   locale,
 }: {
   fixture: Fixture;
   picks: Record<string, string>;
-  margins: Record<string, MarginOption>;
+  margins: Record<string, number>;
   marginPicking: boolean;
   isPastDeadline: boolean;
   onSelect: (value: string) => void;
-  onSelectMargin: (value: MarginOption) => void;
+  onWheelChange: (value: number) => void;
   timezone: string;
   locale: string;
 }) {
@@ -384,6 +383,16 @@ function FixtureCard({
   const resultLocked = fixture.result_team_id !== null || fixture.is_draw;
   const isLocked = resultLocked || isPastDeadline;
   const hasSelection = homePicked || awayPicked || drawPicked;
+
+  const wheelRef = useRef<MarginWheelHandle>(null);
+
+  const wheelInitial = (() => {
+    if (!picked) return 0;
+    const m = margins[fixture.id] ?? 7;
+    if (homePicked) return m;
+    if (awayPicked) return -m;
+    return 0;
+  })();
 
   const cardBorder = hasSelection && !resultLocked ? "var(--accent)" : "#E4E1D8";
 
@@ -416,150 +425,207 @@ function FixtureCard({
         </span>
       </div>
 
-      {/* 3-col: Home | VS | Away */}
-      <div className="grid grid-cols-[1fr_64px_1fr] sm:grid-cols-[1fr_64px_1fr]">
-        {/* Home button */}
-        <button
-          onClick={() => onSelect(home.id)}
-          disabled={isLocked}
-          className="flex items-center gap-[14px] text-left transition-colors duration-150 disabled:cursor-not-allowed"
-          style={{
-            padding: "20px 22px",
-            background: homePicked && !resultLocked ? "var(--accent-wash)" : "#fff",
-            boxShadow: homePicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (!isLocked && !homePicked) e.currentTarget.style.background = "#FBFAF6";
-          }}
-          onMouseLeave={(e) => {
-            if (!isLocked && !homePicked) e.currentTarget.style.background = "#fff";
-          }}
-        >
-          <TeamBadge team={home} size="lg" className="!w-[46px] !h-[46px]" />
-          <span className="flex flex-col items-start min-w-0">
-            <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
-              {home.name}
+      {/* ── Wheel mode (NPC margin picking) ────────────────────────────── */}
+      {marginPicking && !resultLocked && (
+        <>
+          {/* Home team row */}
+          <button
+            onClick={() => { wheelRef.current?.scrollTo(7); onWheelChange(7); }}
+            disabled={isLocked}
+            className="w-full flex items-center gap-3 text-left transition-colors duration-150 disabled:cursor-not-allowed"
+            style={{
+              padding: "14px 22px",
+              background: homePicked ? "var(--accent-wash)" : "#fff",
+              borderBottom: "1px solid #EFEDE6",
+            }}
+            onMouseEnter={(e) => { if (!isLocked && !homePicked) e.currentTarget.style.background = "#FBFAF6"; }}
+            onMouseLeave={(e) => { if (!isLocked && !homePicked) e.currentTarget.style.background = "#fff"; }}
+          >
+            <TeamBadge team={home} size="md" className="!w-[40px] !h-[40px]" />
+            <span className="flex-1 min-w-0">
+              <span className="font-display text-[16px] leading-none uppercase truncate block">{home.name}</span>
+              <span className="text-[11px] text-[#A39E8C] font-bold mt-0.5 block">Home ▲</span>
             </span>
-            <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Home</span>
-          </span>
-          {homePicked && !resultLocked && (
-            <span
-              className="ml-auto w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-extrabold shrink-0"
-              style={{ background: "var(--accent)", color: "var(--accent-text)" }}
-            >
-              ✓
-            </span>
-          )}
-        </button>
+            {homePicked && (
+              <span
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-extrabold shrink-0"
+                style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+              >✓</span>
+            )}
+          </button>
 
-        {/* VS divider */}
-        <div
-          className="flex items-center justify-center"
-          style={{
-            background: "#F4F2EC",
-            borderLeft: "1px solid #EFEDE6",
-            borderRight: "1px solid #EFEDE6",
-          }}
-        >
-          <span className="font-display text-[13px] text-[#B4B0A2] tracking-[.05em]">VS</span>
-        </div>
+          {/* Margin wheel */}
+          <div style={{ padding: "4px 22px", background: "#FAFAF7", borderBottom: "1px solid #EFEDE6" }}>
+            <MarginWheel
+              ref={wheelRef}
+              initialValue={wheelInitial}
+              onChange={onWheelChange}
+              homeColor={home.colour}
+              awayColor={away.colour}
+              disabled={isLocked}
+            />
+          </div>
 
-        {/* Away button */}
-        <button
-          onClick={() => onSelect(away.id)}
-          disabled={isLocked}
-          className="flex items-center gap-[14px] text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
-          style={{
-            padding: "20px 22px",
-            background: awayPicked && !resultLocked ? "var(--accent-wash)" : "#fff",
-            boxShadow: awayPicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (!isLocked && !awayPicked) e.currentTarget.style.background = "#FBFAF6";
-          }}
-          onMouseLeave={(e) => {
-            if (!isLocked && !awayPicked) e.currentTarget.style.background = "#fff";
-          }}
-        >
-          {awayPicked && !resultLocked && (
-            <span
-              className="mr-auto w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-extrabold shrink-0"
-              style={{ background: "var(--accent)", color: "var(--accent-text)" }}
-            >
-              ✓
+          {/* Away team row */}
+          <button
+            onClick={() => { wheelRef.current?.scrollTo(-7); onWheelChange(-7); }}
+            disabled={isLocked}
+            className="w-full flex items-center gap-3 text-left transition-colors duration-150 disabled:cursor-not-allowed"
+            style={{
+              padding: "14px 22px",
+              background: awayPicked ? "var(--accent-wash)" : "#fff",
+              borderBottom: "1px solid #EFEDE6",
+            }}
+            onMouseEnter={(e) => { if (!isLocked && !awayPicked) e.currentTarget.style.background = "#FBFAF6"; }}
+            onMouseLeave={(e) => { if (!isLocked && !awayPicked) e.currentTarget.style.background = "#fff"; }}
+          >
+            <TeamBadge team={away} size="md" className="!w-[40px] !h-[40px]" />
+            <span className="flex-1 min-w-0">
+              <span className="font-display text-[16px] leading-none uppercase truncate block">{away.name}</span>
+              <span className="text-[11px] text-[#A39E8C] font-bold mt-0.5 block">Away ▼</span>
             </span>
-          )}
-          <span className="flex flex-col items-end min-w-0">
-            <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
-              {away.name}
-            </span>
-            <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Away</span>
-          </span>
-          <TeamBadge team={away} size="lg" className="!w-[46px] !h-[46px]" />
-        </button>
-      </div>
+            {awayPicked && (
+              <span
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-extrabold shrink-0"
+                style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+              >✓</span>
+            )}
+          </button>
 
-      {/* Draw option row */}
-      {!resultLocked && (
-        <button
-          onClick={() => onSelect("draw")}
-          disabled={isLocked}
-          className="w-full flex items-center justify-center gap-2 py-3 text-[13px] font-bold uppercase tracking-[.06em] transition-colors duration-150 disabled:cursor-not-allowed"
-          style={{
-            borderTop: "1px solid #EFEDE6",
-            background: drawPicked ? "var(--accent-wash)" : "#FAF9F5",
-            boxShadow: drawPicked ? "inset 0 0 0 2px var(--accent)" : "none",
-            color: drawPicked ? "var(--accent)" : "#A39E8C",
-          }}
-        >
-          Draw
-          {drawPicked && (
-            <span
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-extrabold"
-              style={{ background: "var(--accent)", color: "var(--accent-text)" }}
-            >
-              ✓
-            </span>
-          )}
-        </button>
+          {/* Prediction label */}
+          <div
+            className="flex items-center justify-center"
+            style={{
+              padding: "10px 22px",
+              background: hasSelection ? "var(--accent-wash)" : "#FAF9F5",
+            }}
+          >
+            {hasSelection ? (
+              <span className="text-[13px] font-bold" style={{ color: "var(--accent)" }}>
+                {drawPicked
+                  ? "Draw"
+                  : `${homePicked ? home.name : away.name} by ${margins[fixture.id] ?? 0}`}
+              </span>
+            ) : (
+              <span className="text-[12px] font-semibold text-[#B4B0A2]">
+                ↕ Scroll or tap a team to pick
+              </span>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Margin selector — only for non-draw team picks on competitions with margin_picking */}
-      {marginPicking && !resultLocked && !isLocked && picked && picked !== "draw" && (
-        <div
-          className="flex items-center justify-center gap-2"
-          style={{
-            padding: "10px 22px",
-            borderTop: "1px solid #EFEDE6",
-            background: "#FAF9F5",
-          }}
-        >
-          <span className="text-[11px] font-bold tracking-[.06em] uppercase text-[#A39E8C] mr-1">
-            Margin
-          </span>
-          {MARGIN_OPTIONS.map((opt) => {
-            const selected = margins[fixture.id] === opt;
-            return (
-              <button
-                key={opt}
-                onClick={() => onSelectMargin(opt)}
-                className="transition-all duration-150"
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: selected ? "2px solid var(--accent)" : "1px solid #E4E1D8",
-                  background: selected ? "var(--accent-wash)" : "#fff",
-                  color: selected ? "var(--accent)" : "#5A5546",
-                  cursor: "pointer",
-                }}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
+      {/* ── Button mode (CMK / default) ────────────────────────────────── */}
+      {!marginPicking && (
+        <>
+          {/* 3-col: Home | VS | Away */}
+          <div className="grid grid-cols-[1fr_64px_1fr] sm:grid-cols-[1fr_64px_1fr]">
+            {/* Home button */}
+            <button
+              onClick={() => onSelect(home.id)}
+              disabled={isLocked}
+              className="flex items-center gap-[14px] text-left transition-colors duration-150 disabled:cursor-not-allowed"
+              style={{
+                padding: "20px 22px",
+                background: homePicked && !resultLocked ? "var(--accent-wash)" : "#fff",
+                boxShadow: homePicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                if (!isLocked && !homePicked) e.currentTarget.style.background = "#FBFAF6";
+              }}
+              onMouseLeave={(e) => {
+                if (!isLocked && !homePicked) e.currentTarget.style.background = "#fff";
+              }}
+            >
+              <TeamBadge team={home} size="lg" className="!w-[46px] !h-[46px]" />
+              <span className="flex flex-col items-start min-w-0">
+                <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
+                  {home.name}
+                </span>
+                <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Home</span>
+              </span>
+              {homePicked && !resultLocked && (
+                <span
+                  className="ml-auto w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-extrabold shrink-0"
+                  style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+
+            {/* VS divider */}
+            <div
+              className="flex items-center justify-center"
+              style={{
+                background: "#F4F2EC",
+                borderLeft: "1px solid #EFEDE6",
+                borderRight: "1px solid #EFEDE6",
+              }}
+            >
+              <span className="font-display text-[13px] text-[#B4B0A2] tracking-[.05em]">VS</span>
+            </div>
+
+            {/* Away button */}
+            <button
+              onClick={() => onSelect(away.id)}
+              disabled={isLocked}
+              className="flex items-center gap-[14px] text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
+              style={{
+                padding: "20px 22px",
+                background: awayPicked && !resultLocked ? "var(--accent-wash)" : "#fff",
+                boxShadow: awayPicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                if (!isLocked && !awayPicked) e.currentTarget.style.background = "#FBFAF6";
+              }}
+              onMouseLeave={(e) => {
+                if (!isLocked && !awayPicked) e.currentTarget.style.background = "#fff";
+              }}
+            >
+              {awayPicked && !resultLocked && (
+                <span
+                  className="mr-auto w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-extrabold shrink-0"
+                  style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+                >
+                  ✓
+                </span>
+              )}
+              <span className="flex flex-col items-end min-w-0">
+                <span className="font-display text-[19px] leading-none uppercase truncate max-w-full">
+                  {away.name}
+                </span>
+                <span className="text-[12px] text-md-text-muted mt-1 font-semibold">Away</span>
+              </span>
+              <TeamBadge team={away} size="lg" className="!w-[46px] !h-[46px]" />
+            </button>
+          </div>
+
+          {/* Draw option row */}
+          {!resultLocked && (
+            <button
+              onClick={() => onSelect("draw")}
+              disabled={isLocked}
+              className="w-full flex items-center justify-center gap-2 py-3 text-[13px] font-bold uppercase tracking-[.06em] transition-colors duration-150 disabled:cursor-not-allowed"
+              style={{
+                borderTop: "1px solid #EFEDE6",
+                background: drawPicked ? "var(--accent-wash)" : "#FAF9F5",
+                boxShadow: drawPicked ? "inset 0 0 0 2px var(--accent)" : "none",
+                color: drawPicked ? "var(--accent)" : "#A39E8C",
+              }}
+            >
+              Draw
+              {drawPicked && (
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-extrabold"
+                  style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+          )}
+        </>
       )}
 
       {/* Locked footer */}
@@ -571,7 +637,10 @@ function FixtureCard({
             <>
               <TeamBadge team={homePicked ? home : away} size="xs" />
               <p className="text-xs text-md-text-muted">
-                Your pick: <span className="font-semibold text-md-text">{homePicked ? home.name : away.name}</span>
+                Your pick: <span className="font-semibold text-md-text">
+                  {homePicked ? home.name : away.name}
+                  {marginPicking && margins[fixture.id] ? ` by ${margins[fixture.id]}` : ""}
+                </span>
               </p>
             </>
           ) : (
