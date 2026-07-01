@@ -6,12 +6,16 @@ import type { Fixture } from "@/lib/supabase/types";
 import TeamBadge from "@/components/TeamBadge";
 import type { RoundData } from "./page";
 
+const MARGIN_OPTIONS = ["1-12", "13-24", "25+"] as const;
+type MarginOption = typeof MARGIN_OPTIONS[number];
+
 type Props = {
   rounds: RoundData[];
   userId: string;
   compLabel: string;
   timezone: string;
   locale: string;
+  marginPicking?: boolean;
 };
 
 function useCountdown(deadline: string) {
@@ -35,7 +39,7 @@ function formatCountdown(d: number, h: number, m: number, s: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function TipsForm({ rounds, compLabel, timezone, locale }: Props) {
+export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false }: Props) {
   const supabase = createClient();
 
   const [picks, setPicks] = useState<Record<string, string>>(() =>
@@ -44,6 +48,15 @@ export default function TipsForm({ rounds, compLabel, timezone, locale }: Props)
         r.existingPicks
           .filter((p) => p.picked_team_id !== null || p.picked_draw)
           .map((p) => [p.fixture_id, p.picked_draw ? "draw" : p.picked_team_id!])
+      )
+    )
+  );
+  const [margins, setMargins] = useState<Record<string, MarginOption>>(() =>
+    Object.fromEntries(
+      rounds.flatMap((r) =>
+        r.existingPicks
+          .filter((p) => p.predicted_margin)
+          .map((p) => [p.fixture_id, p.predicted_margin as MarginOption])
       )
     )
   );
@@ -64,6 +77,18 @@ export default function TipsForm({ rounds, compLabel, timezone, locale }: Props)
   function selectPick(fixtureId: string, value: string, deadline: string, resultLocked: boolean) {
     if (isRoundDeadlinePassed(deadline) || resultLocked) return;
     setPicks((prev) => ({ ...prev, [fixtureId]: value }));
+    if (value === "draw") {
+      setMargins((prev) => { const next = { ...prev }; delete next[fixtureId]; return next; });
+    }
+    setSaved(false);
+  }
+
+  function selectMargin(fixtureId: string, value: MarginOption, deadline: string, resultLocked: boolean) {
+    if (isRoundDeadlinePassed(deadline) || resultLocked) return;
+    setMargins((prev) => prev[fixtureId] === value
+      ? (() => { const next = { ...prev }; delete next[fixtureId]; return next; })()
+      : { ...prev, [fixtureId]: value }
+    );
     setSaved(false);
   }
 
@@ -84,6 +109,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale }: Props)
 
       for (const [fixtureId, value] of saveable) {
         const isDraw = value === "draw";
+        const margin = isDraw ? null : (margins[fixtureId] ?? null);
         const { error: upsertError } = await supabase
           .from("picks")
           .upsert(
@@ -94,6 +120,8 @@ export default function TipsForm({ rounds, compLabel, timezone, locale }: Props)
               picked_draw: isDraw,
               auto_picked: false,
               is_correct: null,
+              predicted_margin: margin,
+              margin_correct: null,
             },
             { onConflict: "fixture_id,user_id" }
           );
@@ -173,9 +201,14 @@ export default function TipsForm({ rounds, compLabel, timezone, locale }: Props)
               key={fixture.id}
               fixture={fixture}
               picks={picks}
+              margins={margins}
+              marginPicking={marginPicking}
               isPastDeadline={isPastDeadline}
               onSelect={(value) =>
                 selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
+              }
+              onSelectMargin={(value) =>
+                selectMargin(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
               }
               timezone={timezone}
               locale={locale}
@@ -324,15 +357,21 @@ function TipsHeader({ rounds, deadline, compLabel, timezone, locale }: { rounds:
 function FixtureCard({
   fixture,
   picks,
+  margins,
+  marginPicking,
   isPastDeadline,
   onSelect,
+  onSelectMargin,
   timezone,
   locale,
 }: {
   fixture: Fixture;
   picks: Record<string, string>;
+  margins: Record<string, MarginOption>;
+  marginPicking: boolean;
   isPastDeadline: boolean;
   onSelect: (value: string) => void;
+  onSelectMargin: (value: MarginOption) => void;
   timezone: string;
   locale: string;
 }) {
@@ -483,6 +522,44 @@ function FixtureCard({
             </span>
           )}
         </button>
+      )}
+
+      {/* Margin selector — only for non-draw team picks on competitions with margin_picking */}
+      {marginPicking && !resultLocked && !isLocked && picked && picked !== "draw" && (
+        <div
+          className="flex items-center justify-center gap-2"
+          style={{
+            padding: "10px 22px",
+            borderTop: "1px solid #EFEDE6",
+            background: "#FAF9F5",
+          }}
+        >
+          <span className="text-[11px] font-bold tracking-[.06em] uppercase text-[#A39E8C] mr-1">
+            Margin
+          </span>
+          {MARGIN_OPTIONS.map((opt) => {
+            const selected = margins[fixture.id] === opt;
+            return (
+              <button
+                key={opt}
+                onClick={() => onSelectMargin(opt)}
+                className="transition-all duration-150"
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  border: selected ? "2px solid var(--accent)" : "1px solid #E4E1D8",
+                  background: selected ? "var(--accent-wash)" : "#fff",
+                  color: selected ? "var(--accent)" : "#5A5546",
+                  cursor: "pointer",
+                }}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
       )}
 
       {/* Locked footer */}

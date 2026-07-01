@@ -187,6 +187,60 @@ export async function saveResults(
     console.log(`[saveResults] Scored picks for fixture ${fixtureId} (isDraw=${isDraw}, result=${dbResultTeamId ?? "draw"})`);
   }
 
+  // ── Step 2c: score margins using match_results scores ──────────────────
+  // Look up actual scores from match_results, compute margin bucket, update picks
+  const { data: matchResultsForMargin } = await admin
+    .from("match_results")
+    .select("home_team, away_team, home_score, away_score")
+    .eq("result_status", "final");
+  const { data: allTeamsForMargin } = await admin.from("teams").select("id, name");
+  const teamNameById = new Map((allTeamsForMargin ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
+
+  for (const { fixtureId, resultTeamId } of toProcess) {
+    if (resultTeamId === "draw") {
+      // Draws have no margin — set margin_correct = null for all
+      await admin.from("picks").update({ margin_correct: null }).eq("fixture_id", fixtureId);
+      continue;
+    }
+
+    // Look up the fixture's teams to find the matching score row
+    const { data: fix } = await admin.from("fixtures").select("home_team_id, away_team_id").eq("id", fixtureId).single();
+    if (!fix) continue;
+
+    const homeName = teamNameById.get(fix.home_team_id)?.toLowerCase() ?? "";
+    const awayName = teamNameById.get(fix.away_team_id)?.toLowerCase() ?? "";
+
+    let actualMarginBucket: string | null = null;
+    for (const mr of matchResultsForMargin ?? []) {
+      if (!mr.home_score || !mr.away_score) continue;
+      const rh = (mr.home_team as string).toLowerCase();
+      const ra = (mr.away_team as string).toLowerCase();
+      if ((rh.includes(homeName) || homeName.includes(rh)) && (ra.includes(awayName) || awayName.includes(ra))) {
+        const margin = Math.abs(Number(mr.home_score) - Number(mr.away_score));
+        actualMarginBucket = margin <= 12 ? "1-12" : margin <= 24 ? "13-24" : "25+";
+        break;
+      }
+    }
+
+    if (!actualMarginBucket) {
+      console.log(`[saveResults] No match_results score found for fixture ${fixtureId} — skipping margin scoring`);
+      continue;
+    }
+
+    // Fetch picks with predicted_margin for this fixture
+    const { data: marginPicks } = await admin
+      .from("picks")
+      .select("id, predicted_margin")
+      .eq("fixture_id", fixtureId)
+      .not("predicted_margin", "is", null);
+
+    for (const mp of marginPicks ?? []) {
+      const correct = mp.predicted_margin === actualMarginBucket;
+      await admin.from("picks").update({ margin_correct: correct }).eq("id", mp.id);
+    }
+    console.log(`[saveResults] Scored margins for fixture ${fixtureId} (actual: ${actualMarginBucket}, ${(marginPicks ?? []).length} margin picks)`);
+  }
+
   // ── Step 3: send results emails to all users ─────────────────────────────
   const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));
   console.log("[saveResults] About to send emails");
@@ -263,9 +317,16 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
     const fixtureIds = fixtures.map((f) => f.id);
     const { data: picks } = await supabase
       .from("picks")
-      .select("user_id, fixture_id, picked_team_id, is_correct, auto_picked")
+      .select("user_id, fixture_id, picked_team_id, is_correct, auto_picked, predicted_margin, margin_correct")
       .in("fixture_id", fixtureIds);
     if (!picks) continue;
+
+    const { data: compFeaturesRow } = await supabase
+      .from("competitions")
+      .select("features")
+      .eq("id", compId)
+      .single() as unknown as { data: { features?: Record<string, boolean> } | null };
+    const marginPicking = compFeaturesRow?.features?.margin_picking === true;
 
     // Fetch all teams for name lookup
     const { data: teams } = await supabase.from("teams").select("id, name");
@@ -330,6 +391,10 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
       const roundCorrect = userPicks.filter((p) => p.is_correct).length;
       const roundTotal = userPicks.length;
 
+      const picksWithMargin = userPicks.filter((p) => p.predicted_margin != null);
+      const marginCorrect = picksWithMargin.filter((p) => p.margin_correct === true).length;
+      const marginTotal = picksWithMargin.length;
+
       const fixtureResults = fixtures.map((f) => ({
         homeTeam: teamName(f.home_team_id),
         awayTeam: teamName(f.away_team_id),
@@ -358,6 +423,7 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
         totalPlayers: leaderboardEntries.length,
         seasonCorrect: seasonTally.get(userId) ?? 0,
         sponsors: emailSponsors,
+        ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName,
         siteUrl,
         accentColor,

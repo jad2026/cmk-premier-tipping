@@ -118,10 +118,17 @@ export async function GET(request: Request) {
       winner: f.is_draw ? null : (f.result_team_id ? teamName(f.result_team_id) : null),
     }));
 
+    const { data: compFeaturesRow } = await admin
+      .from("competitions")
+      .select("features")
+      .eq("id", compId)
+      .single();
+    const marginPicking = (compFeaturesRow as { features?: Record<string, boolean> } | null)?.features?.margin_picking === true;
+
     // Get all picks for this round
     const { data: roundPicks } = await admin
       .from("picks")
-      .select("user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked")
+      .select("user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, predicted_margin, margin_correct")
       .in("fixture_id", fixtureIds);
 
     // Get ALL competition fixture IDs for overall leaderboard calculation
@@ -185,6 +192,10 @@ export async function GET(request: Request) {
       const userRoundPicks = picksByUser.get(userId) ?? [];
       const correctThisRound = userRoundPicks.filter((p) => p.is_correct).length;
 
+      const picksWithMargin = userRoundPicks.filter((p) => p.predicted_margin != null);
+      const marginCorrect = picksWithMargin.filter((p) => p.margin_correct === true).length;
+      const marginTotal = picksWithMargin.length;
+
       const picks = userRoundPicks.map((p) => {
         const fix = fixtureMap.get(p.fixture_id);
         return {
@@ -209,6 +220,7 @@ export async function GET(request: Request) {
         totalPlayers,
         seasonCorrect: overallMap.get(userId) ?? 0,
         sponsors: sponsors ?? [],
+        ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName,
         siteUrl,
         accentColor,

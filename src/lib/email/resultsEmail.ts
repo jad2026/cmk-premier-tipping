@@ -28,6 +28,8 @@ export type ResultsEmailPayload = {
   totalPlayers: number;
   seasonCorrect: number;
   sponsors?: Sponsor[];
+  marginCorrect?: number;
+  marginTotal?: number;
   competitionName?: string;
   siteUrl?: string;
   accentColor?: string;
@@ -153,7 +155,16 @@ function buildHtml(p: ResultsEmailPayload): string {
                   <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">of ${totalPlayers}</p>
                 </td>
               </tr>
-            </table>
+            </table>${p.marginTotal != null && p.marginTotal > 0 ? `
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${t.border};">
+              <tr>
+                <td style="text-align:center;padding:16px 8px;">
+                  <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${t.textMuted};">Margins</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:28px;font-weight:400;color:${t.textPrimary};">${p.marginCorrect ?? 0}/${p.marginTotal}</p>
+                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">margins correct</p>
+                </td>
+              </tr>
+            </table>` : ""}
           </td>
         </tr>
 

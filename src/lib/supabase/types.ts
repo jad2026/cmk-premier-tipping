@@ -39,6 +39,8 @@ export type Pick = {
   picked_draw: boolean;
   is_correct: boolean | null;
   auto_picked: boolean;
+  predicted_margin: string | null;
+  margin_correct: boolean | null;
   picked_team?: Team;
 };
 
