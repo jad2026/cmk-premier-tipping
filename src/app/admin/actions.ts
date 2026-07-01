@@ -237,9 +237,9 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
     const compId = gw.competition_id;
     const [{ data: seasonConfig }, { data: compConfig }] = await Promise.all([
       supabase.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      supabase.from("competitions").select("accent_color, accent_text_color").eq("id", compId).single() as unknown as Promise<{ data: { accent_color: string | null; accent_text_color: string | null } | null }>,
+      supabase.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single() as unknown as Promise<{ data: { name: string | null; accent_color: string | null; accent_text_color: string | null } | null }>,
     ]);
-    const competitionName = seasonConfig?.season_name ?? "Club Rugby Tipping";
+    const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
     const accentColor = compConfig?.accent_color ?? undefined;
     const accentTextColor = compConfig?.accent_text_color ?? undefined;

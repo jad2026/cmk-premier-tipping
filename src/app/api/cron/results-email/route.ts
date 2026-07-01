@@ -85,7 +85,7 @@ export async function GET(request: Request) {
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      admin.from("competitions").select("accent_color, accent_text_color").eq("id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single(),
       admin.from("competition_participants").select("user_id").eq("competition_id", compId),
       admin
         .from("fixtures")
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
         .limit(5),
     ]);
 
-    const competitionName = seasonConfig?.season_name ?? "Club Rugby Tipping";
+    const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
     const accentColor = compConfig?.accent_color ?? "#D9A521";
     const accentTextColor = compConfig?.accent_text_color ?? "#11151C";
