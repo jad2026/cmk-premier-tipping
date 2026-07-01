@@ -216,17 +216,33 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
     return;
   }
 
+  const COMPETITION_SITE_URLS: Record<string, string> = {
+    "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
+    "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://npc.clubrugbytipping.com",
+    "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
+  };
+
   console.log(`[resultsEmail] Starting dispatch for gameweeks: ${gameweekIds.join(", ")}`);
   const supabase = await createClient();
 
   for (const gwId of gameweekIds) {
-    // Fetch gameweek label
+    // Fetch gameweek label and competition
     const { data: gw } = await supabase
       .from("gameweeks")
-      .select("label")
+      .select("label, competition_id")
       .eq("id", gwId)
       .single();
     if (!gw) { console.warn(`[resultsEmail] Gameweek ${gwId} not found — skipping`); continue; }
+
+    const compId = gw.competition_id;
+    const [{ data: seasonConfig }, { data: compConfig }] = await Promise.all([
+      supabase.from("season_config").select("season_name").eq("competition_id", compId).single(),
+      supabase.from("competitions").select("accent_color, accent_text_color").eq("id", compId).single() as unknown as Promise<{ data: { accent_color: string | null; accent_text_color: string | null } | null }>,
+    ]);
+    const competitionName = seasonConfig?.season_name ?? "Club Rugby Tipping";
+    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
+    const accentColor = compConfig?.accent_color ?? undefined;
+    const accentTextColor = compConfig?.accent_text_color ?? undefined;
 
     // Fetch all fixtures for this gameweek
     const { data: fixtures } = await supabase
@@ -342,6 +358,10 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
         totalPlayers: leaderboardEntries.length,
         seasonCorrect: seasonTally.get(userId) ?? 0,
         sponsors: emailSponsors,
+        competitionName,
+        siteUrl,
+        accentColor,
+        accentTextColor,
       };
 
       await sendResultsEmail(payload);

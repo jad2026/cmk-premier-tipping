@@ -6,6 +6,12 @@ export const dynamic = "force-dynamic";
 
 const HOURS_BEFORE_DEADLINE = 24;
 
+const COMPETITION_SITE_URLS: Record<string, string> = {
+  "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
+  "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://npc.clubrugbytipping.com",
+  "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
+};
+
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
@@ -75,6 +81,7 @@ export async function GET(request: Request) {
     ]);
 
     const competitionName = seasonConfig?.season_name ?? "Club Rugby Tipping";
+    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
     const accentColor = compConfig?.accent_color ?? "#D9A521";
     const accentTextColor = compConfig?.accent_text_color ?? "#11151C";
     const enrolledUserIds = new Set((participants ?? []).map((p: { user_id: string }) => p.user_id));
@@ -128,6 +135,7 @@ export async function GET(request: Request) {
         picksCount,
         totalFixtures,
         competitionName,
+        siteUrl,
         accentColor,
         accentTextColor,
       });

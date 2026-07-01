@@ -19,13 +19,14 @@ export type ReminderEmailPayload = {
   picksCount?: number;
   totalFixtures?: number;
   competitionName?: string;
+  siteUrl?: string;
   timezone?: string;
   locale?: string;
   accentColor?: string;
   accentTextColor?: string;
 };
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
+const DEFAULT_SITE_URL = "https://clubrugbytipping.com";
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
 
@@ -64,7 +65,9 @@ function buildHtml(p: ReminderEmailPayload): string {
   const t = getTheme(p.accentColor, p.accentTextColor);
   const isPartial = picksCount > 0 && picksCount < totalFixtures;
   const remaining = totalFixtures - picksCount;
-  const tipsUrl = `${APP_URL}/tips`;
+  const siteUrl = p.siteUrl || DEFAULT_SITE_URL;
+  const competitionName = p.competitionName || "Club Rugby Tipping";
+  const tipsUrl = `${siteUrl}/tips`;
 
   const is24h = variant === "24h";
   const headerBg = is24h ? t.urgentRed : t.ink;
@@ -130,7 +133,7 @@ function buildHtml(p: ReminderEmailPayload): string {
           <td style="background:${headerBg};padding:32px 32px 28px;text-align:center;">
             <p style="margin:0 0 10px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,0.5);">${badgeText}</p>
             <div style="width:26px;height:3px;background:${is24h ? "#FFFFFF" : t.accent};border-radius:2px;margin:0 auto 14px;"></div>
-            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">Club Rugby Tipping</h1>
+            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">${competitionName}</h1>
             <p style="margin:8px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:rgba(255,255,255,0.7);">${roundLabel}</p>
           </td>
         </tr>
@@ -209,7 +212,7 @@ function buildHtml(p: ReminderEmailPayload): string {
         <tr>
           <td style="background:${t.ink};padding:24px 32px;text-align:center;">
             <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
-            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">${competitionName}</p>
             <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you ${isPartial ? `have only completed ${picksCount} of ${totalFixtures} picks` : "haven't made your picks yet"} for ${roundLabel}.</p>
           </td>
         </tr>

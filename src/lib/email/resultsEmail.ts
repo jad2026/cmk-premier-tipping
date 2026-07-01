@@ -29,6 +29,7 @@ export type ResultsEmailPayload = {
   seasonCorrect: number;
   sponsors?: Sponsor[];
   competitionName?: string;
+  siteUrl?: string;
   accentColor?: string;
   accentTextColor?: string;
 };
@@ -59,6 +60,7 @@ function getTheme(accent?: string, accentText?: string) {
 function buildHtml(p: ResultsEmailPayload): string {
   const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonCorrect, sponsors = [] } = p;
   const t = getTheme(p.accentColor, p.accentTextColor);
+  const competitionName = p.competitionName || "Club Rugby Tipping";
 
   const fixtureRows = fixtures
     .map(
@@ -123,7 +125,7 @@ function buildHtml(p: ResultsEmailPayload): string {
         <tr>
           <td style="background:${t.ink};padding:32px 32px 28px;text-align:center;">
             <div style="width:26px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 14px;"></div>
-            <p style="margin:0 0 6px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <p style="margin:0 0 6px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${t.textMutedOnDark};">${competitionName}</p>
             <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">${roundLabel} Results<span style="color:${t.accent};">.</span></h1>
           </td>
         </tr>
@@ -224,7 +226,7 @@ function buildHtml(p: ResultsEmailPayload): string {
         <tr>
           <td style="background:${t.ink};padding:24px 32px;text-align:center;">
             <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
-            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">Club Rugby Tipping</p>
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">${competitionName}</p>
             <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you have an account.</p>
           </td>
         </tr>

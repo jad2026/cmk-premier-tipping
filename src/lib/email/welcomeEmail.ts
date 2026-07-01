@@ -7,11 +7,13 @@ export type WelcomeEmailPayload = {
   teamName: string;
   seasonName: string;
   sponsors?: Sponsor[];
+  competitionName?: string;
+  siteUrl?: string;
   accentColor?: string;
   accentTextColor?: string;
 };
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://clubrugbytipping.com";
+const DEFAULT_SITE_URL = "https://clubrugbytipping.com";
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
 
@@ -34,7 +36,9 @@ function getTheme(accent?: string, accentText?: string) {
 function buildHtml(p: WelcomeEmailPayload): string {
   const { firstName, teamName, seasonName, sponsors = [] } = p;
   const t = getTheme(p.accentColor, p.accentTextColor);
-  const tipsUrl = `${APP_URL}/tips`;
+  const siteUrl = p.siteUrl || DEFAULT_SITE_URL;
+  const competitionName = p.competitionName || "Club Rugby Tipping";
+  const tipsUrl = `${siteUrl}/tips`;
 
   const steps = [
     { num: "1", title: "Pick your winners", desc: "Each round, select the team you think will win each match — or pick a draw." },
@@ -153,7 +157,7 @@ function buildHtml(p: WelcomeEmailPayload): string {
         <tr>
           <td style="background:${t.ink};padding:24px 32px;text-align:center;">
             <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
-            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">Club Rugby Tipping · ${seasonName}</p>
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">${competitionName} · ${seasonName}</p>
             <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you just created an account.</p>
           </td>
         </tr>
@@ -179,7 +183,7 @@ export async function sendWelcomeEmail(payload: WelcomeEmailPayload): Promise<vo
     const { error } = await resend.emails.send({
       from,
       to: payload.to,
-      subject: `Welcome to Club Rugby Tipping, ${payload.firstName}! 🏉`,
+      subject: `Welcome to ${payload.competitionName || "Club Rugby Tipping"}, ${payload.firstName}! 🏉`,
       html: buildHtml(payload),
     });
     if (error) {
