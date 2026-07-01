@@ -36,6 +36,7 @@ type PickRow = {
   picked_draw: boolean;
   is_correct: boolean | null;
   auto_picked: boolean;
+  predicted_margin: number | null;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -52,6 +53,13 @@ export default async function MyPicksPage() {
   const compId = await getCurrentCompetitionId();
   const tzLocale = await getCompetitionTimezone(compId);
   const fmtDate = (iso: string) => fmtDateTz(iso, tzLocale);
+
+  const { data: compFeatures } = await supabase
+    .from("competitions")
+    .select("features")
+    .eq("id", compId)
+    .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
+  const marginPicking = compFeatures?.features?.margin_picking === true;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -369,6 +377,9 @@ export default async function MyPicksPage() {
                                 >
                                   <TeamBadge team={pickedTeam} size="xs" />
                                   {pickedTeam.name}
+                                  {marginPicking && pick?.predicted_margin != null && (
+                                    <span style={{ fontWeight: 600, opacity: 0.7 }}> by {Math.abs(pick.predicted_margin)}</span>
+                                  )}
                                 </span>
                               ) : null}
                             </div>
