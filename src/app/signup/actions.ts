@@ -27,7 +27,8 @@ export async function triggerWelcomeEmail(
     "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
   };
 
-  console.log(`[welcomeEmail] Sending to ${email} — competitionName: "${seasonName}", siteUrl: "${COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com"}", accentColor: "${compConfig?.accent_color}"`);
+  const competitionName = seasonName;
+  console.log("[welcomeEmail] competitionName:", competitionName, "| seasonName:", seasonName, "| compId:", compId, "| accentColor:", compConfig?.accent_color);
 
   await sendWelcomeEmail({
     to: email,
@@ -35,7 +36,7 @@ export async function triggerWelcomeEmail(
     teamName,
     seasonName,
     sponsors: emailSponsors,
-    competitionName: seasonName,
+    competitionName,
     siteUrl: COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com",
     accentColor: compConfig?.accent_color ?? undefined,
     accentTextColor: compConfig?.accent_text_color ?? undefined,

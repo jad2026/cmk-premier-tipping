@@ -103,10 +103,10 @@ function buildHtml(p: WelcomeEmailPayload): string {
         <!-- Header -->
         <tr>
           <td style="background:${t.ink};padding:36px 32px 30px;text-align:center;">
-            <p style="margin:0 0 10px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,0.5);">${competitionName}</p>
+            <p style="margin:0 0 10px;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,0.5);">${seasonName}</p>
             <div style="width:26px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 14px;"></div>
-            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">Welcome<span style="color:${t.accent};">.</span></h1>
-            <p style="margin:8px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:rgba(255,255,255,0.7);">${seasonName}</p>
+            <p style="margin:0 0 4px;font-family:'Archivo',system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${t.textMutedOnDark};">Welcome to</p>
+            <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">${competitionName}<span style="color:${t.accent};">.</span></h1>
           </td>
         </tr>
 
