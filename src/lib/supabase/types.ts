@@ -5,6 +5,7 @@ export type Team = {
   colour: string;
   logo_url: string | null;
   competition_id: string;
+  home_ground: string | null;
 };
 
 export type Gameweek = {
@@ -118,6 +119,19 @@ export type Player = {
   jersey_number: number;
   photo_url: string | null;
   is_active: boolean;
+  is_captain: boolean;
+  apps: number;
+  pts: number;
+  created_at: string;
+};
+
+export type CoachingStaff = {
+  id: string;
+  team_id: string;
+  name: string;
+  role: string;
+  photo_url: string | null;
+  display_order: number;
   created_at: string;
 };
 
@@ -146,7 +160,7 @@ export type Database = {
     Tables: {
       teams: {
         Row: Team;
-        Insert: Omit<Team, "id">;
+        Insert: Omit<Team, "id" | "home_ground"> & { home_ground?: string | null };
         Update: Partial<Team>;
         Relationships: [];
       };
@@ -218,8 +232,14 @@ export type Database = {
       };
       players: {
         Row: Player;
-        Insert: Omit<Player, "id" | "created_at" | "photo_url"> & { id?: string; created_at?: string; photo_url?: string | null };
+        Insert: Omit<Player, "id" | "created_at" | "photo_url" | "is_captain" | "apps" | "pts"> & { id?: string; created_at?: string; photo_url?: string | null; is_captain?: boolean; apps?: number; pts?: number };
         Update: Partial<Player>;
+        Relationships: [];
+      };
+      coaching_staff: {
+        Row: CoachingStaff;
+        Insert: Omit<CoachingStaff, "id" | "created_at" | "photo_url"> & { id?: string; created_at?: string; photo_url?: string | null };
+        Update: Partial<CoachingStaff>;
         Relationships: [];
       };
     };

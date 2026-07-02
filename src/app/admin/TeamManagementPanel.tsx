@@ -197,6 +197,7 @@ function TeamForm({
         colour,
         logo_url: finalUrl,
         competition_id: compId,
+        home_ground: null,
       });
     }
     setSaving(false);
