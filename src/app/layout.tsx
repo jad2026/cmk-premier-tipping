@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
+import SignupBanner from "@/components/SignupBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import { getAccentForCompetition, getAccentCSSVars } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/server";
@@ -60,6 +61,9 @@ export default async function RootLayout({
     .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
   const showSquads = compFeatures?.features?.show_squads === true;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedOut = !user;
+
   return (
     <html
       lang="en"
@@ -73,6 +77,7 @@ export default async function RootLayout({
           {children}
         </main>
         <GlobalSponsorBanner />
+        {isLoggedOut && <SignupBanner siteName={siteName} />}
         <footer className="bg-ink border-t border-white/[.06]">
           <div className="max-w-content mx-auto px-4 sm:px-8 py-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
