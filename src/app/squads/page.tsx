@@ -76,8 +76,7 @@ export default async function SquadsIndexPage() {
             </div>
           ) : (
             <div
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-              style={{ gap: 14 }}
+              style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center" }}
             >
               {teamList.map((team) => {
                 const playerCount = countByTeam.get(team.id) ?? 0;
@@ -97,7 +96,7 @@ export default async function SquadsIndexPage() {
                       textDecoration: "none",
                       transition: "transform .15s, border-color .15s",
                     }}
-                    className="hover:scale-[1.03] hover:border-white/20"
+                    className="w-[calc(50%-7px)] sm:w-[calc(33.333%-10px)] lg:w-[calc(25%-11px)] hover:scale-[1.03] hover:border-white/20"
                   >
                     <TeamBadge team={team} size="rail" />
                     <span
