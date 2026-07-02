@@ -23,13 +23,14 @@ function PlayerCard({
   return (
     <div
       style={{
-        background: `color-mix(in srgb, #0B0E13 70%, ${teamColor})`,
-        borderRadius: 14,
+        borderRadius: 16,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        border: "1px solid #E4E1D8",
       }}
     >
+      {/* Dark photo area */}
       <div
         style={{
           aspectRatio: "1",
@@ -38,6 +39,7 @@ function PlayerCard({
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
+          background: "#0B0E13",
         }}
       >
         {player.photo_url ? (
@@ -99,7 +101,8 @@ function PlayerCard({
         )}
       </div>
 
-      <div style={{ padding: "10px 12px 12px" }}>
+      {/* White footer */}
+      <div style={{ padding: "10px 12px 12px", background: "#fff" }}>
         <span
           style={{
             display: "inline-block",
@@ -107,8 +110,8 @@ function PlayerCard({
             fontWeight: 700,
             letterSpacing: ".08em",
             textTransform: "uppercase",
-            color: "rgba(255,255,255,.5)",
-            background: "rgba(255,255,255,.08)",
+            color: "#8B8676",
+            background: "#F2F0EA",
             padding: "3px 8px",
             borderRadius: 5,
             marginBottom: 6,
@@ -120,7 +123,7 @@ function PlayerCard({
           className="font-display"
           style={{
             fontSize: 15,
-            color: "#fff",
+            color: "#11151C",
             textTransform: "uppercase",
             lineHeight: 1.2,
             letterSpacing: ".02em",
@@ -135,7 +138,7 @@ function PlayerCard({
               gap: 12,
               marginTop: 6,
               fontSize: 11,
-              color: "rgba(255,255,255,.45)",
+              color: "#8B8676",
               fontWeight: 600,
             }}
           >
@@ -155,8 +158,9 @@ function CoachCard({ coach }: { coach: CoachingStaff }) {
         display: "flex",
         alignItems: "center",
         gap: 14,
-        background: "#161A22",
-        borderRadius: 12,
+        background: "#fff",
+        border: "1px solid #E4E1D8",
+        borderRadius: 14,
         padding: "12px 16px",
       }}
     >
@@ -181,10 +185,10 @@ function CoachCard({ coach }: { coach: CoachingStaff }) {
             width: 48,
             height: 48,
             borderRadius: "50%",
-            background: "rgba(255,255,255,.08)",
+            background: "#E4E1D8",
             fontSize: 16,
             fontWeight: 700,
-            color: "rgba(255,255,255,.3)",
+            color: "#8B8676",
           }}
         >
           {coach.name
@@ -200,7 +204,7 @@ function CoachCard({ coach }: { coach: CoachingStaff }) {
           className="font-display"
           style={{
             fontSize: 14,
-            color: "#fff",
+            color: "#11151C",
             textTransform: "uppercase",
             letterSpacing: ".02em",
           }}
@@ -210,7 +214,7 @@ function CoachCard({ coach }: { coach: CoachingStaff }) {
         <div
           style={{
             fontSize: 12,
-            color: "rgba(255,255,255,.45)",
+            color: "#8B8676",
             fontWeight: 600,
             marginTop: 2,
           }}
@@ -255,7 +259,7 @@ function SectionHeading({
           fontWeight: 800,
           letterSpacing: ".14em",
           textTransform: "uppercase",
-          color: "rgba(255,255,255,.6)",
+          color: "#5A6371",
         }}
       >
         {title}
@@ -264,8 +268,8 @@ function SectionHeading({
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.06)",
+          color: "#8B8676",
+          background: "rgba(0,0,0,.05)",
           padding: "2px 8px",
           borderRadius: 999,
         }}
@@ -289,12 +293,12 @@ export default function SquadDisplay({
   const backs = players.filter((p) => !FORWARD_POSITIONS.has(p.position));
 
   return (
-    <div style={{ background: "#0B0E13", minHeight: "100vh" }}>
+    <div style={{ background: "#F2F0EA", minHeight: "100vh" }}>
       {/* Hero section */}
       <section
         style={{
-          background: `linear-gradient(135deg, ${team.colour}22 0%, #0B0E13 60%)`,
-          borderBottom: "1px solid rgba(255,255,255,.06)",
+          background: "#F2F0EA",
+          borderBottom: "1px solid #E4E1D8",
         }}
       >
         <div
@@ -310,12 +314,12 @@ export default function SquadDisplay({
               gap: 6,
               fontSize: 13,
               fontWeight: 600,
-              color: "rgba(255,255,255,.45)",
+              color: "#8B8676",
               textDecoration: "none",
               marginBottom: 24,
               transition: "color .15s",
             }}
-            className="hover:!text-white"
+            className="hover:!text-[#11151C]"
           >
             <span style={{ fontSize: 16, lineHeight: 1 }}>&larr;</span>
             Back to Squads
@@ -331,7 +335,7 @@ export default function SquadDisplay({
                   fontSize: 36,
                   lineHeight: 1,
                   margin: 0,
-                  color: "#fff",
+                  color: "#0B0E13",
                 }}
               >
                 {team.name}
@@ -342,7 +346,7 @@ export default function SquadDisplay({
                   gap: 16,
                   marginTop: 8,
                   fontSize: 13,
-                  color: "rgba(255,255,255,.5)",
+                  color: "#8B8676",
                   fontWeight: 600,
                 }}
               >
@@ -364,7 +368,7 @@ export default function SquadDisplay({
             style={{
               textAlign: "center",
               padding: "60px 24px",
-              color: "rgba(255,255,255,.4)",
+              color: "#8B8676",
               fontSize: 15,
               fontStyle: "italic",
             }}
