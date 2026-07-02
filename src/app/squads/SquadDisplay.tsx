@@ -1,15 +1,7 @@
-"use client";
-
-import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
-
-type TeamWithData = {
-  team: Team;
-  players: Player[];
-  coaches: CoachingStaff[];
-};
 
 const CARD_BGS = [
   "#20303F",
@@ -31,51 +23,6 @@ const FORWARD_POSITIONS = new Set([
   "No. 8",
 ]);
 
-function PlayerAvatar({
-  player,
-  size,
-}: {
-  player: Player;
-  size: number;
-}) {
-  const initials =
-    `${player.first_name[0] ?? ""}${player.last_name[0] ?? ""}`.toUpperCase();
-  if (player.photo_url) {
-    return (
-      <Image
-        src={player.photo_url}
-        alt={`${player.first_name} ${player.last_name}`}
-        width={size}
-        height={size}
-        className="shrink-0"
-        style={{
-          borderRadius: "50%",
-          objectFit: "cover",
-          width: size,
-          height: size,
-        }}
-      />
-    );
-  }
-  return (
-    <span
-      className="shrink-0 flex items-center justify-center"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: "rgba(255,255,255,.12)",
-        fontSize: size * 0.36,
-        fontWeight: 700,
-        color: "rgba(255,255,255,.5)",
-        textTransform: "uppercase",
-      }}
-    >
-      {initials}
-    </span>
-  );
-}
-
 function PlayerCard({
   player,
   bgColor,
@@ -96,7 +43,6 @@ function PlayerCard({
         flexDirection: "column",
       }}
     >
-      {/* Photo area */}
       <div
         style={{
           aspectRatio: "1",
@@ -130,7 +76,6 @@ function PlayerCard({
           </span>
         )}
 
-        {/* Jersey number overlay */}
         <span
           className="font-display"
           style={{
@@ -146,7 +91,6 @@ function PlayerCard({
           {player.jersey_number}
         </span>
 
-        {/* Captain badge */}
         {player.is_captain && (
           <span
             style={{
@@ -168,9 +112,7 @@ function PlayerCard({
         )}
       </div>
 
-      {/* Info area */}
       <div style={{ padding: "10px 12px 12px" }}>
-        {/* Position badge */}
         <span
           style={{
             display: "inline-block",
@@ -348,30 +290,14 @@ function SectionHeading({
 }
 
 export default function SquadDisplay({
-  teams,
+  team,
+  players,
+  coaches,
 }: {
-  teams: TeamWithData[];
+  team: Team;
+  players: Player[];
+  coaches: CoachingStaff[];
 }) {
-  const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.team.id ?? "");
-
-  const selected = teams.find((t) => t.team.id === selectedTeamId);
-  if (!selected) {
-    return (
-      <div
-        style={{
-          background: "#0B0E13",
-          padding: "80px 32px",
-          textAlign: "center",
-          color: "#8C93A0",
-        }}
-      >
-        No teams available yet.
-      </div>
-    );
-  }
-
-  const { team, players, coaches } = selected;
-
   const forwards = players.filter((p) => FORWARD_POSITIONS.has(p.position));
   const backs = players.filter((p) => !FORWARD_POSITIONS.has(p.position));
 
@@ -386,134 +312,57 @@ export default function SquadDisplay({
       >
         <div
           className="mx-auto"
-          style={{ maxWidth: 1100, padding: "44px 32px 36px" }}
+          style={{ maxWidth: 1100, padding: "32px 32px 36px" }}
         >
-          <div
-            className="flex items-center gap-3"
-            style={{ marginBottom: 18 }}
+          {/* Back link */}
+          <Link
+            href="/squads"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "rgba(255,255,255,.45)",
+              textDecoration: "none",
+              marginBottom: 24,
+              transition: "color .15s",
+            }}
+            className="hover:!text-white"
           >
-            <div
-              className="shrink-0"
-              style={{
-                width: 24,
-                height: 3,
-                borderRadius: 2,
-                background: "var(--accent)",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: ".18em",
-                textTransform: "uppercase",
-                color: "#C7CCD4",
-              }}
-            >
-              Team rosters
-            </span>
-          </div>
-          <h1
-            className="font-display uppercase"
-            style={{ fontSize: 60, lineHeight: 0.86, margin: 0, color: "#fff" }}
-          >
-            Squads<span style={{ color: "var(--accent)" }}>.</span>
-          </h1>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>&larr;</span>
+            Back to Squads
+          </Link>
 
           {/* Team hero info */}
-          <div
-            className="flex items-center gap-4 sm:gap-5"
-            style={{ marginTop: 32 }}
-          >
+          <div className="flex items-center gap-4 sm:gap-5">
             <TeamBadge team={team} size="xl" />
             <div>
-              <h2
+              <h1
                 className="font-display uppercase"
                 style={{
-                  fontSize: 28,
-                  lineHeight: 1.1,
+                  fontSize: 36,
+                  lineHeight: 1,
                   margin: 0,
                   color: "#fff",
                 }}
               >
                 {team.name}
-              </h2>
+              </h1>
               <div
                 style={{
                   display: "flex",
                   gap: 16,
-                  marginTop: 6,
+                  marginTop: 8,
                   fontSize: 13,
                   color: "rgba(255,255,255,.5)",
                   fontWeight: 600,
                 }}
               >
-                <span>{players.length} players</span>
+                <span>{players.length} player{players.length !== 1 ? "s" : ""}</span>
                 {team.home_ground && <span>{team.home_ground}</span>}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Team selector pills */}
-      <section
-        style={{
-          borderBottom: "1px solid rgba(255,255,255,.06)",
-          background: "#0D1117",
-        }}
-      >
-        <div
-          className="mx-auto"
-          style={{ maxWidth: 1100, padding: "0 32px" }}
-        >
-          <div
-            className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{
-              overflowX: "auto",
-              padding: "14px 0",
-              display: "flex",
-              gap: 6,
-            }}
-          >
-            {teams.map(({ team: t }) => {
-              const isActive = t.id === selectedTeamId;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTeamId(t.id)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 16px",
-                    borderRadius: 999,
-                    border: isActive
-                      ? `2px solid ${t.colour}`
-                      : "1px solid rgba(255,255,255,.1)",
-                    background: isActive
-                      ? `${t.colour}18`
-                      : "transparent",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all .15s",
-                  }}
-                >
-                  <TeamBadge team={t} size="xs" />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: isActive ? "#fff" : "rgba(255,255,255,.5)",
-                      textTransform: "uppercase",
-                      letterSpacing: ".04em",
-                    }}
-                  >
-                    {t.short_name || t.name}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </div>
       </section>
@@ -537,7 +386,6 @@ export default function SquadDisplay({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-            {/* Forwards */}
             {forwards.length > 0 && (
               <div>
                 <SectionHeading
@@ -561,7 +409,6 @@ export default function SquadDisplay({
               </div>
             )}
 
-            {/* Backs */}
             {backs.length > 0 && (
               <div>
                 <SectionHeading
@@ -585,7 +432,6 @@ export default function SquadDisplay({
               </div>
             )}
 
-            {/* Coaching Staff */}
             {coaches.length > 0 && (
               <div>
                 <SectionHeading
