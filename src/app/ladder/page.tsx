@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
-import Image from "next/image";
+import TeamBadge from "@/components/TeamBadge";
+import type { Team } from "@/lib/supabase/types";
 
 export const revalidate = 300;
 
@@ -55,7 +56,7 @@ export default async function LadderPage() {
       .select("comp_id")
       .in("id", tenantIds)
       .eq("is_active", true),
-    supabase.from("teams").select("name, colour"),
+    supabase.from("teams").select("*"),
     supabase
       .from("gameweeks")
       .select("number")
@@ -81,19 +82,23 @@ export default async function LadderPage() {
 
   const standings = (rows ?? []) as LadderRow[];
 
-  // Build team colour map from teams table
-  const teamColourMap = new Map<string, string>();
-  for (const t of teams ?? []) {
-    teamColourMap.set(t.name.toLowerCase(), t.colour);
+  const teamList = (teams ?? []) as Team[];
+  const teamByName = new Map<string, Team>();
+  for (const t of teamList) {
+    teamByName.set(t.name.toLowerCase(), t);
   }
   const FALLBACK_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
 
-  function getTeamColour(name: string, idx: number): string {
+  function findTeam(name: string): Team | undefined {
     const lower = name.toLowerCase();
-    for (const [key, colour] of Array.from(teamColourMap)) {
-      if (lower.includes(key) || key.includes(lower)) return colour;
+    for (const [key, team] of Array.from(teamByName)) {
+      if (lower.includes(key) || key.includes(lower)) return team;
     }
-    return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+    return undefined;
+  }
+
+  function getTeamColour(name: string, idx: number): string {
+    return findTeam(name)?.colour ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
@@ -252,32 +257,28 @@ export default async function LadderPage() {
                           </span>
 
                           {/* Club */}
-                          <span className="flex items-center" style={{ gap: 12, minWidth: 0 }}>
-                            {row.crest ? (
-                              <Image
-                                src={row.crest}
-                                alt={row.team_name}
-                                width={32}
-                                height={32}
-                                className="rounded-full object-contain shrink-0"
-                                style={{ width: 32, height: 32 }}
-                                unoptimized
-                              />
-                            ) : (
-                              <span
-                                className="flex items-center justify-center rounded-full shrink-0"
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  background: teamColor,
-                                  fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-                                  fontSize: 11,
-                                  color: "#fff",
-                                }}
-                              >
-                                {teamMonogram(row.team_name)}
-                              </span>
-                            )}
+                          <span className="flex items-center" style={{ gap: 10, minWidth: 0 }}>
+                            {(() => {
+                              const matched = findTeam(row.team_name);
+                              if (matched) {
+                                return <TeamBadge team={matched} size="sm" />;
+                              }
+                              return (
+                                <span
+                                  className="flex items-center justify-center rounded-full shrink-0"
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    background: teamColor,
+                                    fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                                    fontSize: 11,
+                                    color: "#fff",
+                                  }}
+                                >
+                                  {teamMonogram(row.team_name)}
+                                </span>
+                              );
+                            })()}
                             <span className="flex flex-col" style={{ minWidth: 0 }}>
                               <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {row.team_name}
