@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { signOutAction } from "@/app/auth/signout-action";
 
 export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false }: { siteName?: string; showSquads?: boolean }) {
   const pathname = usePathname();
@@ -132,7 +131,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
           ))}
           <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
             {user ? (
-              <form action={signOutAction}>
+              <form method="POST" action="/api/auth/signout">
                 <button
                   type="submit"
                   className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
@@ -234,7 +233,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               </Link>
             ))}
             {user && (
-              <form action={signOutAction}>
+              <form method="POST" action="/api/auth/signout">
                 <button
                   type="submit"
                   className="flex items-center px-3 py-3.5 rounded-[9px] text-sm font-medium transition-colors mt-1 mb-1"

@@ -1,10 +1,8 @@
-"use server";
-
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 
-export async function signOutAction() {
+export async function POST() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
@@ -15,5 +13,8 @@ export async function signOutAction() {
     }
   }
 
-  redirect("/");
+  return NextResponse.redirect(
+    new URL("/", process.env.NEXT_PUBLIC_APP_URL || "https://clubrugbytipping.com"),
+    302
+  );
 }
