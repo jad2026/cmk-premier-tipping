@@ -5,7 +5,7 @@ import { getCurrentCompetitionId } from "@/lib/competition";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player } from "@/lib/supabase/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function SquadsIndexPage() {
   const supabase = await createClient();

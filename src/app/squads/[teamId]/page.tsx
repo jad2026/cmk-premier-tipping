@@ -4,7 +4,7 @@ import { getCurrentCompetitionId } from "@/lib/competition";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
 import SquadDisplay from "../SquadDisplay";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function TeamSquadPage({
   params,

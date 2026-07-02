@@ -10,7 +10,7 @@ import ClubsMarquee from "@/components/ClubsMarquee";
 import type { Gameweek, Fixture, Team } from "@/lib/supabase/types";
 import { HomeCountdown, FeaturedCountdown } from "./HomeCountdown";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
