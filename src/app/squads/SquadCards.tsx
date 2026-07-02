@@ -1,10 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player } from "@/lib/supabase/types";
 
 type TeamWithPlayers = { team: Team; players: Player[] };
+
+function PlayerAvatar({ player, className }: { player: Player; className?: string }) {
+  const initials = `${player.first_name[0] ?? ""}${player.last_name[0] ?? ""}`.toUpperCase();
+  if (player.photo_url) {
+    return (
+      <Image
+        src={player.photo_url}
+        alt={`${player.first_name} ${player.last_name}`}
+        width={40}
+        height={40}
+        className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${className ?? ""}`}
+        style={{ borderRadius: "50%", objectFit: "cover" }}
+      />
+    );
+  }
+  return (
+    <span
+      className={`shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-[11px] sm:text-[13px] ${className ?? ""}`}
+      style={{
+        borderRadius: "50%",
+        background: "#E4E1D8",
+        fontWeight: 700,
+        color: "#8B8676",
+      }}
+    >
+      {initials}
+    </span>
+  );
+}
 
 export default function SquadCards({ teams }: { teams: TeamWithPlayers[] }) {
   const [open, setOpen] = useState<Set<string>>(() => new Set(teams.map((t) => t.team.id)));
@@ -91,15 +121,17 @@ export default function SquadCards({ teams }: { teams: TeamWithPlayers[] }) {
                     <div
                       className="hidden sm:grid"
                       style={{
-                        gridTemplateColumns: "60px 1fr 140px",
+                        gridTemplateColumns: "50px 48px 1fr 140px",
                         padding: "10px 22px",
                         borderBottom: "1px solid #EFEDE6",
                         background: "#FAF9F5",
+                        alignItems: "center",
                       }}
                     >
                       <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#A39E8C" }}>
                         #
                       </span>
+                      <span />
                       <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#A39E8C" }}>
                         Name
                       </span>
@@ -111,25 +143,27 @@ export default function SquadCards({ teams }: { teams: TeamWithPlayers[] }) {
                     {players.map((player, idx) => (
                       <div
                         key={player.id}
-                        className="grid"
+                        className="flex items-center gap-3 sm:grid"
                         style={{
-                          gridTemplateColumns: "60px 1fr 140px",
+                          gridTemplateColumns: "50px 48px 1fr 140px",
                           padding: "10px 22px",
                           borderBottom: idx < players.length - 1 ? "1px solid #F0EDE5" : "none",
                           alignItems: "center",
                         }}
                       >
                         <span
-                          className="font-display"
+                          className="font-display shrink-0"
                           style={{
                             fontSize: 16,
                             color: team.colour || "var(--accent)",
                             fontWeight: 700,
+                            width: 30,
                           }}
                         >
                           {player.jersey_number}
                         </span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#11151C" }}>
+                        <PlayerAvatar player={player} />
+                        <span className="flex-1 min-w-0 truncate" style={{ fontSize: 14, fontWeight: 600, color: "#11151C" }}>
                           {player.first_name} {player.last_name}
                         </span>
                         <span
