@@ -3,15 +3,6 @@ import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
 
-const FORWARD_POSITIONS = new Set([
-  "Loosehead Prop",
-  "Hooker",
-  "Tighthead Prop",
-  "Lock",
-  "Flanker",
-  "No. 8",
-]);
-
 function PlayerCard({
   player,
   teamColor,
@@ -289,8 +280,9 @@ export default function SquadDisplay({
   players: Player[];
   coaches: CoachingStaff[];
 }) {
-  const forwards = players.filter((p) => FORWARD_POSITIONS.has(p.position));
-  const backs = players.filter((p) => !FORWARD_POSITIONS.has(p.position));
+  const sorted = [...players].sort(
+    (a, b) => (a.jersey_number ?? 99) - (b.jersey_number ?? 99)
+  );
 
   return (
     <div style={{ background: "#F2F0EA", minHeight: "100vh" }}>
@@ -372,40 +364,13 @@ export default function SquadDisplay({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-            {forwards.length > 0 && (
+            {sorted.length > 0 && (
               <div>
-                <SectionHeading
-                  title="Forwards"
-                  count={forwards.length}
-                  color={team.colour}
-                />
                 <div
                   className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                   style={{ gap: 12 }}
                 >
-                  {forwards.map((p) => (
-                    <PlayerCard
-                      key={p.id}
-                      player={p}
-                      teamColor={team.colour}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {backs.length > 0 && (
-              <div>
-                <SectionHeading
-                  title="Backs"
-                  count={backs.length}
-                  color={team.colour}
-                />
-                <div
-                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                  style={{ gap: 12 }}
-                >
-                  {backs.map((p) => (
+                  {sorted.map((p) => (
                     <PlayerCard
                       key={p.id}
                       player={p}
