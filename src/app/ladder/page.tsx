@@ -97,7 +97,7 @@ export default async function LadderPage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "Bunnings NPC" : "CMK Premier";
+  const compLabel = isNpc ? "NPC" : "CMK Premier";
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
   function compHeading(rows: LadderRow[]): string {

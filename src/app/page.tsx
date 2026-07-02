@@ -218,7 +218,7 @@ export default async function HomePage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "Bunnings NPC" : "CMK Premier";
+  const compLabel = isNpc ? "NPC" : "CMK Premier";
   const regionLabel = isNpc ? "New Zealand" : "Taranaki";
 
   // Filter out women's teams and deduplicate by name
@@ -281,7 +281,7 @@ export default async function HomePage() {
           {activeRound && activeMode === "open" && (
             <p className="text-[19px] leading-[1.5] text-[#C2C7D0] max-w-[480px] mb-[38px]">
               {isNpc
-                ? "The Bunnings NPC is here. Pick the winners, back your province, and climb the national leaderboard."
+                ? "The NPC is here. Pick the winners, back your province, and climb the national leaderboard."
                 : `${activeRound.gameweek.label} is open. Lock your tips before kickoff, back your clubs and climb the leaderboard.`}
             </p>
           )}
@@ -562,7 +562,7 @@ export default async function HomePage() {
                   Think you know provincial rugby?
                 </div>
                 <div className="text-[15px] text-[#AEB4BE] max-w-[520px]">
-                  Join the Bunnings NPC tipping competition and go head-to-head with the country.
+                  Join the NPC tipping competition and go head-to-head with the country.
                 </div>
               </div>
               <a

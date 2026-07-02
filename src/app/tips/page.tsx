@@ -20,7 +20,7 @@ export type RoundData = {
 export default async function TipsPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
-  const compLabel = compId === NPC_COMPETITION_ID ? "Bunnings NPC" : "CMK Premier · Taranaki";
+  const compLabel = compId === NPC_COMPETITION_ID ? "NPC" : "CMK Premier · Taranaki";
   const tzLocale = await getCompetitionTimezone(compId);
 
   const { data: compFeatures } = await supabase
