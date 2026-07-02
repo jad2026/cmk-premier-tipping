@@ -37,8 +37,21 @@ function formatCountdown(d: number, h: number, m: number, s: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    setMobile(mq.matches);
+    const h = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, []);
+  return mobile;
+}
+
 export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false }: Props) {
   const supabase = createClient();
+  const isMobile = useIsMobile();
 
   const [picks, setPicks] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -192,7 +205,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       </div>
 
       {/* ── Match cards ─────────────────────────────────────────────────── */}
-      <section className="max-w-content-inner mx-auto flex flex-col gap-4" style={{ padding: "30px 32px 40px" }}>
+      <section className="max-w-content-inner mx-auto flex flex-col gap-2 sm:gap-4" style={{ padding: "20px 16px 32px" }}>
         {rounds.map((round) => {
           const isPastDeadline = isRoundDeadlinePassed(round.deadline);
           return round.fixtures.map((fixture) => (
@@ -203,6 +216,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
               margins={margins}
               marginPicking={marginPicking}
               isPastDeadline={isPastDeadline}
+              compact={isMobile}
               onSelect={(value) =>
                 selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
               }
@@ -359,6 +373,7 @@ function FixtureCard({
   margins,
   marginPicking,
   isPastDeadline,
+  compact,
   onSelect,
   onWheelChange,
   timezone,
@@ -369,6 +384,7 @@ function FixtureCard({
   margins: Record<string, number>;
   marginPicking: boolean;
   isPastDeadline: boolean;
+  compact: boolean;
   onSelect: (value: string) => void;
   onWheelChange: (value: number) => void;
   timezone: string;
@@ -398,11 +414,10 @@ function FixtureCard({
 
   return (
     <div
-      className="overflow-hidden"
+      className="overflow-hidden rounded-xl sm:rounded-2xl"
       style={{
         background: "#fff",
         border: `1px solid ${cardBorder}`,
-        borderRadius: 18,
         boxShadow: "0 1px 2px rgba(17,21,28,.04)",
         opacity: resultLocked ? 0.7 : 1,
       }}
@@ -410,7 +425,7 @@ function FixtureCard({
       {/* Header strip */}
       <div
         className="flex items-center justify-between"
-        style={{ padding: "13px 22px", background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
+        style={{ padding: "8px 12px", background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
       >
         <span className="text-[11px] font-extrabold tracking-[.1em] uppercase text-[#A39E8C]">
           {fixture.venue || "TBC"}
@@ -432,9 +447,9 @@ function FixtureCard({
           <button
             onClick={() => { wheelRef.current?.scrollTo(7); onWheelChange(7); }}
             disabled={isLocked}
-            className="w-full flex items-center gap-2.5 text-left transition-all duration-150 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
-              padding: "10px 20px",
+              padding: "6px 12px",
               background: homePicked
                 ? `color-mix(in srgb, ${home.colour || "var(--accent)"} 6%, #fff)`
                 : "#fff",
@@ -443,17 +458,17 @@ function FixtureCard({
               opacity: awayPicked ? 0.5 : 1,
             }}
           >
-            <TeamBadge team={home} size="sm" />
-            <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{home.name}</span>
+            <TeamBadge team={home} size="xs" />
+            <span className="font-display text-[13px] sm:text-[14px] leading-none uppercase truncate flex-1 min-w-0">{home.name}</span>
             {homePicked ? (
-              <span className="text-[12px] shrink-0" style={{ color: home.colour || "var(--accent)" }}>✓</span>
+              <span className="text-[11px] shrink-0" style={{ color: home.colour || "var(--accent)" }}>✓</span>
             ) : (
-              <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
+              <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
             )}
           </button>
 
           {/* Margin wheel */}
-          <div style={{ padding: "0 20px", background: "#fff" }}>
+          <div className="px-3 sm:px-5" style={{ background: "#fff" }}>
             <MarginWheel
               ref={wheelRef}
               initialValue={wheelInitial}
@@ -461,6 +476,7 @@ function FixtureCard({
               homeColor={home.colour}
               awayColor={away.colour}
               disabled={isLocked}
+              compact={compact}
             />
           </div>
 
@@ -468,9 +484,9 @@ function FixtureCard({
           <button
             onClick={() => { wheelRef.current?.scrollTo(-7); onWheelChange(-7); }}
             disabled={isLocked}
-            className="w-full flex items-center gap-2.5 text-left transition-all duration-150 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
-              padding: "10px 20px",
+              padding: "6px 12px",
               background: awayPicked
                 ? `color-mix(in srgb, ${away.colour || "var(--accent)"} 6%, #fff)`
                 : "#fff",
@@ -479,12 +495,12 @@ function FixtureCard({
               opacity: homePicked ? 0.5 : 1,
             }}
           >
-            <TeamBadge team={away} size="sm" />
-            <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{away.name}</span>
+            <TeamBadge team={away} size="xs" />
+            <span className="font-display text-[13px] sm:text-[14px] leading-none uppercase truncate flex-1 min-w-0">{away.name}</span>
             {awayPicked ? (
-              <span className="text-[12px] shrink-0" style={{ color: away.colour || "var(--accent)" }}>✓</span>
+              <span className="text-[11px] shrink-0" style={{ color: away.colour || "var(--accent)" }}>✓</span>
             ) : (
-              <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
+              <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
             )}
           </button>
 
@@ -492,13 +508,13 @@ function FixtureCard({
           <div
             className="flex items-center justify-center"
             style={{
-              padding: "10px 20px",
+              padding: "5px 12px",
               background: "#FAF9F5",
             }}
           >
             {hasSelection ? (
               <span
-                className="font-display text-[14px] uppercase"
+                className="font-display text-[12px] sm:text-[14px] uppercase"
                 style={{ color: "var(--accent)" }}
               >
                 {drawPicked
@@ -506,7 +522,7 @@ function FixtureCard({
                   : `${homePicked ? home.name : away.name} by ${margins[fixture.id] ?? 0}`}
               </span>
             ) : (
-              <span className="text-[11px] font-semibold text-[#C7C2B5]">
+              <span className="text-[10px] font-semibold text-[#C7C2B5]">
                 ↕ Scroll or tap a team
               </span>
             )}

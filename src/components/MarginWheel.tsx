@@ -3,10 +3,7 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 
 const ITEM_H = 28;
-const VISIBLE = 5;
-const HEIGHT = ITEM_H * VISIBLE;
 const MAX = 100;
-const PAD = Math.floor(VISIBLE / 2) * ITEM_H;
 const TOTAL = MAX * 2 + 1;
 
 const VALUES = Array.from({ length: TOTAL }, (_, i) => MAX - i);
@@ -19,12 +16,17 @@ type Props = {
   homeColor?: string;
   awayColor?: string;
   disabled?: boolean;
+  compact?: boolean;
 };
 
 const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
-  { initialValue = 0, onChange, homeColor, awayColor, disabled },
+  { initialValue = 0, onChange, homeColor, awayColor, disabled, compact = false },
   ref,
 ) {
+  const VISIBLE = compact ? 3 : 5;
+  const HEIGHT = ITEM_H * VISIBLE;
+  const PAD = Math.floor(VISIBLE / 2) * ITEM_H;
+
   const el = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(initialValue);
   const [scrolling, setScrolling] = useState(false);
@@ -84,10 +86,15 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
       ? awayColor || "#11151C"
       : "#8B8676";
 
-  const trackH = HEIGHT - 16;
-  const thumbH = Math.max(12, trackH * (VISIBLE / TOTAL));
+  const trackH = HEIGHT - 12;
+  const thumbH = Math.max(10, trackH * (VISIBLE / TOTAL));
   const scrollFraction = (MAX - current) / (TOTAL - 1);
-  const thumbY = 8 + scrollFraction * (trackH - thumbH);
+  const thumbY = 6 + scrollFraction * (trackH - thumbH);
+
+  const maskPcts = compact
+    ? "rgba(0,0,0,.2), transparent 30%, transparent 70%, rgba(0,0,0,.2)"
+    : "rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15)";
+  const maskVal = `linear-gradient(to bottom, ${maskPcts})`;
 
   return (
     <div style={{ position: "relative", height: HEIGHT, overflow: "hidden" }}>
@@ -99,14 +106,14 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           top: 0,
           left: 0,
           right: 0,
-          height: 14,
+          height: compact ? 10 : 14,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           pointerEvents: "none",
           zIndex: 5,
           color: "#C7C2B5",
-          fontSize: 9,
+          fontSize: compact ? 7 : 9,
         }}
       >
         ▲
@@ -120,14 +127,14 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           bottom: 0,
           left: 0,
           right: 0,
-          height: 14,
+          height: compact ? 10 : 14,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           pointerEvents: "none",
           zIndex: 5,
           color: "#C7C2B5",
-          fontSize: 9,
+          fontSize: compact ? 7 : 9,
         }}
       >
         ▼
@@ -137,7 +144,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
       <div
         style={{
           position: "absolute",
-          top: 8,
+          top: 6,
           right: 2,
           width: 3,
           height: trackH,
@@ -150,7 +157,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         <div
           style={{
             position: "absolute",
-            top: thumbY - 8,
+            top: thumbY - 6,
             width: 3,
             height: thumbH,
             borderRadius: 2,
@@ -194,7 +201,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         <span
           style={{
             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-            fontSize: 22,
+            fontSize: compact ? 18 : 22,
             color: centerColor,
             transition: "color .15s, transform .12s",
             transform: scrolling ? "scale(1.18)" : "scale(1)",
@@ -217,10 +224,8 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           overscrollBehavior: "contain",
           position: "relative",
           zIndex: 1,
-          maskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15))",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15))",
+          maskImage: maskVal,
+          WebkitMaskImage: maskVal,
         }}
       >
         <div style={{ height: PAD }} />
@@ -233,7 +238,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
               alignItems: "center",
               justifyContent: "center",
               scrollSnapAlign: "center",
-              fontSize: 14,
+              fontSize: compact ? 12 : 14,
               fontWeight: 600,
               color: "#B4B0A2",
               borderBottom: "1px solid #F0EDE5",
