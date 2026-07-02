@@ -49,18 +49,18 @@ export default async function SquadsIndexPage() {
       className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
     >
-      {/* Header */}
-      <section style={{ background: "#F2F0EA", borderBottom: "1px solid #E4E1D8" }}>
+      {/* Dark hero */}
+      <section style={{ background: "#0B0E13", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#8B8676" }}>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#C7CCD4" }}>
               Team rosters
             </span>
           </div>
           <h1
             className="font-display uppercase"
-            style={{ fontSize: 60, lineHeight: 0.86, margin: 0, color: "#0B0E13" }}
+            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
           >
             Squads<span style={{ color: "var(--accent)" }}>.</span>
           </h1>

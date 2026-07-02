@@ -294,13 +294,8 @@ export default function SquadDisplay({
 
   return (
     <div style={{ background: "#F2F0EA", minHeight: "100vh" }}>
-      {/* Hero section */}
-      <section
-        style={{
-          background: "#F2F0EA",
-          borderBottom: "1px solid #E4E1D8",
-        }}
-      >
+      {/* Dark hero */}
+      <section style={{ background: "#0B0E13", color: "#fff" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 1100, padding: "32px 32px 36px" }}
@@ -314,12 +309,12 @@ export default function SquadDisplay({
               gap: 6,
               fontSize: 13,
               fontWeight: 600,
-              color: "#8B8676",
+              color: "rgba(255,255,255,.45)",
               textDecoration: "none",
               marginBottom: 24,
               transition: "color .15s",
             }}
-            className="hover:!text-[#11151C]"
+            className="hover:!text-white"
           >
             <span style={{ fontSize: 16, lineHeight: 1 }}>&larr;</span>
             Back to Squads
@@ -335,7 +330,7 @@ export default function SquadDisplay({
                   fontSize: 36,
                   lineHeight: 1,
                   margin: 0,
-                  color: "#0B0E13",
+                  color: "#fff",
                 }}
               >
                 {team.name}
@@ -346,7 +341,7 @@ export default function SquadDisplay({
                   gap: 16,
                   marginTop: 8,
                   fontSize: 13,
-                  color: "#8B8676",
+                  color: "rgba(255,255,255,.5)",
                   fontWeight: 600,
                 }}
               >
