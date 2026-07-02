@@ -59,7 +59,22 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   async function signOut() {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Sign out error:", error);
+    } catch (e) {
+      console.error("Sign out exception:", e);
+    }
+
+    document.cookie.split(";").forEach((c) => {
+      const name = c.split("=")[0].trim();
+      if (name.startsWith("sb-") || name.includes("supabase")) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.clubrugbytipping.com`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+      }
+    });
+
     router.push("/");
     router.refresh();
   }
