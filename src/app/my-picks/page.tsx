@@ -150,8 +150,10 @@ export default async function MyPicksPage() {
         fixtures: gwFixtures,
         roundCorrect: myPicks.filter((p) => p.is_correct === true).length,
         roundPicked: myPicks.filter((p) => p.is_correct !== null).length,
+        hasPicks: myPicks.length > 0,
       };
-    });
+    })
+    .filter((r) => r.is_open || r.hasPicks);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
