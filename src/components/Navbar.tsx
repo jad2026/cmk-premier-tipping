@@ -2,45 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false }: { siteName?: string; showSquads?: boolean }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, user = null, isAdmin = false }: { siteName?: string; showSquads?: boolean; user?: User | null; isAdmin?: boolean }) {
   const pathname = usePathname();
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      setUser(data.user);
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", data.user.id)
-          .single();
-        setIsAdmin(profile?.is_admin ?? false);
-      }
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", session.user.id)
-          .single();
-        setIsAdmin(profile?.is_admin ?? false);
-      } else {
-        setIsAdmin(false);
-      }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, [supabase]);
 
   // Close on outside click or Escape
   useEffect(() => {

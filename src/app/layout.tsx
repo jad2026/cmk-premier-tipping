@@ -64,6 +64,16 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedOut = !user;
 
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.is_admin ?? false;
+  }
+
   return (
     <html
       lang="en"
@@ -71,7 +81,7 @@ export default async function RootLayout({
       style={accentVars as React.CSSProperties}
     >
       <body className={`${archivo.className} min-h-screen`}>
-        <Navbar siteName={siteName} showSquads={showSquads} />
+        <Navbar siteName={siteName} showSquads={showSquads} user={user} isAdmin={isAdmin} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
