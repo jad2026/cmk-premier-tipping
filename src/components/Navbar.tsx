@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
-export default function Navbar({ siteName = "Club Rugby Tipping" }: { siteName?: string }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false }: { siteName?: string; showSquads?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -73,6 +73,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping" }: { siteName?:
     ...(user ? [{ href: "/my-picks", label: "My Picks" }] : []),
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/ladder", label: "Ladder" },
+    ...(showSquads ? [{ href: "/squads", label: "Squads" }] : []),
     ...(user ? [{ href: "/leagues", label: "Leagues" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),

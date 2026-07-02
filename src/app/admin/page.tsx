@@ -22,13 +22,16 @@ export default async function AdminPage() {
   const compId = await getCurrentCompetitionId();
   const tzLocale = await getCompetitionTimezone(compId);
 
-  // Wave 1: teams scoped to competition, compGwIds for fixture scoping, and season config
-  const [{ data: teams }, { data: compGwRows }, { data: seasonConfig }] =
+  // Wave 1: teams scoped to competition, compGwIds for fixture scoping, season config, and features
+  const [{ data: teams }, { data: compGwRows }, { data: seasonConfig }, { data: compFeatures }] =
     await Promise.all([
       supabase.from("teams").select("*").eq("competition_id", compId).order("name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
       supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
+      supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
     ]);
+
+  const showSquads = compFeatures?.features?.show_squads === true;
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
@@ -56,6 +59,7 @@ export default async function AdminPage() {
       compId={compId}
       timezone={tzLocale.timezone}
       locale={tzLocale.locale}
+      showSquads={showSquads}
     />
   );
 }

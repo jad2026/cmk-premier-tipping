@@ -12,21 +12,9 @@ import SeasonManagementPanel from "./SeasonManagementPanel";
 import ManageRoundsPanel from "./ManageRoundsPanel";
 import SponsorsPanel from "./SponsorsPanel";
 import TryOfTheWeekPanel from "./TryOfTheWeekPanel";
+import SquadManagementPanel from "./SquadManagementPanel";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "participants" | "history" | "season" | "sponsors" | "try";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "add", label: "Add Fixture" },
-  { id: "bulk", label: "Bulk Import" },
-  { id: "results", label: "Enter Results" },
-  { id: "try", label: "Try of the Week" },
-  { id: "rounds", label: "Manage Rounds" },
-  { id: "teams", label: "Teams" },
-  { id: "participants", label: "Participants" },
-  { id: "history", label: "Results History" },
-  { id: "season", label: "Season" },
-  { id: "sponsors", label: "Sponsors" },
-];
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "squads" | "participants" | "history" | "season" | "sponsors" | "try";
 
 type Props = {
   teams: Team[];
@@ -36,10 +24,25 @@ type Props = {
   compId: string;
   timezone: string;
   locale: string;
+  showSquads?: boolean;
 };
 
-export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId, timezone, locale }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId, timezone, locale, showSquads = false }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("add");
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "add", label: "Add Fixture" },
+    { id: "bulk", label: "Bulk Import" },
+    { id: "results", label: "Enter Results" },
+    { id: "try", label: "Try of the Week" },
+    { id: "rounds", label: "Manage Rounds" },
+    { id: "teams", label: "Teams" },
+    ...(showSquads ? [{ id: "squads" as Tab, label: "Squads" }] : []),
+    { id: "participants", label: "Participants" },
+    { id: "history", label: "Results History" },
+    { id: "season", label: "Season" },
+    { id: "sponsors", label: "Sponsors" },
+  ];
 
   return (
     <div
@@ -142,6 +145,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
           {activeTab === "history" && <ResultsHistoryPanel />}
           {activeTab === "sponsors" && <SponsorsPanel compId={compId} />}
           {activeTab === "try" && <TryOfTheWeekPanel compId={compId} />}
+          {activeTab === "squads" && <SquadManagementPanel teams={teams} />}
         </div>
       </section>
     </div>

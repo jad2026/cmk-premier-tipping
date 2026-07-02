@@ -109,6 +109,18 @@ export type TryOfTheWeek = {
   updated_at: string;
 };
 
+export type Player = {
+  id: string;
+  team_id: string;
+  first_name: string;
+  last_name: string;
+  position: string;
+  jersey_number: number;
+  photo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
 export type Season = {
   id: string;
   name: string;
@@ -202,6 +214,12 @@ export type Database = {
         Row: TryOfTheWeek;
         Insert: Omit<TryOfTheWeek, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
         Update: Partial<TryOfTheWeek>;
+        Relationships: [];
+      };
+      players: {
+        Row: Player;
+        Insert: Omit<Player, "id" | "created_at" | "photo_url"> & { id?: string; created_at?: string; photo_url?: string | null };
+        Update: Partial<Player>;
         Relationships: [];
       };
     };

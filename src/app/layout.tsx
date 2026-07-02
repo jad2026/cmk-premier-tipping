@@ -6,6 +6,7 @@ import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import { getAccentForCompetition, getAccentCSSVars } from "@/lib/theme";
+import { createClient } from "@/lib/supabase/server";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -51,6 +52,14 @@ export default async function RootLayout({
   const accentName = getAccentForCompetition(compId);
   const accentVars = getAccentCSSVars(accentName);
 
+  const supabase = await createClient();
+  const { data: compFeatures } = await supabase
+    .from("competitions")
+    .select("features")
+    .eq("id", compId)
+    .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
+  const showSquads = compFeatures?.features?.show_squads === true;
+
   return (
     <html
       lang="en"
@@ -58,7 +67,7 @@ export default async function RootLayout({
       style={accentVars as React.CSSProperties}
     >
       <body className={`${archivo.className} min-h-screen`}>
-        <Navbar siteName={siteName} />
+        <Navbar siteName={siteName} showSquads={showSquads} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
