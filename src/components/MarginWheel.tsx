@@ -27,7 +27,9 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
 ) {
   const el = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(initialValue);
+  const [scrolling, setScrolling] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const scrollEndTimer = useRef<ReturnType<typeof setTimeout>>();
   const frame = useRef<number>();
   const settling = useRef(true);
 
@@ -53,6 +55,9 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
 
   const handleScroll = useCallback(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
+    setScrolling(true);
+    clearTimeout(scrollEndTimer.current);
+    scrollEndTimer.current = setTimeout(() => setScrolling(false), 150);
     frame.current = requestAnimationFrame(() => {
       frame.current = undefined;
       const e = el.current;
@@ -69,6 +74,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
   useEffect(() => () => {
     if (frame.current) cancelAnimationFrame(frame.current);
     clearTimeout(timer.current);
+    clearTimeout(scrollEndTimer.current);
   }, []);
 
   const centerColor =
@@ -78,8 +84,82 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
       ? awayColor || "#11151C"
       : "#8B8676";
 
+  const trackH = HEIGHT - 16;
+  const thumbH = Math.max(12, trackH * (VISIBLE / TOTAL));
+  const scrollFraction = (MAX - current) / (TOTAL - 1);
+  const thumbY = 8 + scrollFraction * (trackH - thumbH);
+
   return (
     <div style={{ position: "relative", height: HEIGHT, overflow: "hidden" }}>
+      {/* Arrow hint top */}
+      <div
+        className="margin-wheel-arrow"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 5,
+          color: "#C7C2B5",
+          fontSize: 9,
+        }}
+      >
+        ▲
+      </div>
+
+      {/* Arrow hint bottom */}
+      <div
+        className="margin-wheel-arrow"
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 5,
+          color: "#C7C2B5",
+          fontSize: 9,
+        }}
+      >
+        ▼
+      </div>
+
+      {/* Scrollbar track */}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 2,
+          width: 3,
+          height: trackH,
+          borderRadius: 2,
+          background: "rgba(0,0,0,.06)",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: thumbY - 8,
+            width: 3,
+            height: thumbH,
+            borderRadius: 2,
+            background: scrolling ? "rgba(0,0,0,.25)" : "rgba(0,0,0,.12)",
+            transition: "background .15s",
+          }}
+        />
+      </div>
+
       {/* Centre highlight band */}
       <div
         style={{
@@ -116,7 +196,9 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
             fontSize: 22,
             color: centerColor,
-            transition: "color .15s",
+            transition: "color .15s, transform .12s",
+            transform: scrolling ? "scale(1.18)" : "scale(1)",
+            display: "inline-block",
           }}
         >
           {Math.abs(current)}
@@ -136,9 +218,9 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           position: "relative",
           zIndex: 1,
           maskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.45) 25%, transparent 42%, transparent 58%, rgba(0,0,0,.45) 75%, rgba(0,0,0,.25))",
+            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15))",
           WebkitMaskImage:
-            "linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.45) 25%, transparent 42%, transparent 58%, rgba(0,0,0,.45) 75%, rgba(0,0,0,.25))",
+            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15))",
         }}
       >
         <div style={{ height: PAD }} />
@@ -165,7 +247,12 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         <div style={{ height: PAD }} />
       </div>
 
-      <style>{`.margin-wheel::-webkit-scrollbar{display:none}.margin-wheel{scrollbar-width:none}`}</style>
+      <style>{`
+        .margin-wheel::-webkit-scrollbar{display:none}
+        .margin-wheel{scrollbar-width:none}
+        @keyframes mw-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+        .margin-wheel-arrow{animation:mw-bounce 1.8s ease-in-out infinite}
+      `}</style>
     </div>
   );
 });

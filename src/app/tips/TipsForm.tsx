@@ -432,16 +432,24 @@ function FixtureCard({
           <button
             onClick={() => { wheelRef.current?.scrollTo(7); onWheelChange(7); }}
             disabled={isLocked}
-            className="w-full flex items-center gap-2.5 text-left transition-colors duration-150 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2.5 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
               padding: "10px 20px",
-              background: homePicked ? "var(--accent-wash)" : "#fff",
+              background: homePicked
+                ? `color-mix(in srgb, ${home.colour || "var(--accent)"} 6%, #fff)`
+                : "#fff",
+              borderLeft: homePicked ? `4px solid ${home.colour || "var(--accent)"}` : "4px solid transparent",
               borderBottom: "1px solid #EFEDE6",
+              opacity: awayPicked ? 0.5 : 1,
             }}
           >
             <TeamBadge team={home} size="sm" />
             <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{home.name}</span>
-            <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
+            {homePicked ? (
+              <span className="text-[12px] shrink-0" style={{ color: home.colour || "var(--accent)" }}>✓</span>
+            ) : (
+              <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
+            )}
           </button>
 
           {/* Margin wheel */}
@@ -460,36 +468,38 @@ function FixtureCard({
           <button
             onClick={() => { wheelRef.current?.scrollTo(-7); onWheelChange(-7); }}
             disabled={isLocked}
-            className="w-full flex items-center gap-2.5 text-left transition-colors duration-150 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2.5 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
               padding: "10px 20px",
-              background: awayPicked ? "var(--accent-wash)" : "#fff",
+              background: awayPicked
+                ? `color-mix(in srgb, ${away.colour || "var(--accent)"} 6%, #fff)`
+                : "#fff",
+              borderLeft: awayPicked ? `4px solid ${away.colour || "var(--accent)"}` : "4px solid transparent",
               borderBottom: "1px solid #EFEDE6",
+              opacity: homePicked ? 0.5 : 1,
             }}
           >
             <TeamBadge team={away} size="sm" />
             <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{away.name}</span>
-            <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
+            {awayPicked ? (
+              <span className="text-[12px] shrink-0" style={{ color: away.colour || "var(--accent)" }}>✓</span>
+            ) : (
+              <span className="text-[10px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
+            )}
           </button>
 
           {/* Prediction label */}
           <div
             className="flex items-center justify-center"
             style={{
-              padding: "8px 20px",
+              padding: "10px 20px",
               background: "#FAF9F5",
             }}
           >
             {hasSelection ? (
               <span
-                className="text-[12px] font-bold"
-                style={{
-                  color: drawPicked
-                    ? "#8B8676"
-                    : homePicked
-                    ? home.colour || "var(--accent)"
-                    : away.colour || "var(--accent)",
-                }}
+                className="font-display text-[14px] uppercase"
+                style={{ color: "var(--accent)" }}
               >
                 {drawPicked
                   ? "Draw"
