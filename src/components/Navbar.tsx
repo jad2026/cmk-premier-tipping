@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { signOutAction } from "@/app/auth/signout-action";
 
 export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false }: { siteName?: string; showSquads?: boolean }) {
   const pathname = usePathname();
-  const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -57,27 +57,6 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
-
-  async function signOut() {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) console.error("Sign out error:", error);
-    } catch (e) {
-      console.error("Sign out exception:", e);
-    }
-
-    document.cookie.split(";").forEach((c) => {
-      const name = c.split("=")[0].trim();
-      if (name.startsWith("sb-") || name.includes("supabase")) {
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.clubrugbytipping.com`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
-      }
-    });
-
-    router.push("/");
-    router.refresh();
-  }
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -153,21 +132,23 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
           ))}
           <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
             {user ? (
-              <button
-                onClick={signOut}
-                className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
-                style={{ color: "#99A0AC" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.background = "rgba(255,255,255,.06)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#99A0AC";
-                  e.currentTarget.style.background = "transparent";
-                }}
-              >
-                Sign out
-              </button>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
+                  style={{ color: "#99A0AC" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#FFFFFF";
+                    e.currentTarget.style.background = "rgba(255,255,255,.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#99A0AC";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  Sign out
+                </button>
+              </form>
             ) : (
               <Link
                 href="/login"
@@ -253,13 +234,15 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               </Link>
             ))}
             {user && (
-              <button
-                onClick={signOut}
-                className="flex items-center px-3 py-3.5 rounded-[9px] text-sm font-medium transition-colors mt-1 mb-1"
-                style={{ color: "#99A0AC" }}
-              >
-                Sign out
-              </button>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="flex items-center px-3 py-3.5 rounded-[9px] text-sm font-medium transition-colors mt-1 mb-1"
+                  style={{ color: "#99A0AC" }}
+                >
+                  Sign out
+                </button>
+              </form>
             )}
           </nav>
         </div>
