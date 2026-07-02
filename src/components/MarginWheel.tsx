@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from "react";
+import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle, useMemo } from "react";
 
 const ITEM_H = 28;
 const MAX = 100;
@@ -17,10 +17,11 @@ type Props = {
   awayColor?: string;
   disabled?: boolean;
   compact?: boolean;
+  accentColor?: string;
 };
 
 const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
-  { initialValue = 0, onChange, homeColor, awayColor, disabled, compact = false },
+  { initialValue = 0, onChange, homeColor, awayColor, disabled, compact = false, accentColor },
   ref,
 ) {
   const VISIBLE = compact ? 3 : 5;
@@ -79,25 +80,51 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
     clearTimeout(scrollEndTimer.current);
   }, []);
 
+  const accent = accentColor || "var(--accent)";
+
   const centerColor =
     current > 0
-      ? homeColor || "#11151C"
+      ? homeColor || accent
       : current < 0
-      ? awayColor || "#11151C"
-      : "#8B8676";
+      ? awayColor || accent
+      : accent;
 
   const trackH = HEIGHT - 12;
   const thumbH = Math.max(10, trackH * (VISIBLE / TOTAL));
   const scrollFraction = (MAX - current) / (TOTAL - 1);
   const thumbY = 6 + scrollFraction * (trackH - thumbH);
 
-  const maskPcts = compact
-    ? "rgba(0,0,0,.2), transparent 30%, transparent 70%, rgba(0,0,0,.2)"
-    : "rgba(0,0,0,.15), rgba(0,0,0,.4) 20%, transparent 40%, transparent 60%, rgba(0,0,0,.4) 80%, rgba(0,0,0,.15)";
-  const maskVal = `linear-gradient(to bottom, ${maskPcts})`;
+  const half = Math.floor(VISIBLE / 2);
+
+  const itemStyles = useMemo(() => {
+    const styles: Record<number, { fontSize: number; fontWeight: number; color: string; opacity: number }> = {};
+    for (const n of VALUES) {
+      const dist = Math.abs(n - current);
+      if (dist === 0) {
+        styles[n] = { fontSize: 0, fontWeight: 800, color: "transparent", opacity: 0 };
+      } else if (dist === 1) {
+        styles[n] = { fontSize: compact ? 14 : 16, fontWeight: 700, color: "#333", opacity: 0.7 };
+      } else if (dist === 2) {
+        styles[n] = { fontSize: compact ? 12 : 14, fontWeight: 600, color: "#666", opacity: compact ? 0 : 0.5 };
+      } else {
+        styles[n] = { fontSize: compact ? 12 : 14, fontWeight: 600, color: "#999", opacity: 0.3 };
+      }
+    }
+    return styles;
+  }, [current, compact]);
 
   return (
-    <div style={{ position: "relative", height: HEIGHT, overflow: "hidden" }}>
+    <div
+      style={{
+        position: "relative",
+        height: HEIGHT,
+        overflow: "hidden",
+        borderRadius: 8,
+        boxShadow: "inset 0 1px 3px rgba(0,0,0,.08)",
+        border: "1px solid #E4E1D8",
+        background: "#FAFAF8",
+      }}
+    >
       {/* Arrow hint top */}
       <div
         className="margin-wheel-arrow"
@@ -112,7 +139,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           justifyContent: "center",
           pointerEvents: "none",
           zIndex: 5,
-          color: "#C7C2B5",
+          color: "#999",
           fontSize: compact ? 7 : 9,
         }}
       >
@@ -133,7 +160,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           justifyContent: "center",
           pointerEvents: "none",
           zIndex: 5,
-          color: "#C7C2B5",
+          color: "#999",
           fontSize: compact ? 7 : 9,
         }}
       >
@@ -149,7 +176,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           width: 3,
           height: trackH,
           borderRadius: 2,
-          background: "rgba(0,0,0,.06)",
+          background: "rgba(0,0,0,.08)",
           pointerEvents: "none",
           zIndex: 5,
         }}
@@ -161,7 +188,7 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
             width: 3,
             height: thumbH,
             borderRadius: 2,
-            background: scrolling ? "rgba(0,0,0,.25)" : "rgba(0,0,0,.12)",
+            background: scrolling ? "rgba(0,0,0,.3)" : "rgba(0,0,0,.15)",
             transition: "background .15s",
           }}
         />
@@ -175,11 +202,13 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           left: 0,
           right: 0,
           height: ITEM_H,
-          background: "rgba(0,0,0,.03)",
-          borderTop: "1px solid #E4E1D8",
-          borderBottom: "1px solid #E4E1D8",
+          background: `color-mix(in srgb, ${centerColor} 12%, transparent)`,
+          borderTop: "1px solid",
+          borderBottom: "1px solid",
+          borderColor: `color-mix(in srgb, ${centerColor} 25%, transparent)`,
           pointerEvents: "none",
           zIndex: 2,
+          transition: "background .15s, border-color .15s",
         }}
       />
 
@@ -201,10 +230,11 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
         <span
           style={{
             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-            fontSize: compact ? 18 : 22,
+            fontSize: compact ? 28 : 24,
+            fontWeight: 800,
             color: centerColor,
             transition: "color .15s, transform .12s",
-            transform: scrolling ? "scale(1.18)" : "scale(1)",
+            transform: scrolling ? "scale(1.15)" : "scale(1)",
             display: "inline-block",
           }}
         >
@@ -224,31 +254,34 @@ const MarginWheel = forwardRef<MarginWheelHandle, Props>(function MarginWheel(
           overscrollBehavior: "contain",
           position: "relative",
           zIndex: 1,
-          maskImage: maskVal,
-          WebkitMaskImage: maskVal,
         }}
       >
         <div style={{ height: PAD }} />
-        {VALUES.map((n) => (
-          <div
-            key={n}
-            style={{
-              height: ITEM_H,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              scrollSnapAlign: "center",
-              fontSize: compact ? 12 : 14,
-              fontWeight: 600,
-              color: "#B4B0A2",
-              borderBottom: "1px solid #F0EDE5",
-              userSelect: "none",
-              WebkitUserSelect: "none",
-            }}
-          >
-            {Math.abs(n)}
-          </div>
-        ))}
+        {VALUES.map((n) => {
+          const s = itemStyles[n];
+          return (
+            <div
+              key={n}
+              style={{
+                height: ITEM_H,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                scrollSnapAlign: "center",
+                fontSize: s?.fontSize ?? 14,
+                fontWeight: s?.fontWeight ?? 600,
+                color: s?.color ?? "#999",
+                opacity: s?.opacity ?? 0.3,
+                borderBottom: "1px solid #ECEAE3",
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                transition: "opacity .1s, font-size .1s",
+              }}
+            >
+              {Math.abs(n)}
+            </div>
+          );
+        })}
         <div style={{ height: PAD }} />
       </div>
 
