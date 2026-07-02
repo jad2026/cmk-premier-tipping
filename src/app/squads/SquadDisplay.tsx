@@ -3,17 +3,6 @@ import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
 
-const CARD_BGS = [
-  "#20303F",
-  "#2A3A2A",
-  "#33262E",
-  "#25303B",
-  "#382C22",
-  "#2E2A38",
-  "#213A34",
-  "#30302A",
-];
-
 const FORWARD_POSITIONS = new Set([
   "Loosehead Prop",
   "Hooker",
@@ -25,18 +14,16 @@ const FORWARD_POSITIONS = new Set([
 
 function PlayerCard({
   player,
-  bgColor,
   teamColor,
 }: {
   player: Player;
-  bgColor: string;
   teamColor: string;
 }) {
   const displayName = `${player.first_name[0]}. ${player.last_name.toUpperCase()}`;
   return (
     <div
       style={{
-        background: bgColor,
+        background: `color-mix(in srgb, #0B0E13 70%, ${teamColor})`,
         borderRadius: 14,
         overflow: "hidden",
         display: "flex",
@@ -397,11 +384,10 @@ export default function SquadDisplay({
                   className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                   style={{ gap: 12 }}
                 >
-                  {forwards.map((p, idx) => (
+                  {forwards.map((p) => (
                     <PlayerCard
                       key={p.id}
                       player={p}
-                      bgColor={CARD_BGS[idx % CARD_BGS.length]}
                       teamColor={team.colour}
                     />
                   ))}
@@ -420,11 +406,10 @@ export default function SquadDisplay({
                   className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                   style={{ gap: 12 }}
                 >
-                  {backs.map((p, idx) => (
+                  {backs.map((p) => (
                     <PlayerCard
                       key={p.id}
                       player={p}
-                      bgColor={CARD_BGS[idx % CARD_BGS.length]}
                       teamColor={team.colour}
                     />
                   ))}
