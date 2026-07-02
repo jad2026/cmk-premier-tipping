@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
@@ -13,8 +13,7 @@ export async function POST() {
     }
   }
 
-  return NextResponse.redirect(
-    new URL("/", process.env.NEXT_PUBLIC_APP_URL || "https://clubrugbytipping.com"),
-    302
-  );
+  const host = request.headers.get("host") || "clubrugbytipping.com";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  return NextResponse.redirect(new URL("/", `${protocol}://${host}`), 302);
 }
