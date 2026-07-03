@@ -175,7 +175,9 @@ function FixtureCard({
   const hasResult = fixture.result_team_id !== null || fixture.is_draw;
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
 
-  const sorted = [...picks].sort((a, b) => {
+  const visiblePicks = hasResult ? picks : picks.filter((p) => !p.auto_picked);
+
+  const sorted = [...visiblePicks].sort((a, b) => {
     const stateOrder = (p: RichPick) => (!hasResult ? 1 : p.is_correct ? 0 : 2);
     const diff = stateOrder(a) - stateOrder(b);
     if (diff !== 0) return diff;

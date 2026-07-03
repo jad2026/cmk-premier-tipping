@@ -125,11 +125,13 @@ function FixtureCard({
   const hasResult = fixture.result_team_id !== null || fixture.is_draw;
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
 
-  const correctPicks = picks.filter((p) => p.is_correct === true);
-  const wrongPicks   = picks.filter((p) => p.is_correct === false);
-  const pendingPicks = picks.filter((p) => p.is_correct === null);
+  const visiblePicks = hasResult ? picks : picks.filter((p) => !p.auto_picked);
 
-  const sorted = [...picks].sort((a, b) => {
+  const correctPicks = visiblePicks.filter((p) => p.is_correct === true);
+  const wrongPicks   = visiblePicks.filter((p) => p.is_correct === false);
+  const pendingPicks = visiblePicks.filter((p) => p.is_correct === null);
+
+  const sorted = [...visiblePicks].sort((a, b) => {
     const stateOrder = (p: RichPick) => (!hasResult ? 1 : p.is_correct ? 0 : 2);
     const diff = stateOrder(a) - stateOrder(b);
     if (diff !== 0) return diff;
@@ -198,7 +200,7 @@ function FixtureCard({
       {sorted.length > 0 && (
         <div className="border-t border-gray-100">
           {/* Summary bar */}
-          {hasResult && picks.length > 0 && (
+          {hasResult && visiblePicks.length > 0 && (
             <div className="px-5 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <span className="font-semibold text-green-700">{correctPicks.length}</span> correct
