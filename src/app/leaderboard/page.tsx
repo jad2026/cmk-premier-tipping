@@ -395,6 +395,7 @@ export default async function LeaderboardPage() {
     supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
   ]);
   const marginPicking = compFeatures?.features?.margin_picking === true;
+  const participantIds = new Set((participants ?? []).map((p) => p.user_id));
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
@@ -473,6 +474,7 @@ export default async function LeaderboardPage() {
         .in("fixture_id", weekFixtures.map((f) => f.id));
 
       for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
+        if (!participantIds.has(pick.user_id)) continue;
         const list = weekPicksByFixture.get(pick.fixture_id) ?? [];
         list.push(pick);
         weekPicksByFixture.set(pick.fixture_id, list);
@@ -480,7 +482,6 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const participantIds = new Set((participants ?? []).map((p) => p.user_id));
   const lbMap = new Map<string, { correct: number; total: number; marginsCorrect: number; marginBonus: number }>(
     Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, marginsCorrect: 0, marginBonus: 0 }])
   );
@@ -574,6 +575,7 @@ export default async function LeaderboardPage() {
         .in("fixture_id", allFixtureIds);
 
       for (const pick of (summaryPicksRaw ?? []) as unknown as RichPick[]) {
+        if (!participantIds.has(pick.user_id)) continue;
         const list = summaryPicksByFixture.get(pick.fixture_id) ?? [];
         list.push(pick);
         summaryPicksByFixture.set(pick.fixture_id, list);

@@ -252,7 +252,7 @@ export default async function RoundPage({
   // Fetch gameweek, teams, profiles, and match scores in parallel.
   // Filter by competition_id so "Round 1" from one competition doesn't
   // collide with "Round 1" from another.
-  const [{ data: gameweek }, { data: teams }, { data: profiles }, { data: matchResultsRaw }] =
+  const [{ data: gameweek }, { data: teams }, { data: profiles }, { data: matchResultsRaw }, { data: participants }] =
     await Promise.all([
       supabase
         .from("gameweeks")
@@ -266,7 +266,9 @@ export default async function RoundPage({
         .from("match_results")
         .select("home_team, away_team, home_score, away_score")
         .eq("result_status", "final"),
+      supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
     ]);
+  const participantIds = new Set((participants ?? []).map((p) => p.user_id));
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -296,6 +298,7 @@ export default async function RoundPage({
       .in("fixture_id", fixtureIds);
 
     for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
+      if (!participantIds.has(pick.user_id)) continue;
       const list = picksByFixture.get(pick.fixture_id) ?? [];
       list.push(pick);
       picksByFixture.set(pick.fixture_id, list);

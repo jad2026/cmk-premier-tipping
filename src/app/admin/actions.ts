@@ -116,7 +116,7 @@ export async function saveResults(
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // ── Step 1: auto-fill missing picks ─────────────────────────────────────
+  // ── Step 1: auto-fill missing picks (scoped to competition participants) ─
   const fixtureIds = toProcess.map((r) => r.fixtureId);
 
   const { data: fixtureMeta, error: metaErr } = await supabase
@@ -132,16 +132,13 @@ export async function saveResults(
     );
 
     for (const gwId of uniqueGameweekIds) {
-      console.log(`[saveResults] auto_fill_missing_picks → gameweek_id=${gwId}`);
-      const { error: autoErr } = await supabase.rpc(
-        "auto_fill_missing_picks",
-        { p_gameweek_id: gwId }
-      );
-      if (autoErr) {
-        console.error(`[saveResults] auto_fill_missing_picks FAILED (gameweek ${gwId}):`, autoErr.message);
-        errors.push(`Auto-pick (gameweek ${gwId}): ${autoErr.message}`);
+      console.log(`[saveResults] auto-fill picks → gameweek_id=${gwId}`);
+      const autoFillErr = await autoFillForGameweek(admin, gwId);
+      if (autoFillErr) {
+        console.error(`[saveResults] auto-fill FAILED (gameweek ${gwId}):`, autoFillErr);
+        errors.push(`Auto-pick (gameweek ${gwId}): ${autoFillErr}`);
       } else {
-        console.log(`[saveResults] auto_fill_missing_picks OK (gameweek ${gwId})`);
+        console.log(`[saveResults] auto-fill OK (gameweek ${gwId})`);
       }
     }
   }
@@ -1140,20 +1137,88 @@ export async function deleteFixture(fixtureId: string): Promise<{ error: string 
 }
 
 // ---------------------------------------------------------------------------
-// Auto-fill random picks for a specific round
+// Auto-fill random picks — scoped to competition_participants only
 // ---------------------------------------------------------------------------
 
-export async function autoFillRandomPicks(gameweekId: string): Promise<{ count: number; error: string | null }> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("auto_fill_missing_picks", {
-    p_gameweek_id: gameweekId,
-  });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function autoFillForGameweek(adminClient: any, gameweekId: string): Promise<string | null> {
+  const { data: gw, error: gwErr } = await adminClient
+    .from("gameweeks")
+    .select("competition_id, deadline")
+    .eq("id", gameweekId)
+    .single();
 
-  if (error) return { count: 0, error: error.message };
+  if (gwErr || !gw) return gwErr?.message ?? "Gameweek not found";
+
+  const { data: participants } = await adminClient
+    .from("competition_participants")
+    .select("user_id")
+    .eq("competition_id", gw.competition_id)
+    .lte("joined_at", gw.deadline);
+
+  const participantUserIds = (participants ?? []).map((p: { user_id: string }) => p.user_id);
+  if (participantUserIds.length === 0) return null;
+
+  const { data: fixtures } = await adminClient
+    .from("fixtures")
+    .select("id, home_team_id, away_team_id")
+    .eq("gameweek_id", gameweekId);
+
+  if (!fixtures || fixtures.length === 0) return null;
+
+  const fixtureIds = fixtures.map((f: { id: string }) => f.id);
+  const { data: existingPicks } = await adminClient
+    .from("picks")
+    .select("user_id, fixture_id")
+    .in("fixture_id", fixtureIds)
+    .in("user_id", participantUserIds);
+
+  const existingSet = new Set(
+    (existingPicks ?? []).map((p: { user_id: string; fixture_id: string }) => `${p.user_id}:${p.fixture_id}`)
+  );
+
+  const toInsert: { user_id: string; fixture_id: string; picked_team_id: string; auto_picked: boolean }[] = [];
+  for (const userId of participantUserIds) {
+    for (const fix of fixtures) {
+      if (existingSet.has(`${userId}:${fix.id}`)) continue;
+      toInsert.push({
+        user_id: userId,
+        fixture_id: fix.id,
+        picked_team_id: Math.random() < 0.5 ? fix.home_team_id : fix.away_team_id,
+        auto_picked: true,
+      });
+    }
+  }
+
+  if (toInsert.length === 0) return null;
+
+  const { error: insertErr } = await adminClient
+    .from("picks")
+    .upsert(toInsert, { onConflict: "user_id,fixture_id", ignoreDuplicates: true });
+
+  if (insertErr) return insertErr.message;
+
+  console.log(`[autoFill] Inserted ${toInsert.length} auto-picks for gameweek ${gameweekId} (${participantUserIds.length} participants)`);
+  return null;
+}
+
+export async function autoFillRandomPicks(gameweekId: string): Promise<{ count: number; error: string | null }> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { count: 0, error: "SUPABASE_SERVICE_ROLE_KEY not set" };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const err = await autoFillForGameweek(admin, gameweekId);
+  if (err) return { count: 0, error: err };
 
   revalidatePath("/leaderboard");
   revalidatePath("/my-picks");
-  return { count: data ?? 0, error: null };
+  return { count: 1, error: null };
 }
 
 // ---------------------------------------------------------------------------
