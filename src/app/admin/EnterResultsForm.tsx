@@ -11,11 +11,11 @@ type Props = {
   locale: string;
 };
 
-const DRAW = "draw";
+type ScoreEntry = { home: string; away: string };
 
 export default function EnterResultsForm({ fixtures, teams, timezone, locale }: Props) {
-  const [results, setResults] = useState<Record<string, string>>(
-    Object.fromEntries(fixtures.map((f) => [f.id, ""]))
+  const [scores, setScores] = useState<Record<string, ScoreEntry>>(
+    Object.fromEntries(fixtures.map((f) => [f.id, { home: "", away: "" }]))
   );
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
@@ -23,21 +23,39 @@ export default function EnterResultsForm({ fixtures, teams, timezone, locale }: 
     msg: string;
   } | null>(null);
 
-  function setResult(fixtureId: string, value: string) {
-    setResults((prev) => ({ ...prev, [fixtureId]: value }));
+  function setScore(fixtureId: string, side: "home" | "away", value: string) {
+    setScores((prev) => ({
+      ...prev,
+      [fixtureId]: { ...prev[fixtureId], [side]: value },
+    }));
     setFeedback(null);
   }
 
   function handleSave() {
-    const toSave = Object.entries(results)
-      .filter(([, v]) => v !== "")
-      .map(([fixtureId, resultTeamId]) => ({
-        fixtureId,
-        resultTeamId: resultTeamId === DRAW ? "draw" : resultTeamId,
-      }));
+    const toSave: { fixtureId: string; resultTeamId: string; homeScore: number; awayScore: number }[] = [];
+
+    for (const fixture of fixtures) {
+      const entry = scores[fixture.id];
+      if (entry.home === "" || entry.away === "") continue;
+
+      const homeScore = parseInt(entry.home, 10);
+      const awayScore = parseInt(entry.away, 10);
+      if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) continue;
+
+      let resultTeamId: string;
+      if (homeScore > awayScore) {
+        resultTeamId = fixture.home_team_id;
+      } else if (awayScore > homeScore) {
+        resultTeamId = fixture.away_team_id;
+      } else {
+        resultTeamId = "draw";
+      }
+
+      toSave.push({ fixtureId: fixture.id, resultTeamId, homeScore, awayScore });
+    }
 
     if (toSave.length === 0) {
-      setFeedback({ ok: false, msg: "Select at least one result before saving." });
+      setFeedback({ ok: false, msg: "Enter scores for at least one fixture before saving." });
       return;
     }
 
@@ -70,30 +88,31 @@ export default function EnterResultsForm({ fixtures, teams, timezone, locale }: 
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <div className="flex items-center gap-3 mb-5"><span className="shrink-0" style={{ width: 4, height: 24, borderRadius: 2, background: "var(--accent)" }} /><h2 className="font-display uppercase" style={{ fontSize: 23, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>Enter Results</h2></div>
       <p className="text-xs text-gray-400 mb-4">
-        Showing fixtures without a result. Select the winner (or Draw) then hit
-        Save. Picks will be scored automatically.
+        Enter the final scores. The winner (or draw) is determined automatically.
+        Picks and margins will be scored on save.
       </p>
 
       <div className="space-y-3">
         {fixtures.map((fixture) => {
           const home = fixture.home_team!;
           const away = fixture.away_team!;
+          const entry = scores[fixture.id];
+          const homeVal = entry?.home ?? "";
+          const awayVal = entry?.away ?? "";
+          const bothFilled = homeVal !== "" && awayVal !== "";
+          const h = parseInt(homeVal, 10);
+          const a = parseInt(awayVal, 10);
+          const resultLabel = bothFilled && !isNaN(h) && !isNaN(a)
+            ? h > a ? `${home.name} win` : a > h ? `${away.name} win` : "Draw"
+            : null;
 
           return (
             <div
               key={fixture.id}
-              className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-3"
+              className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3"
             >
-              {/* Match label */}
-              <div>
-                <p className="text-sm font-medium text-gray-800">
-                  <TeamDot colour={home.colour} />
-                  {home.name}
-                  <span className="mx-2 text-gray-400">vs</span>
-                  <TeamDot colour={away.colour} />
-                  {away.name}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs text-gray-400">
                   {new Date(fixture.match_date).toLocaleString(locale, {
                     timeZone: timezone,
                     weekday: "short",
@@ -104,19 +123,40 @@ export default function EnterResultsForm({ fixtures, teams, timezone, locale }: 
                   })}
                   {fixture.venue && ` · ${fixture.venue}`}
                 </p>
+                {resultLabel && (
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    {resultLabel}
+                  </span>
+                )}
               </div>
 
-              {/* Result dropdown */}
-              <select
-                value={results[fixture.id] ?? ""}
-                onChange={(e) => setResult(fixture.id, e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand min-w-[180px]"
-              >
-                <option value="">— Select result —</option>
-                <option value={home.id}>{home.name} (win)</option>
-                <option value={away.id}>{away.name} (win)</option>
-                <option value={DRAW}>Draw</option>
-              </select>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <TeamDot colour={home.colour} />
+                  <span className="text-sm font-medium text-gray-800 truncate">{home.name}</span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="—"
+                  value={homeVal}
+                  onChange={(e) => setScore(fixture.id, "home", e.target.value)}
+                  className="w-16 text-center border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand font-bold"
+                />
+                <span className="text-gray-400 text-xs font-bold">–</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="—"
+                  value={awayVal}
+                  onChange={(e) => setScore(fixture.id, "away", e.target.value)}
+                  className="w-16 text-center border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand font-bold"
+                />
+                <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                  <span className="text-sm font-medium text-gray-800 truncate text-right">{away.name}</span>
+                  <TeamDot colour={away.colour} />
+                </div>
+              </div>
             </div>
           );
         })}
@@ -147,7 +187,7 @@ export default function EnterResultsForm({ fixtures, teams, timezone, locale }: 
 function TeamDot({ colour }: { colour: string }) {
   return (
     <span
-      className="inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle"
+      className="inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle shrink-0"
       style={{ backgroundColor: colour }}
     />
   );

@@ -94,7 +94,7 @@ export async function addFixture(formData: FormData) {
 // A result of "draw" → is_draw = true on fixture, picks with picked_draw = true are correct.
 // ---------------------------------------------------------------------------
 export async function saveResults(
-  results: { fixtureId: string; resultTeamId: string | null }[]
+  results: { fixtureId: string; resultTeamId: string | null; homeScore?: number | null; awayScore?: number | null }[]
 ) {
   const supabase = await createClient();
   const errors: string[] = [];
@@ -147,13 +147,18 @@ export async function saveResults(
   }
 
   // ── Step 2: set result on each fixture ───────────────────────────────────
-  for (const { fixtureId, resultTeamId } of toProcess) {
+  for (const { fixtureId, resultTeamId, homeScore, awayScore } of toProcess) {
     const isDraw = resultTeamId === "draw";
     const dbResultTeamId = isDraw ? null : resultTeamId;
 
     const { error: fixErr } = await supabase
       .from("fixtures")
-      .update({ result_team_id: dbResultTeamId, is_draw: isDraw })
+      .update({
+        result_team_id: dbResultTeamId,
+        is_draw: isDraw,
+        home_score: homeScore ?? null,
+        away_score: awayScore ?? null,
+      })
       .eq("id", fixtureId);
 
     if (fixErr) {
@@ -187,60 +192,39 @@ export async function saveResults(
     console.log(`[saveResults] Scored picks for fixture ${fixtureId} (isDraw=${isDraw}, result=${dbResultTeamId ?? "draw"})`);
   }
 
-  // ── Step 2c: score margins using match_results scores ──────────────────
-  // Look up actual scores from match_results, compute margin bucket, update picks
-  const { data: matchResultsForMargin } = await admin
-    .from("match_results")
-    .select("home_team, away_team, home_score, away_score")
-    .eq("result_status", "final");
-  const { data: allTeamsForMargin } = await admin.from("teams").select("id, name");
-  const teamNameById = new Map((allTeamsForMargin ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
-
-  for (const { fixtureId, resultTeamId } of toProcess) {
-    if (resultTeamId === "draw") {
-      // Draws have no margin — set margin_correct = null for all
-      await admin.from("picks").update({ margin_correct: null }).eq("fixture_id", fixtureId);
+  // ── Step 2c: score margins using fixture scores ─────────────────────────
+  for (const { fixtureId, resultTeamId, homeScore, awayScore } of toProcess) {
+    if (resultTeamId === "draw" || homeScore == null || awayScore == null) {
+      await admin.from("picks").update({ margin_correct: null, margin_bonus: 0 }).eq("fixture_id", fixtureId);
       continue;
     }
 
-    // Look up the fixture's teams to find the matching score row
-    const { data: fix } = await admin.from("fixtures").select("home_team_id, away_team_id").eq("id", fixtureId).single();
-    if (!fix) continue;
+    const actualMargin = Math.abs(homeScore - awayScore);
 
-    const homeName = teamNameById.get(fix.home_team_id)?.toLowerCase() ?? "";
-    const awayName = teamNameById.get(fix.away_team_id)?.toLowerCase() ?? "";
-
-    let actualMarginBucket: string | null = null;
-    for (const mr of matchResultsForMargin ?? []) {
-      if (!mr.home_score || !mr.away_score) continue;
-      const rh = (mr.home_team as string).toLowerCase();
-      const ra = (mr.away_team as string).toLowerCase();
-      if ((rh.includes(homeName) || homeName.includes(rh)) && (ra.includes(awayName) || awayName.includes(ra))) {
-        const margin = Math.abs(Number(mr.home_score) - Number(mr.away_score));
-        actualMarginBucket = margin <= 12 ? "1-12" : margin <= 24 ? "13-24" : "25+";
-        break;
-      }
-    }
-
-    if (!actualMarginBucket) {
-      console.log(`[saveResults] No match_results score found for fixture ${fixtureId} — skipping margin scoring`);
-      continue;
-    }
-
-    // Fetch picks with predicted_margin for this fixture
     const { data: marginPicks } = await admin
       .from("picks")
-      .select("id, predicted_margin")
+      .select("id, predicted_margin, is_correct")
       .eq("fixture_id", fixtureId)
       .not("predicted_margin", "is", null);
 
     for (const mp of marginPicks ?? []) {
+      if (!mp.is_correct) {
+        await admin.from("picks").update({ margin_correct: false, margin_bonus: 0 }).eq("id", mp.id);
+        continue;
+      }
       const predicted = Number(mp.predicted_margin);
-      const predictedBucket = predicted <= 12 ? "1-12" : predicted <= 24 ? "13-24" : "25+";
-      const correct = predictedBucket === actualMarginBucket;
-      await admin.from("picks").update({ margin_correct: correct }).eq("id", mp.id);
+      const diff = Math.abs(predicted - actualMargin);
+      let bonus = 0;
+      let correct = false;
+      if (diff === 0) { correct = true; bonus = 2; }
+      else if (diff <= 5) { correct = true; bonus = 1; }
+      await admin.from("picks").update({ margin_correct: correct, margin_bonus: bonus }).eq("id", mp.id);
     }
-    console.log(`[saveResults] Scored margins for fixture ${fixtureId} (actual: ${actualMarginBucket}, ${(marginPicks ?? []).length} margin picks)`);
+
+    // Picks without predicted_margin get no bonus
+    await admin.from("picks").update({ margin_bonus: 0 }).eq("fixture_id", fixtureId).is("predicted_margin", null);
+
+    console.log(`[saveResults] Scored margins for fixture ${fixtureId} (actual margin: ${actualMargin}, ${(marginPicks ?? []).length} margin picks)`);
   }
 
   // ── Step 3: send results emails to all users ─────────────────────────────

@@ -36,6 +36,8 @@ type LeaderboardEntry = {
   correct: number;
   total: number;
   marginsCorrect: number;
+  marginBonus: number;
+  totalScore: number;
 };
 
 // ── Score types + helper ──────────────────────────────────────────────────────
@@ -345,7 +347,7 @@ function PodiumCard({
             color: isFirst ? "var(--accent)" : "#11151C",
           }}
         >
-          {entry.correct}
+          {entry.totalScore}
         </span>
         <span
           style={{
@@ -429,8 +431,8 @@ export default async function LeaderboardPage() {
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
   const { data: allPicksRaw } = compFixtureIds.length > 0
-    ? await supabase.from("picks").select("user_id, is_correct, margin_correct").in("fixture_id", compFixtureIds)
-    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null }[] };
+    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus").in("fixture_id", compFixtureIds)
+    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number }[] };
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -479,15 +481,16 @@ export default async function LeaderboardPage() {
   }
 
   const participantIds = new Set((participants ?? []).map((p) => p.user_id));
-  const lbMap = new Map<string, { correct: number; total: number; marginsCorrect: number }>(
-    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, marginsCorrect: 0 }])
+  const lbMap = new Map<string, { correct: number; total: number; marginsCorrect: number; marginBonus: number }>(
+    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, marginsCorrect: 0, marginBonus: 0 }])
   );
   for (const pick of allPicksRaw ?? []) {
     if (!participantIds.has(pick.user_id)) continue;
-    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, marginsCorrect: 0 };
+    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, marginsCorrect: 0, marginBonus: 0 };
     e.total += 1;
     if (pick.is_correct) e.correct += 1;
     if (pick.margin_correct) e.marginsCorrect += 1;
+    e.marginBonus += pick.margin_bonus ?? 0;
     lbMap.set(pick.user_id, e);
   }
 
@@ -497,9 +500,11 @@ export default async function LeaderboardPage() {
       displayName: resolveDisplayName(user_id, profileMap),
       avatarUrl: avatarMap.get(user_id) ?? null,
       ...stats,
+      totalScore: stats.correct + (marginPicking ? stats.marginBonus : 0),
     }))
     .sort(
       (a, b) =>
+        b.totalScore - a.totalScore ||
         b.correct - a.correct ||
         b.total - a.total ||
         a.displayName.localeCompare(b.displayName)
@@ -523,9 +528,9 @@ export default async function LeaderboardPage() {
   // Rank calculation (1, 1, 3 style)
   const ranks: number[] = [];
   let rank = 0;
-  let prevCorrect = -1;
+  let prevScore = -1;
   for (const entry of leaderboard) {
-    if (entry.correct !== prevCorrect) { rank++; prevCorrect = entry.correct; }
+    if (entry.totalScore !== prevScore) { rank++; prevScore = entry.totalScore; }
     ranks.push(rank);
   }
 
@@ -651,7 +656,7 @@ export default async function LeaderboardPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: marginPicking ? "54px 1fr 92px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
+                gridTemplateColumns: marginPicking ? "54px 1fr 70px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
                 padding: "15px 22px",
                 background: "#0D1016",
                 color: "#9AA1AD",
@@ -666,10 +671,16 @@ export default async function LeaderboardPage() {
             >
               <span>#</span>
               <span>Tipper</span>
-              <span style={{ textAlign: "center" }}>This rd</span>
-              {marginPicking && <span style={{ textAlign: "center" }}>Margins</span>}
+              {marginPicking ? (
+                <>
+                  <span style={{ textAlign: "center" }}>Correct</span>
+                  <span style={{ textAlign: "center" }}>Bonus</span>
+                </>
+              ) : (
+                <span style={{ textAlign: "center" }}>This rd</span>
+              )}
               <span style={{ textAlign: "center" }}>Hit %</span>
-              <span style={{ textAlign: "right" }}>Pts</span>
+              <span style={{ textAlign: "right" }}>Total</span>
             </div>
 
             <LeaderboardTable totalCount={leaderboard.length}>
@@ -685,7 +696,7 @@ export default async function LeaderboardPage() {
                     key={entry.user_id}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: marginPicking ? "54px 1fr 92px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
+                      gridTemplateColumns: marginPicking ? "54px 1fr 70px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
                       alignItems: "center",
                       padding: "15px 22px",
                       borderTop: "1px solid #EFEDE6",
@@ -743,13 +754,18 @@ export default async function LeaderboardPage() {
                       )}
                     </span>
 
-                    <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
-                      {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
-                    </span>
-
-                    {marginPicking && (
-                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginsCorrect > 0 ? "#1F9E5A" : "#C7C2B5" }}>
-                        {entry.marginsCorrect}
+                    {marginPicking ? (
+                      <>
+                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
+                          {entry.correct}
+                        </span>
+                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
+                          {entry.marginBonus}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
+                        {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
                       </span>
                     )}
 
@@ -761,7 +777,7 @@ export default async function LeaderboardPage() {
                       className="font-display"
                       style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}
                     >
-                      {entry.correct}
+                      {entry.totalScore}
                     </span>
                   </div>
                 );

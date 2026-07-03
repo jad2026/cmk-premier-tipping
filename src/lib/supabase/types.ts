@@ -27,6 +27,8 @@ export type Fixture = {
   venue: string | null;
   result_team_id: string | null;
   is_draw: boolean;
+  home_score: number | null;
+  away_score: number | null;
   home_team?: Team;
   away_team?: Team;
   result_team?: Team | null;
@@ -42,6 +44,7 @@ export type Pick = {
   auto_picked: boolean;
   predicted_margin: number | null;
   margin_correct: boolean | null;
+  margin_bonus: number;
   picked_team?: Team;
 };
 
@@ -172,13 +175,13 @@ export type Database = {
       };
       fixtures: {
         Row: Fixture;
-        Insert: Omit<Fixture, "id">;
+        Insert: Omit<Fixture, "id" | "home_score" | "away_score"> & { home_score?: number | null; away_score?: number | null };
         Update: Partial<Fixture>;
         Relationships: [];
       };
       picks: {
         Row: Pick;
-        Insert: Omit<Pick, "id">;
+        Insert: Omit<Pick, "id" | "margin_bonus"> & { margin_bonus?: number };
         Update: Partial<Pick>;
         Relationships: [];
       };
