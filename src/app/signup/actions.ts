@@ -5,6 +5,24 @@ import { getCurrentCompetitionId } from "@/lib/competition";
 import { sendWelcomeEmail } from "@/lib/email/welcomeEmail";
 import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
 
+export async function getSignupConfig(): Promise<{
+  showSupportedTeam: boolean;
+  teams: { id: string; name: string; short_name: string; colour: string; logo_url: string | null }[];
+}> {
+  const supabase = await createClient();
+  const compId = await getCurrentCompetitionId();
+
+  const [{ data: compFeatures }, { data: teams }] = await Promise.all([
+    supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
+    supabase.from("teams").select("id, name, short_name, colour, logo_url").eq("competition_id", compId).order("name"),
+  ]);
+
+  return {
+    showSupportedTeam: compFeatures?.features?.show_supported_team === true,
+    teams: teams ?? [],
+  };
+}
+
 export async function triggerWelcomeEmail(
   email: string,
   firstName: string,

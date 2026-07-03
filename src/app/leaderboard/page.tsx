@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
-type Profile = { id: string; display_name: string | null; avatar_url: string | null };
+type Profile = { id: string; display_name: string | null; avatar_url: string | null; supported_team_id: string | null };
 
 type RichPick = {
   id: string;
@@ -33,6 +33,7 @@ type LeaderboardEntry = {
   user_id: string;
   displayName: string;
   avatarUrl: string | null;
+  supportedTeamId: string | null;
   correct: number;
   total: number;
   marginsCorrect: number;
@@ -389,7 +390,7 @@ export default async function LeaderboardPage() {
     { data: compFeatures },
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
-    supabase.from("profiles").select("id, display_name, avatar_url"),
+    supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id"),
     supabase.from("teams").select("*"),
     supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
@@ -397,6 +398,7 @@ export default async function LeaderboardPage() {
     supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
   ]);
   const marginPicking = compFeatures?.features?.margin_picking === true;
+  const showSupportedTeam = compFeatures?.features?.show_supported_team === true;
   const participantIds = new Set((participants ?? []).map((p) => p.user_id));
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
@@ -448,6 +450,9 @@ export default async function LeaderboardPage() {
   );
   const avatarMap = new Map<string, string | null>(
     (profiles ?? []).map((p: Profile) => [p.id, p.avatar_url])
+  );
+  const supportedTeamMap = new Map<string, string | null>(
+    (profiles ?? []).map((p: Profile) => [p.id, p.supported_team_id])
   );
 
   const gwIdsWithResults = new Set((fixturesWithResults ?? []).map((f) => f.gameweek_id));
@@ -502,6 +507,7 @@ export default async function LeaderboardPage() {
       user_id,
       displayName: resolveDisplayName(user_id, profileMap),
       avatarUrl: avatarMap.get(user_id) ?? null,
+      supportedTeamId: supportedTeamMap.get(user_id) ?? null,
       ...stats,
       totalScore: stats.correct + (marginPicking ? stats.marginBonus : 0),
     }))
@@ -739,6 +745,9 @@ export default async function LeaderboardPage() {
                       <span className="flex flex-col">
                         <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C" }}>{entry.displayName}</span>
                       </span>
+                      {showSupportedTeam && entry.supportedTeamId && teamMap.get(entry.supportedTeamId) && (
+                        <TeamBadge team={teamMap.get(entry.supportedTeamId)!} size="xs" />
+                      )}
                       {isYou && (
                         <span
                           style={{

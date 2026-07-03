@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCompetitionId } from "@/lib/competition";
 import ProfileForm from "./ProfileForm";
 
 export const dynamic = "force-dynamic";
@@ -9,11 +10,19 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("first_name, last_name, display_name, avatar_url")
-    .eq("id", user.id)
-    .single();
+  const compId = await getCurrentCompetitionId();
+
+  const [{ data: profile }, { data: compFeatures }, { data: teams }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("first_name, last_name, display_name, avatar_url, supported_team_id")
+      .eq("id", user.id)
+      .single(),
+    supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
+    supabase.from("teams").select("id, name, short_name, colour, logo_url").eq("competition_id", compId).order("name"),
+  ]);
+
+  const showSupportedTeam = compFeatures?.features?.show_supported_team === true;
 
   return (
     <div
@@ -46,6 +55,9 @@ export default async function ProfilePage() {
         initialLastName={profile?.last_name ?? ""}
         initialDisplayName={profile?.display_name?.trim() || null}
         initialAvatarUrl={profile?.avatar_url ?? null}
+        showSupportedTeam={showSupportedTeam}
+        initialSupportedTeamId={profile?.supported_team_id ?? null}
+        teams={showSupportedTeam ? (teams ?? []) : []}
       />
     </div>
   );

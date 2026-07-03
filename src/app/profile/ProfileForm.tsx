@@ -1,8 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
+
+type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
 type Props = {
   userId: string;
@@ -11,6 +14,9 @@ type Props = {
   initialLastName: string;
   initialDisplayName: string | null;
   initialAvatarUrl: string | null;
+  showSupportedTeam: boolean;
+  initialSupportedTeamId: string | null;
+  teams: CompTeam[];
 };
 
 const inputStyle: React.CSSProperties = {
@@ -43,6 +49,9 @@ export default function ProfileForm({
   initialLastName,
   initialDisplayName,
   initialAvatarUrl,
+  showSupportedTeam,
+  initialSupportedTeamId,
+  teams,
 }: Props) {
   const supabase = createClient();
 
@@ -51,6 +60,11 @@ export default function ProfileForm({
   const [teamName, setTeamName] = useState("");
   const [existingTeamName, setExistingTeamName] = useState<string | null>(initialDisplayName);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
+
+  const [supportedTeamId, setSupportedTeamId] = useState<string | null>(initialSupportedTeamId);
+  const [savingSupportedTeam, setSavingSupportedTeam] = useState(false);
+  const [supportedTeamSuccess, setSupportedTeamSuccess] = useState(false);
+  const [supportedTeamError, setSupportedTeamError] = useState<string | null>(null);
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingTeam, setSavingTeam] = useState(false);
@@ -158,6 +172,21 @@ export default function ProfileForm({
     }
     setUploadingAvatar(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleSaveSupportedTeam(teamId: string | null) {
+    setSupportedTeamId(teamId);
+    setSavingSupportedTeam(true);
+    setSupportedTeamError(null);
+    setSupportedTeamSuccess(false);
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: userId, supported_team_id: teamId }, { onConflict: "id" });
+
+    if (error) setSupportedTeamError(error.message);
+    else setSupportedTeamSuccess(true);
+    setSavingSupportedTeam(false);
   }
 
   return (
@@ -423,6 +452,86 @@ export default function ProfileForm({
           </form>
         )}
       </div>
+
+      {/* ── Supported Team ────────────────────────────────────────── */}
+      {showSupportedTeam && teams.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "28px 32px", marginTop: 20 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+            <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "var(--accent)" }} />
+            <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+              Supported Team
+            </h2>
+          </div>
+
+          <p style={{ fontSize: 13, color: "#8B8676", marginBottom: 16 }}>
+            {supportedTeamId ? "Tap a different team to change, or clear your selection." : "Which team do you support?"}
+          </p>
+
+          <div className="flex flex-wrap" style={{ gap: 8, opacity: savingSupportedTeam ? 0.6 : 1, pointerEvents: savingSupportedTeam ? "none" : "auto" }}>
+            {teams.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handleSaveSupportedTeam(supportedTeamId === t.id ? null : t.id)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  border: supportedTeamId === t.id ? "2px solid var(--accent)" : "1px solid #E4E1D8",
+                  background: supportedTeamId === t.id ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: supportedTeamId === t.id ? 700 : 500,
+                  color: "#11151C",
+                  transition: "all .15s",
+                }}
+              >
+                {t.logo_url ? (
+                  <Image src={t.logo_url} alt={t.name} width={20} height={20} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: t.colour, display: "inline-block", flexShrink: 0 }} />
+                )}
+                {t.name}
+              </button>
+            ))}
+            {supportedTeamId !== null && (
+              <button
+                type="button"
+                onClick={() => handleSaveSupportedTeam(null)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  border: "1px solid #E4E1D8",
+                  background: "#fff",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#8B8676",
+                  transition: "all .15s",
+                }}
+              >
+                Clear selection
+              </button>
+            )}
+          </div>
+
+          {supportedTeamError && (
+            <div style={{ marginTop: 16, borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
+              <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{supportedTeamError}</p>
+            </div>
+          )}
+          {supportedTeamSuccess && (
+            <div style={{ marginTop: 16, borderRadius: 12, background: "rgba(31,158,90,.06)", border: "1px solid rgba(31,158,90,.15)", padding: "12px 16px" }}>
+              <p style={{ fontSize: 14, color: "#1F9E5A", margin: 0 }}>Supported team updated!</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

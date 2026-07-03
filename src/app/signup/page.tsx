@@ -12,8 +12,10 @@ function useSiteName() {
   }, []);
   return name;
 }
-import { triggerWelcomeEmail } from "./actions";
+import { triggerWelcomeEmail, getSignupConfig } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
+
+type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -49,10 +51,21 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [supportedTeamId, setSupportedTeamId] = useState<string | null>(null);
+  const [showSupportedTeam, setShowSupportedTeam] = useState(false);
+  const [compTeams, setCompTeams] = useState<CompTeam[]>([]);
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getSignupConfig().then(({ showSupportedTeam: show, teams }) => {
+      setShowSupportedTeam(show);
+      setCompTeams(teams);
+    });
+  }, []);
 
   function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -131,6 +144,7 @@ export default function SignupPage() {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+          ...(showSupportedTeam ? { supported_team_id: supportedTeamId } : {}),
         },
         { onConflict: "id" }
       );
@@ -255,6 +269,62 @@ export default function SignupPage() {
                 onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
               />
             </div>
+
+            {showSupportedTeam && compTeams.length > 0 && (
+              <div>
+                <label style={labelStyle}>Which team do you support? (optional)</label>
+                <div className="flex flex-wrap" style={{ gap: 8 }}>
+                  {compTeams.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setSupportedTeamId(supportedTeamId === t.id ? null : t.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 14px",
+                        borderRadius: 999,
+                        border: supportedTeamId === t.id ? "2px solid var(--accent)" : "1px solid #E4E1D8",
+                        background: supportedTeamId === t.id ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: supportedTeamId === t.id ? 700 : 500,
+                        color: "#11151C",
+                        transition: "all .15s",
+                      }}
+                    >
+                      {t.logo_url ? (
+                        <Image src={t.logo_url} alt={t.name} width={20} height={20} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ width: 20, height: 20, borderRadius: "50%", background: t.colour, display: "inline-block", flexShrink: 0 }} />
+                      )}
+                      {t.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSupportedTeamId(null)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: supportedTeamId === null ? "2px solid var(--accent)" : "1px solid #E4E1D8",
+                      background: supportedTeamId === null ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: supportedTeamId === null ? 700 : 500,
+                      color: "#8B8676",
+                      transition: "all .15s",
+                    }}
+                  >
+                    No team
+                  </button>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>

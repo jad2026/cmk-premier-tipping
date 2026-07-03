@@ -56,6 +56,7 @@ export type Profile = {
   updated_at: string | null;
   avatar_url: string | null;
   is_admin: boolean;
+  supported_team_id: string | null;
 };
 
 export type SeasonConfig = {
