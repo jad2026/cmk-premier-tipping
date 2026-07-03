@@ -332,23 +332,6 @@ export default async function MyPicksPage() {
                         <div className="flex items-center gap-3 shrink-0 flex-wrap">
                           {pick ? (
                             <div className="flex items-center gap-1.5">
-                              {autoPicked && (
-                                <span
-                                  title="Auto-picked"
-                                  style={{
-                                    padding: "2px 8px",
-                                    borderRadius: 999,
-                                    background: "#8B8676",
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    textTransform: "uppercase",
-                                    letterSpacing: ".04em",
-                                    color: "#fff",
-                                  }}
-                                >
-                                  Auto
-                                </span>
-                              )}
                               {pickedDraw ? (
                                 <span
                                   className="inline-flex items-center gap-1"
