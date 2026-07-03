@@ -700,13 +700,16 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
-  // Wave 1: users, profiles, and competition's gameweek IDs in parallel
-  const [{ data: { users }, error: usersErr }, { data: profiles }, { data: compGwRows }] =
+  // Wave 1: users, profiles, competition participants, and gameweek IDs in parallel
+  const [{ data: { users }, error: usersErr }, { data: profiles }, { data: compGwRows }, { data: compParticipants }] =
     await Promise.all([
       admin.auth.admin.listUsers({ perPage: 1000 }),
       supabase.from("profiles").select("id, display_name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
+      supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
     ]);
+
+  const enrolledUserIds = new Set((compParticipants ?? []).map((p) => p.user_id));
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
@@ -738,7 +741,7 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
     if (p.is_correct) correctByUser.set(p.user_id, (correctByUser.get(p.user_id) ?? 0) + 1);
   }
 
-  const data: ParticipantRow[] = (users ?? []).map((u) => ({
+  const data: ParticipantRow[] = (users ?? []).filter((u) => enrolledUserIds.has(u.id)).map((u) => ({
     id: u.id,
     email: u.email ?? "",
     displayName: profileMap.get(u.id)?.trim() || `Player ${u.id.slice(0, 5).toUpperCase()}`,
