@@ -59,12 +59,17 @@ export async function GET(request: Request) {
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      admin.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled").eq("id", compId).single(),
       admin.from("competition_participants").select("user_id").eq("competition_id", compId),
       admin.from("fixtures").select("id, home_team_id, away_team_id, match_date").eq("gameweek_id", gw.id).order("match_date"),
       admin.from("teams").select("id, name"),
       admin.from("sponsors").select("*").eq("competition_id", compId).eq("is_active", true).or("display_location.eq.email,display_location.eq.all").order("order_position").limit(5),
     ]);
+
+    if (compConfig?.reminders_enabled === false) {
+      console.log(`[wednesday-reminder] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
+      continue;
+    }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";

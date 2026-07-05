@@ -85,7 +85,7 @@ export async function GET(request: Request) {
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      admin.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled").eq("id", compId).single(),
       admin.from("competition_participants").select("user_id").eq("competition_id", compId),
       admin
         .from("fixtures")
@@ -101,6 +101,11 @@ export async function GET(request: Request) {
         .order("order_position")
         .limit(5),
     ]);
+
+    if (compConfig?.reminders_enabled === false) {
+      console.log(`[results-email] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
+      continue;
+    }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
