@@ -410,6 +410,12 @@ function FixtureCard({
     return 0;
   })();
 
+  const stepperColor = wheelInitial > 0
+    ? (home.colour || "var(--accent)")
+    : wheelInitial < 0
+    ? (away.colour || "var(--accent)")
+    : "var(--accent)";
+
   const cardBorder = hasSelection && !resultLocked ? "var(--accent)" : "#E4E1D8";
 
   return (
@@ -425,7 +431,7 @@ function FixtureCard({
       {/* Header strip */}
       <div
         className="flex items-center justify-between"
-        style={{ padding: "8px 12px", background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
+        style={{ padding: compact ? "6px 10px" : "8px 12px", background: "#FAF9F5", borderBottom: "1px solid #EFEDE6" }}
       >
         <span className="text-[11px] font-extrabold tracking-[.1em] uppercase text-[#A39E8C]">
           {fixture.venue || "TBC"}
@@ -449,7 +455,7 @@ function FixtureCard({
             disabled={isLocked}
             className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
-              padding: "6px 12px",
+              padding: compact ? "4px 10px" : "6px 12px",
               background: homePicked
                 ? `color-mix(in srgb, ${home.colour || "var(--accent)"} 6%, #fff)`
                 : "#fff",
@@ -467,18 +473,66 @@ function FixtureCard({
             )}
           </button>
 
-          {/* Margin wheel */}
-          <div className="px-3 sm:px-5" style={{ background: "#fff" }}>
-            <MarginWheel
-              ref={wheelRef}
-              initialValue={wheelInitial}
-              onChange={onWheelChange}
-              homeColor={home.colour}
-              awayColor={away.colour}
-              disabled={isLocked}
-              compact={compact}
-            />
-          </div>
+          {/* Margin control */}
+          {compact ? (
+            <div
+              className="flex items-center justify-center gap-3"
+              style={{
+                padding: "6px 10px",
+                background: "#FAFAF8",
+                borderBottom: "1px solid #EFEDE6",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => !isLocked && onWheelChange(Math.max(-100, wheelInitial - 1))}
+                disabled={isLocked}
+                className="flex items-center justify-center rounded-lg font-bold text-[18px] select-none disabled:opacity-40"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: "#EDEAE2",
+                  color: "#555",
+                  border: "1px solid #DDD9CE",
+                }}
+              >
+                −
+              </button>
+              <span
+                className="font-display text-[22px] leading-none text-center"
+                style={{ minWidth: 44, color: stepperColor, fontWeight: 800 }}
+              >
+                {Math.abs(wheelInitial)}
+              </span>
+              <button
+                type="button"
+                onClick={() => !isLocked && onWheelChange(Math.min(100, wheelInitial + 1))}
+                disabled={isLocked}
+                className="flex items-center justify-center rounded-lg font-bold text-[18px] select-none disabled:opacity-40"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: "#EDEAE2",
+                  color: "#555",
+                  border: "1px solid #DDD9CE",
+                }}
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <div className="px-3 sm:px-5" style={{ background: "#fff" }}>
+              <MarginWheel
+                ref={wheelRef}
+                initialValue={wheelInitial}
+                onChange={onWheelChange}
+                homeColor={home.colour}
+                awayColor={away.colour}
+                disabled={isLocked}
+                compact={compact}
+              />
+            </div>
+          )}
 
           {/* Away team row */}
           <button
@@ -486,7 +540,7 @@ function FixtureCard({
             disabled={isLocked}
             className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
             style={{
-              padding: "6px 12px",
+              padding: compact ? "4px 10px" : "6px 12px",
               background: awayPicked
                 ? `color-mix(in srgb, ${away.colour || "var(--accent)"} 6%, #fff)`
                 : "#fff",
@@ -508,7 +562,7 @@ function FixtureCard({
           <div
             className="flex items-center justify-center"
             style={{
-              padding: "5px 12px",
+              padding: compact ? "3px 10px" : "5px 12px",
               background: "#FAF9F5",
             }}
           >
@@ -541,7 +595,7 @@ function FixtureCard({
               disabled={isLocked}
               className="flex items-center gap-[14px] text-left transition-colors duration-150 disabled:cursor-not-allowed"
               style={{
-                padding: "20px 22px",
+                padding: compact ? "14px 16px" : "20px 22px",
                 background: homePicked && !resultLocked ? "var(--accent-wash)" : "#fff",
                 boxShadow: homePicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
               }}
@@ -587,7 +641,7 @@ function FixtureCard({
               disabled={isLocked}
               className="flex items-center gap-[14px] text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
               style={{
-                padding: "20px 22px",
+                padding: compact ? "14px 16px" : "20px 22px",
                 background: awayPicked && !resultLocked ? "var(--accent-wash)" : "#fff",
                 boxShadow: awayPicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
               }}
@@ -621,7 +675,7 @@ function FixtureCard({
             <button
               onClick={() => onSelect("draw")}
               disabled={isLocked}
-              className="w-full flex items-center justify-center gap-2 py-3 text-[13px] font-bold uppercase tracking-[.06em] transition-colors duration-150 disabled:cursor-not-allowed"
+              className={`w-full flex items-center justify-center gap-2 ${compact ? "py-2" : "py-3"} text-[13px] font-bold uppercase tracking-[.06em] transition-colors duration-150 disabled:cursor-not-allowed`}
               style={{
                 borderTop: "1px solid #EFEDE6",
                 background: drawPicked ? "var(--accent-wash)" : "#FAF9F5",
@@ -645,7 +699,7 @@ function FixtureCard({
 
       {/* Locked footer */}
       {resultLocked && (
-        <div className="flex items-center gap-2" style={{ padding: "10px 22px", borderTop: "1px solid #EFEDE6", background: "#FAF9F5" }}>
+        <div className="flex items-center gap-2" style={{ padding: compact ? "8px 14px" : "10px 22px", borderTop: "1px solid #EFEDE6", background: "#FAF9F5" }}>
           {drawPicked ? (
             <p className="text-xs text-md-text-muted">Your pick: <span className="font-semibold text-md-text">Draw</span></p>
           ) : picked ? (
