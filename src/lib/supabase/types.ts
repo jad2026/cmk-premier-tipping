@@ -45,6 +45,7 @@ export type Pick = {
   predicted_margin: number | null;
   margin_correct: boolean | null;
   margin_bonus: number;
+  points: number;
   picked_team?: Team;
 };
 

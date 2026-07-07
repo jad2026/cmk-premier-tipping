@@ -163,66 +163,9 @@ export async function saveResults(
     }
   }
 
-  // ── Step 2b: score all picks directly via service role ───────────────────
-  // Done after all results are saved so auto-filled picks are included.
-  for (const { fixtureId, resultTeamId } of toProcess) {
-    const isDraw = resultTeamId === "draw";
-    const dbResultTeamId = isDraw ? null : resultTeamId;
-
-    if (isDraw) {
-      // Draw: picks with picked_draw = true are correct, rest are wrong
-      const [{ error: e1 }, { error: e2 }] = await Promise.all([
-        admin.from("picks").update({ is_correct: true }).eq("fixture_id", fixtureId).eq("picked_draw", true),
-        admin.from("picks").update({ is_correct: false }).eq("fixture_id", fixtureId).eq("picked_draw", false),
-      ]);
-      if (e1) errors.push(`Score draw-correct ${fixtureId}: ${e1.message}`);
-      if (e2) errors.push(`Score draw-wrong ${fixtureId}: ${e2.message}`);
-    } else {
-      // Win: picks matching result_team_id are correct, all others wrong
-      const [{ error: e1 }, { error: e2 }] = await Promise.all([
-        admin.from("picks").update({ is_correct: true }).eq("fixture_id", fixtureId).eq("picked_team_id", dbResultTeamId),
-        admin.from("picks").update({ is_correct: false }).eq("fixture_id", fixtureId).neq("picked_team_id", dbResultTeamId),
-      ]);
-      if (e1) errors.push(`Score correct ${fixtureId}: ${e1.message}`);
-      if (e2) errors.push(`Score wrong ${fixtureId}: ${e2.message}`);
-    }
-    console.log(`[saveResults] Scored picks for fixture ${fixtureId} (isDraw=${isDraw}, result=${dbResultTeamId ?? "draw"})`);
-  }
-
-  // ── Step 2c: score margins using fixture scores ─────────────────────────
-  for (const { fixtureId, resultTeamId, homeScore, awayScore } of toProcess) {
-    if (resultTeamId === "draw" || homeScore == null || awayScore == null) {
-      await admin.from("picks").update({ margin_correct: null, margin_bonus: 0 }).eq("fixture_id", fixtureId);
-      continue;
-    }
-
-    const actualMargin = Math.abs(homeScore - awayScore);
-
-    const { data: marginPicks } = await admin
-      .from("picks")
-      .select("id, predicted_margin, is_correct")
-      .eq("fixture_id", fixtureId)
-      .not("predicted_margin", "is", null);
-
-    for (const mp of marginPicks ?? []) {
-      if (!mp.is_correct) {
-        await admin.from("picks").update({ margin_correct: false, margin_bonus: 0 }).eq("id", mp.id);
-        continue;
-      }
-      const predicted = Number(mp.predicted_margin);
-      const diff = Math.abs(predicted - actualMargin);
-      let bonus = 0;
-      let correct = false;
-      if (diff === 0) { correct = true; bonus = 2; }
-      else if (diff <= 5) { correct = true; bonus = 1; }
-      await admin.from("picks").update({ margin_correct: correct, margin_bonus: bonus }).eq("id", mp.id);
-    }
-
-    // Picks without predicted_margin get no bonus
-    await admin.from("picks").update({ margin_bonus: 0 }).eq("fixture_id", fixtureId).is("predicted_margin", null);
-
-    console.log(`[saveResults] Scored margins for fixture ${fixtureId} (actual margin: ${actualMargin}, ${(marginPicks ?? []).length} margin picks)`);
-  }
+  // Scoring (is_correct, points, margin_correct, margin_bonus) is handled
+  // by the auto_score_on_result_change trigger on the fixtures table.
+  // It fires on each fixture UPDATE above and uses per-competition scoring config.
 
   // ── Step 3: send results emails to all users ─────────────────────────────
   const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));

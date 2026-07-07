@@ -134,6 +134,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
               is_correct: null,
               predicted_margin: margin,
               margin_correct: null,
+              points: 0,
             },
             { onConflict: "fixture_id,user_id" }
           );

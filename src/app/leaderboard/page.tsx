@@ -438,8 +438,8 @@ export default async function LeaderboardPage() {
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
   const { data: allPicksRaw } = compFixtureIds.length > 0
-    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked").in("fixture_id", compFixtureIds)
-    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean }[] };
+    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds)
+    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] };
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -491,16 +491,17 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; marginsCorrect: number; marginBonus: number }>(
-    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0 }])
+  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; marginsCorrect: number; marginBonus: number; totalPoints: number }>(
+    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 }])
   );
   for (const pick of allPicksRaw ?? []) {
     if (!participantIds.has(pick.user_id)) continue;
-    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0 };
+    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 };
     e.total += 1;
     if (pick.is_correct) e.correct += 1;
     if (pick.margin_correct) e.marginsCorrect += 1;
     e.marginBonus += pick.margin_bonus ?? 0;
+    e.totalPoints += pick.points ?? 0;
     if (!pick.auto_picked) {
       e.manualTotal += 1;
       if (pick.is_correct) e.manualCorrect += 1;
@@ -515,7 +516,7 @@ export default async function LeaderboardPage() {
       avatarUrl: avatarMap.get(user_id) ?? null,
       supportedTeamId: supportedTeamMap.get(user_id) ?? null,
       ...stats,
-      totalScore: stats.correct + (marginPicking ? stats.marginBonus : 0),
+      totalScore: stats.totalPoints,
     }))
     .sort(
       (a, b) =>

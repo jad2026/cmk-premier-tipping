@@ -100,7 +100,7 @@ export default async function MyPicksPage() {
       ? supabase.from("picks").select("*").eq("user_id", user.id).in("fixture_id", compFixtureIds)
       : Promise.resolve({ data: [], error: null }),
     compFixtureIds.length > 0
-      ? supabase.from("picks").select("user_id, is_correct").eq("is_correct", true).in("fixture_id", compFixtureIds)
+      ? supabase.from("picks").select("user_id, points").in("fixture_id", compFixtureIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -124,11 +124,11 @@ export default async function MyPicksPage() {
 
   const tallyByUser = new Map<string, number>();
   for (const p of allPicksForRank ?? []) {
-    tallyByUser.set(p.user_id, (tallyByUser.get(p.user_id) ?? 0) + 1);
+    tallyByUser.set(p.user_id, (tallyByUser.get(p.user_id) ?? 0) + (p.points ?? 0));
   }
-  const myCorrect = tallyByUser.get(user.id) ?? 0;
+  const myPoints = tallyByUser.get(user.id) ?? 0;
   const totalPlayers = (profilesForRank ?? []).length;
-  const rank = Array.from(tallyByUser.values()).filter((v) => v > myCorrect).length + 1;
+  const rank = Array.from(tallyByUser.values()).filter((v) => v > myPoints).length + 1;
 
   // ── Build round-by-round data ─────────────────────────────────────────────
 
