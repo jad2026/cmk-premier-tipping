@@ -149,6 +149,15 @@ export default async function HomePage() {
 
   let ladderRows: LadderRow[] = [];
   let womenLadderRows: LadderRow[] = [];
+  let scoringConfig: Record<string, number> | null = null;
+  {
+    const { data: scoringRow } = await supabase
+      .from("competitions")
+      .select("scoring")
+      .eq("id", compId)
+      .single() as { data: { scoring: Record<string, number> | null } | null };
+    scoringConfig = scoringRow?.scoring ?? null;
+  }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
       ? [CMK_COMPETITION_ID, CMK_WOMEN_COMPETITION_ID]
@@ -185,6 +194,7 @@ export default async function HomePage() {
         .order("position", { ascending: true });
       womenLadderRows = (data ?? []) as LadderRow[];
     }
+
   }
 
   // Build a map of team colours from the teams table (Men's + Women's)
@@ -577,7 +587,80 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── 6. Ladder snapshots ───────────────────────────────────────────────── */}
+      {/* ── 6. How Scoring Works ────────────────────────────────────────────── */}
+      {scoringConfig && (
+        <section style={{ background: "#F2F0EA" }}>
+          <div className="max-w-content mx-auto" style={{ padding: "10px 32px 40px" }}>
+            <div className="flex items-center gap-[13px] mb-[22px]">
+              <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
+              <h2 className="font-display text-[23px] uppercase tracking-[.02em]">How Scoring Works</h2>
+              <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
+            </div>
+
+            <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8" }}>
+              <div style={{ padding: "24px 28px" }} className="space-y-[16px]">
+                {(scoringConfig.correct_winner ?? 0) > 0 && (
+                  <div className="flex items-start gap-[14px]">
+                    <span className="shrink-0 flex items-center justify-center rounded-full font-display text-[14px]" style={{ width: 36, height: 36, background: "var(--accent-wash)", color: "var(--accent)" }}>
+                      {scoringConfig.correct_winner}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#11151C" }}>Pick the winning team</div>
+                      <div style={{ fontSize: 13, color: "#5A6371", marginTop: 2 }}>
+                        {scoringConfig.correct_winner === 1 ? "1 point" : `${scoringConfig.correct_winner} points`} for correctly picking the winner
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(scoringConfig.correct_draw ?? 0) > 0 && (
+                  <div className="flex items-start gap-[14px]" style={{ borderTop: "1px solid #EFEDE6", paddingTop: 16 }}>
+                    <span className="shrink-0 flex items-center justify-center rounded-full font-display text-[14px]" style={{ width: 36, height: 36, background: "var(--accent-wash)", color: "var(--accent)" }}>
+                      {scoringConfig.correct_draw}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#11151C" }}>Correctly pick a draw</div>
+                      <div style={{ fontSize: 13, color: "#5A6371", marginTop: 2 }}>
+                        {scoringConfig.correct_draw === 1 ? "1 point" : `${scoringConfig.correct_draw} points`} for predicting a drawn match
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(scoringConfig.exact_margin ?? 0) > 0 && (
+                  <div className="flex items-start gap-[14px]" style={{ borderTop: "1px solid #EFEDE6", paddingTop: 16 }}>
+                    <span className="shrink-0 flex items-center justify-center rounded-full font-display text-[14px]" style={{ width: 36, height: 36, background: "var(--accent-wash)", color: "var(--accent)" }}>
+                      +{scoringConfig.exact_margin}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#11151C" }}>Nail the exact margin</div>
+                      <div style={{ fontSize: 13, color: "#5A6371", marginTop: 2 }}>
+                        {scoringConfig.exact_margin === 1 ? "1 bonus point" : `${scoringConfig.exact_margin} bonus points`} for predicting the exact winning margin
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(scoringConfig.within_margin ?? 0) > 0 && (
+                  <div className="flex items-start gap-[14px]" style={{ borderTop: "1px solid #EFEDE6", paddingTop: 16 }}>
+                    <span className="shrink-0 flex items-center justify-center rounded-full font-display text-[14px]" style={{ width: 36, height: 36, background: "var(--accent-wash)", color: "var(--accent)" }}>
+                      +{scoringConfig.within_margin}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#11151C" }}>Get within {scoringConfig.within_margin_range ?? 5} of the margin</div>
+                      <div style={{ fontSize: 13, color: "#5A6371", marginTop: 2 }}>
+                        {scoringConfig.within_margin === 1 ? "1 bonus point" : `${scoringConfig.within_margin} bonus points`} if your margin prediction is within {scoringConfig.within_margin_range ?? 5} points
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 7. Ladder snapshots ───────────────────────────────────────────────── */}
       {(ladderRows.length > 0 || womenLadderRows.length > 0) && (
         <section style={{ background: "#F2F0EA" }}>
           <div className="max-w-content mx-auto" style={{ padding: "14px 32px 70px" }}>
