@@ -118,6 +118,10 @@ export default async function MyPicksPage() {
   const totalCorrect = picks.filter((p) => p.is_correct === true).length;
   const totalTipped = scoredPicks.length;
 
+  const manualScoredPicks = scoredPicks.filter((p) => !p.auto_picked);
+  const manualCorrect = manualScoredPicks.filter((p) => p.is_correct === true).length;
+  const manualTotal = manualScoredPicks.length;
+
   const tallyByUser = new Map<string, number>();
   for (const p of allPicksForRank ?? []) {
     tallyByUser.set(p.user_id, (tallyByUser.get(p.user_id) ?? 0) + 1);
@@ -194,7 +198,7 @@ export default async function MyPicksPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 24 }}>
             <StatTile label="Correct" value={String(totalCorrect)} />
             <StatTile label="Tipped" value={totalTipped > 0 ? String(totalTipped) : "—"} />
-            <StatTile label="Accuracy" value={pct(totalCorrect, totalTipped)} highlight />
+            <StatTile label="Accuracy" value={pct(manualCorrect, manualTotal)} highlight />
             <StatTile
               label="Current Rank"
               value={totalPlayers > 0 ? `#${rank}` : "—"}

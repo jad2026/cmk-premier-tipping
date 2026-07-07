@@ -36,6 +36,8 @@ type LeaderboardEntry = {
   supportedTeamId: string | null;
   correct: number;
   total: number;
+  manualCorrect: number;
+  manualTotal: number;
   marginsCorrect: number;
   marginBonus: number;
   totalScore: number;
@@ -338,7 +340,7 @@ function PodiumCard({
       </div>
 
       <div style={{ fontSize: 13, color: isFirst ? "#9AA1AD" : "#8B8676", marginTop: 6, fontWeight: 600 }}>
-        {pct(entry.correct, entry.total)} hit rate
+        {pct(entry.manualCorrect, entry.manualTotal)} accuracy
       </div>
 
       <div className="flex items-baseline gap-2" style={{ marginTop: 18 }}>
@@ -436,8 +438,8 @@ export default async function LeaderboardPage() {
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
   const { data: allPicksRaw } = compFixtureIds.length > 0
-    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus").in("fixture_id", compFixtureIds)
-    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number }[] };
+    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked").in("fixture_id", compFixtureIds)
+    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean }[] };
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -489,16 +491,20 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const lbMap = new Map<string, { correct: number; total: number; marginsCorrect: number; marginBonus: number }>(
-    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, marginsCorrect: 0, marginBonus: 0 }])
+  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; marginsCorrect: number; marginBonus: number }>(
+    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0 }])
   );
   for (const pick of allPicksRaw ?? []) {
     if (!participantIds.has(pick.user_id)) continue;
-    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, marginsCorrect: 0, marginBonus: 0 };
+    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0 };
     e.total += 1;
     if (pick.is_correct) e.correct += 1;
     if (pick.margin_correct) e.marginsCorrect += 1;
     e.marginBonus += pick.margin_bonus ?? 0;
+    if (!pick.auto_picked) {
+      e.manualTotal += 1;
+      if (pick.is_correct) e.manualCorrect += 1;
+    }
     lbMap.set(pick.user_id, e);
   }
 
@@ -664,9 +670,11 @@ export default async function LeaderboardPage() {
         ) : (
           <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
             <div
+              className={`grid ${marginPicking
+                ? "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_60px_60px_62px_52px_64px]"
+                : "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_72px_62px_52px_64px]"
+              }`}
               style={{
-                display: "grid",
-                gridTemplateColumns: marginPicking ? "54px 1fr 70px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
                 padding: "15px 22px",
                 background: "#0D1016",
                 color: "#9AA1AD",
@@ -683,14 +691,21 @@ export default async function LeaderboardPage() {
               <span>Tipper</span>
               {marginPicking ? (
                 <>
-                  <span style={{ textAlign: "center" }}>Correct</span>
-                  <span style={{ textAlign: "center" }}>Bonus</span>
+                  <span className="hidden sm:block" style={{ textAlign: "center" }}>Correct</span>
+                  <span className="hidden sm:block" style={{ textAlign: "center" }}>Bonus</span>
                 </>
               ) : (
-                <span style={{ textAlign: "center" }}>This rd</span>
+                <span className="hidden sm:block" style={{ textAlign: "center" }}>This rd</span>
               )}
-              <span style={{ textAlign: "center" }}>Hit %</span>
-              <span style={{ textAlign: "right" }}>Total</span>
+              <span style={{ textAlign: "center" }}>
+                <span className="sm:hidden">Acc%</span>
+                <span className="hidden sm:inline">Accuracy</span>
+              </span>
+              <span style={{ textAlign: "center" }}>Tips</span>
+              <span style={{ textAlign: "right" }}>
+                <span className="sm:hidden">Pts</span>
+                <span className="hidden sm:inline">Total</span>
+              </span>
             </div>
 
             <LeaderboardTable totalCount={leaderboard.length}>
@@ -704,9 +719,11 @@ export default async function LeaderboardPage() {
                 return (
                   <div
                     key={entry.user_id}
+                    className={`grid ${marginPicking
+                      ? "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_60px_60px_62px_52px_64px]"
+                      : "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_72px_62px_52px_64px]"
+                    }`}
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: marginPicking ? "54px 1fr 70px 70px 78px 70px" : "54px 1fr 92px 78px 70px",
                       alignItems: "center",
                       padding: "15px 22px",
                       borderTop: "1px solid #EFEDE6",
@@ -769,21 +786,25 @@ export default async function LeaderboardPage() {
 
                     {marginPicking ? (
                       <>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
+                        <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
                           {entry.correct}
                         </span>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
+                        <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
                           {entry.marginBonus}
                         </span>
                       </>
                     ) : (
-                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
+                      <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
                         {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
                       </span>
                     )}
 
                     <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
-                      {pct(entry.correct, entry.total)}
+                      {pct(entry.manualCorrect, entry.manualTotal)}
+                    </span>
+
+                    <span style={{ textAlign: "center", fontSize: 14, color: entry.manualTotal > 0 ? "#5A6371" : "#C7C2B5" }}>
+                      {entry.manualTotal > 0 ? entry.manualTotal : "—"}
                     </span>
 
                     <span
