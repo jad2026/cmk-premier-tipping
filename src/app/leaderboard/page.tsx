@@ -671,9 +671,9 @@ export default async function LeaderboardPage() {
         ) : (
           <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
             <div
-              className={`grid ${marginPicking
-                ? "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_60px_60px_62px_52px_64px]"
-                : "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_72px_62px_52px_64px]"
+              className={`grid gap-x-1 sm:gap-x-2 ${marginPicking
+                ? "grid-cols-[28px_1fr_32px_32px_38px_34px_36px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
+                : "grid-cols-[28px_1fr_28px_38px_34px_36px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]"
               }`}
               style={{
                 padding: "15px 22px",
@@ -692,11 +692,20 @@ export default async function LeaderboardPage() {
               <span>Tipper</span>
               {marginPicking ? (
                 <>
-                  <span className="hidden sm:block" style={{ textAlign: "center" }}>Correct</span>
-                  <span className="hidden sm:block" style={{ textAlign: "center" }}>Bonus</span>
+                  <span style={{ textAlign: "center" }}>
+                    <span className="sm:hidden">Cor</span>
+                    <span className="hidden sm:inline">Correct</span>
+                  </span>
+                  <span style={{ textAlign: "center" }}>
+                    <span className="sm:hidden">Bon</span>
+                    <span className="hidden sm:inline">Bonus</span>
+                  </span>
                 </>
               ) : (
-                <span className="hidden sm:block" style={{ textAlign: "center" }}>This rd</span>
+                <span style={{ textAlign: "center" }}>
+                  <span className="sm:hidden">Rd</span>
+                  <span className="hidden sm:inline">This rd</span>
+                </span>
               )}
               <span style={{ textAlign: "center" }}>
                 <span className="sm:hidden">Acc%</span>
@@ -720,9 +729,9 @@ export default async function LeaderboardPage() {
                 return (
                   <div
                     key={entry.user_id}
-                    className={`grid ${marginPicking
-                      ? "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_60px_60px_62px_52px_64px]"
-                      : "grid-cols-[40px_1fr_50px_40px_50px] sm:grid-cols-[54px_1fr_72px_62px_52px_64px]"
+                    className={`grid gap-x-1 sm:gap-x-2 ${marginPicking
+                      ? "grid-cols-[28px_1fr_32px_32px_38px_34px_36px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
+                      : "grid-cols-[28px_1fr_28px_38px_34px_36px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]"
                     }`}
                     style={{
                       alignItems: "center",
@@ -787,15 +796,15 @@ export default async function LeaderboardPage() {
 
                     {marginPicking ? (
                       <>
-                        <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
+                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
                           {entry.correct}
                         </span>
-                        <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
+                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
                           {entry.marginBonus}
                         </span>
                       </>
                     ) : (
-                      <span className="hidden sm:block" style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
+                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
                         {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
                       </span>
                     )}
