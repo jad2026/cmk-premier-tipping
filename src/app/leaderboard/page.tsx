@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
 import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
-import Avatar from "@/components/Avatar";
-import LeaderboardTable from "./LeaderboardTable";
+import LeaderboardContent from "./LeaderboardContent";
+import type { LeaderboardRow, LeagueInfo } from "./LeaderboardContent";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -80,11 +80,6 @@ function resolveDisplayName(
   return name || `Player ${userId.slice(0, 5).toUpperCase()}`;
 }
 
-function pct(correct: number, total: number): string {
-  if (total === 0) return "—";
-  return `${Math.round((correct / total) * 100)}%`;
-}
-
 function fmtDate(iso: string, tz: TzLocale) {
   return new Date(iso).toLocaleDateString(tz.locale, {
     timeZone: tz.timezone,
@@ -103,10 +98,6 @@ function fmtDeadline(iso: string, tz: TzLocale) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function initials(name: string): string {
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
 // ── Pick chip ─────────────────────────────────────────────────────────────────
@@ -263,108 +254,6 @@ function FixtureCard({
             ))}
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ── Podium card ──────────────────────────────────────────────────────────────
-
-function PodiumCard({
-  entry,
-  rank,
-  isFirst,
-}: {
-  entry: LeaderboardEntry;
-  rank: number;
-  isFirst: boolean;
-}) {
-  const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
-  const colorIdx = entry.displayName.charCodeAt(0) % AVATAR_COLORS.length;
-
-  return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        background: isFirst ? "#0D1016" : "#fff",
-        border: `1px solid ${isFirst ? "#0D1016" : "#E4E1D8"}`,
-        borderRadius: 18,
-        padding: "24px 22px",
-        ...(isFirst ? { transform: "translateY(-14px)" } : {}),
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          right: 18,
-          fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-          fontSize: 46,
-          lineHeight: 1,
-          color: isFirst ? "var(--accent)" : "rgba(17,21,28,.10)",
-          opacity: 0.9,
-        }}
-      >
-        {rank}
-      </div>
-
-      {entry.avatarUrl ? (
-        <div className="mb-4">
-          <Avatar url={entry.avatarUrl} name={entry.displayName} size={54} />
-        </div>
-      ) : (
-        <div
-          className="flex items-center justify-center rounded-full mb-4"
-          style={{
-            width: 54,
-            height: 54,
-            background: AVATAR_COLORS[colorIdx],
-            fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-            fontSize: 18,
-            color: "#fff",
-          }}
-        >
-          {initials(entry.displayName)}
-        </div>
-      )}
-
-      <div
-        className="font-display uppercase"
-        style={{
-          fontSize: 21,
-          lineHeight: 1,
-          color: isFirst ? "#fff" : "#11151C",
-        }}
-      >
-        {entry.displayName}
-      </div>
-
-      <div style={{ fontSize: 13, color: isFirst ? "#9AA1AD" : "#8B8676", marginTop: 6, fontWeight: 600 }}>
-        {pct(entry.manualCorrect, entry.manualTotal)} accuracy
-      </div>
-
-      <div className="flex items-baseline gap-2" style={{ marginTop: 18 }}>
-        <span
-          className="font-display"
-          style={{
-            fontSize: 38,
-            lineHeight: 1,
-            color: isFirst ? "var(--accent)" : "#11151C",
-          }}
-        >
-          {entry.totalScore}
-        </span>
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
-            color: isFirst ? "#9AA1AD" : "#8B8676",
-          }}
-        >
-          pts
-        </span>
       </div>
     </div>
   );
@@ -541,19 +430,63 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // Rank calculation (1, 1, 3 style)
-  const ranks: number[] = [];
-  let rank = 0;
-  let prevScore = -1;
-  for (const entry of leaderboard) {
-    if (entry.totalScore !== prevScore) { rank++; prevScore = entry.totalScore; }
-    ranks.push(rank);
+  // Fetch user's leagues + member lists
+  let userLeagues: LeagueInfo[] = [];
+  if (currentUserId) {
+    const { data: memberships } = await supabase
+      .from("league_members")
+      .select("league_id")
+      .eq("user_id", currentUserId);
+
+    if (memberships?.length) {
+      const leagueIds = memberships.map((m) => m.league_id);
+
+      const { data: leagues } = await supabase
+        .from("leagues")
+        .select("*")
+        .in("id", leagueIds)
+        .eq("competition_id", compId);
+
+      if (leagues?.length) {
+        const filteredIds = leagues.map((l) => l.id);
+
+        const { data: allMembers } = await supabase
+          .from("league_members")
+          .select("league_id, user_id")
+          .in("league_id", filteredIds);
+
+        const memberMap = new Map<string, string[]>();
+        const countMap = new Map<string, number>();
+        for (const m of allMembers ?? []) {
+          const list = memberMap.get(m.league_id) ?? [];
+          list.push(m.user_id);
+          memberMap.set(m.league_id, list);
+          countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
+        }
+
+        userLeagues = leagues.map((l) => ({
+          id: l.id,
+          name: l.name,
+          invite_code: l.invite_code,
+          member_count: countMap.get(l.id) ?? 0,
+          memberUserIds: memberMap.get(l.id) ?? [],
+          created_by: l.created_by,
+        }));
+      }
+    }
   }
 
-  // Podium: 2nd | 1st | 3rd
-  const podiumEntries = leaderboard.length >= 3
-    ? [leaderboard[1], leaderboard[0], leaderboard[2]]
-    : [];
+  // Serialize leaderboard for client component
+  const serializedLeaderboard: LeaderboardRow[] = leaderboard.map((entry) => {
+    const team = entry.supportedTeamId ? teamMap.get(entry.supportedTeamId) : null;
+    return {
+      ...entry,
+      supportedTeam: team
+        ? { name: team.name, short_name: team.short_name, colour: team.colour, logo_url: team.logo_url }
+        : null,
+      thisRoundCorrect: thisRoundScores.get(entry.user_id)?.correct ?? null,
+    };
+  });
 
   // Season summary data
   let summaryGameweeks: Gameweek[] = [];
@@ -598,8 +531,6 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
-
   return (
     <div
       className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
@@ -633,203 +564,15 @@ export default async function LeaderboardPage() {
         </div>
       </section>
 
-      {/* ── Podium ───────────────────────────────────────────────────── */}
-      {podiumEntries.length === 3 && !noRoundsPlayed && (
-        <section className="mx-auto" style={{ maxWidth: 1100, padding: "34px 32px 16px" }}>
-          <div className="grid grid-cols-3 items-end" style={{ gap: 16 }}>
-            {podiumEntries.map((entry, idx) => {
-              const isFirst = idx === 1;
-              const podiumRank = idx === 0 ? 2 : idx === 1 ? 1 : 3;
-              return (
-                <PodiumCard
-                  key={entry.user_id}
-                  entry={entry}
-                  rank={podiumRank}
-                  isFirst={isFirst}
-                />
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── Full table ───────────────────────────────────────────────── */}
-      <section className="mx-auto" style={{ maxWidth: 1100, padding: "18px 32px 70px" }}>
-        {noRoundsPlayed && (
-          <div className="flex items-center gap-3" style={{ borderRadius: 14, background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "14px 20px", marginBottom: 18 }}>
-            <span style={{ fontSize: 20, flexShrink: 0 }}>🏉</span>
-            <p style={{ fontSize: 14, color: "#1E40AF", fontWeight: 600, margin: 0 }}>No rounds played yet — scores will appear here once the first round is complete.</p>
-          </div>
-        )}
-
-        {leaderboard.length === 0 ? (
-          <div className="text-center" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "48px 24px" }}>
-            <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>📋</span>
-            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No participants yet</p>
-            <p style={{ fontSize: 14, color: "#8B8676", marginTop: 4 }}>Registered users will appear here once they sign up.</p>
-          </div>
-        ) : (
-          <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
-            <div
-              className={`grid gap-x-1 sm:gap-x-2 ${marginPicking
-                ? "grid-cols-[28px_1fr_32px_32px_38px_34px_36px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
-                : "grid-cols-[28px_1fr_28px_38px_34px_36px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]"
-              }`}
-              style={{
-                padding: "15px 22px",
-                background: "#0D1016",
-                color: "#9AA1AD",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: ".1em",
-                textTransform: "uppercase",
-                position: "sticky",
-                top: 0,
-                zIndex: 2,
-              }}
-            >
-              <span>#</span>
-              <span>Tipper</span>
-              {marginPicking ? (
-                <>
-                  <span style={{ textAlign: "center" }}>
-                    <span className="sm:hidden">Cor</span>
-                    <span className="hidden sm:inline">Correct</span>
-                  </span>
-                  <span style={{ textAlign: "center" }}>
-                    <span className="sm:hidden">Bon</span>
-                    <span className="hidden sm:inline">Bonus</span>
-                  </span>
-                </>
-              ) : (
-                <span style={{ textAlign: "center" }}>
-                  <span className="sm:hidden">Rd</span>
-                  <span className="hidden sm:inline">This rd</span>
-                </span>
-              )}
-              <span style={{ textAlign: "center" }}>
-                <span className="sm:hidden">Acc%</span>
-                <span className="hidden sm:inline">Accuracy</span>
-              </span>
-              <span style={{ textAlign: "center" }}>Tips</span>
-              <span style={{ textAlign: "right" }}>
-                <span className="sm:hidden">Pts</span>
-                <span className="hidden sm:inline">Total</span>
-              </span>
-            </div>
-
-            <LeaderboardTable totalCount={leaderboard.length}>
-              {leaderboard.map((entry, idx) => {
-                const isYou = currentUserId === entry.user_id;
-                const displayRank = ranks[idx];
-                const thisRound = thisRoundScores.get(entry.user_id);
-                const thisRoundCorrect = thisRound?.correct ?? null;
-                const colorIdx = entry.displayName.charCodeAt(0) % AVATAR_COLORS.length;
-
-                return (
-                  <div
-                    key={entry.user_id}
-                    className={`grid gap-x-1 sm:gap-x-2 ${marginPicking
-                      ? "grid-cols-[28px_1fr_32px_32px_38px_34px_36px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
-                      : "grid-cols-[28px_1fr_28px_38px_34px_36px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]"
-                    }`}
-                    style={{
-                      alignItems: "center",
-                      padding: "15px 22px",
-                      borderTop: "1px solid #EFEDE6",
-                      background: isYou ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
-                      borderLeft: isYou ? "3px solid var(--accent)" : "3px solid transparent",
-                    }}
-                  >
-                    <span
-                      className="font-display"
-                      style={{
-                        fontSize: 16,
-                        color: displayRank <= 3 ? "var(--accent)" : "#11151C",
-                      }}
-                    >
-                      {displayRank}
-                    </span>
-
-                    <span className="flex items-center" style={{ gap: 12 }}>
-                      {entry.avatarUrl ? (
-                        <Avatar url={entry.avatarUrl} name={entry.displayName} size={34} />
-                      ) : (
-                        <span
-                          className="flex items-center justify-center rounded-full shrink-0"
-                          style={{
-                            width: 34,
-                            height: 34,
-                            background: isYou ? "var(--accent)" : AVATAR_COLORS[colorIdx],
-                            fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-                            fontSize: 12,
-                            color: "#fff",
-                          }}
-                        >
-                          {initials(entry.displayName)}
-                        </span>
-                      )}
-                      <span className="flex flex-col">
-                        <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C" }}>{entry.displayName}</span>
-                      </span>
-                      {showSupportedTeam && entry.supportedTeamId && teamMap.get(entry.supportedTeamId) && (
-                        <TeamBadge team={teamMap.get(entry.supportedTeamId)!} size="xs" />
-                      )}
-                      {isYou && (
-                        <span
-                          style={{
-                            marginLeft: 4,
-                            padding: "3px 9px",
-                            borderRadius: 999,
-                            background: "var(--accent)",
-                            color: "var(--accent-text, #11151C)",
-                            fontSize: 10,
-                            fontWeight: 800,
-                            letterSpacing: ".08em",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          You
-                        </span>
-                      )}
-                    </span>
-
-                    {marginPicking ? (
-                      <>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
-                          {entry.correct}
-                        </span>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
-                          {entry.marginBonus}
-                        </span>
-                      </>
-                    ) : (
-                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
-                        {thisRoundCorrect !== null ? thisRoundCorrect : "—"}
-                      </span>
-                    )}
-
-                    <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
-                      {pct(entry.manualCorrect, entry.manualTotal)}
-                    </span>
-
-                    <span style={{ textAlign: "center", fontSize: 14, color: entry.manualTotal > 0 ? "#5A6371" : "#C7C2B5" }}>
-                      {entry.manualTotal > 0 ? entry.manualTotal : "—"}
-                    </span>
-
-                    <span
-                      className="font-display"
-                      style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}
-                    >
-                      {entry.totalScore}
-                    </span>
-                  </div>
-                );
-              })}
-            </LeaderboardTable>
-          </div>
-        )}
-      </section>
+      {/* ── Podium + Table + Leagues (client) ─────────────────────── */}
+      <LeaderboardContent
+        leaderboard={serializedLeaderboard}
+        leagues={userLeagues}
+        currentUserId={currentUserId}
+        marginPicking={marginPicking}
+        showSupportedTeam={showSupportedTeam}
+        noRoundsPlayed={noRoundsPlayed}
+      />
 
       {/* ── This Week ────────────────────────────────────────────────── */}
       {openGameweek && weekFixtures.length > 0 && (

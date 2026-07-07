@@ -108,6 +108,21 @@ export type LeaderboardEntry = {
   total: number;
 };
 
+export async function leaveLeague(leagueId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("league_members")
+    .delete()
+    .eq("league_id", leagueId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function fetchLeagueLeaderboard(
   leagueId: string,
   compIdOverride?: string
