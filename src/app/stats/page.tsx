@@ -161,8 +161,8 @@ export default async function LadderPage() {
         </div>
       </section>
 
-      {/* ── Player stat cards ────────────────────────────────────────── */}
-      <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
+      {/* ── Player stat cards (NPC only for now) ────────────────────── */}
+      {isNpc && <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
         <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
           <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
           <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
@@ -227,7 +227,7 @@ export default async function LadderPage() {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* ── Standings ────────────────────────────────────────────────── */}
       <section className="mx-auto" style={{ maxWidth: 1100, padding: "24px 32px 0" }}>
