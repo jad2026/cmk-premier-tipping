@@ -673,11 +673,11 @@ export default async function HomePage() {
                   <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{isNpc ? compLabel : `${compLabel} Men`}</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
                   <Link
-                    href="/ladder"
+                    href="/stats"
                     className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
                     style={{ color: "var(--accent)" }}
                   >
-                    Full ladder →
+                    Full standings →
                   </Link>
                 </div>
 
@@ -767,11 +767,11 @@ export default async function HomePage() {
                   <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Women</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
                   <Link
-                    href="/ladder"
+                    href="/stats"
                     className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
                     style={{ color: "var(--accent)" }}
                   >
-                    Full ladder →
+                    Full standings →
                   </Link>
                 </div>
 

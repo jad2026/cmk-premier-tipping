@@ -6,7 +6,7 @@ export default async function GlobalSponsorBanner() {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
 
-  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "" || pathname === "/leaderboard" || pathname.startsWith("/leaderboard/") || pathname === "/ladder" || pathname === "/tips" || pathname === "/my-picks" || pathname === "/profile" || pathname === "/leagues" || pathname.startsWith("/leagues/") || pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password") return null;
+  if (pathname.startsWith("/admin") || pathname === "/" || pathname === "" || pathname === "/leaderboard" || pathname.startsWith("/leaderboard/") || pathname === "/stats" || pathname === "/tips" || pathname === "/my-picks" || pathname === "/profile" || pathname === "/leagues" || pathname.startsWith("/leagues/") || pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password") return null;
 
   const sponsors = await fetchActiveSponsors("home");
   if (sponsors.length === 0) return null;

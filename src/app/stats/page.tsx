@@ -153,11 +153,89 @@ export default async function LadderPage() {
             className="font-display uppercase"
             style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
           >
-            The Ladder<span style={{ color: "var(--accent)" }}>.</span>
+            Stats<span style={{ color: "var(--accent)" }}>.</span>
           </h1>
           <p style={{ fontSize: 16, color: "#AEB4BE", margin: "14px 0 0", maxWidth: 480 }}>
-            Four points a win, two a draw, bonus for four tries or a loss inside seven.
+            Season leaders, team standings, and key performance stats.
           </p>
+        </div>
+      </section>
+
+      {/* ── Player stat cards ────────────────────────────────────────── */}
+      <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+          <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+          <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+            Season Leaders
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14 }}>
+          {[
+            { title: "Top Points Scorer", icon: "🏉" },
+            { title: "Top Try Scorer", icon: "🏆" },
+            { title: "Tackles Made", icon: "🛡️" },
+            { title: "Line Breaks", icon: "💨" },
+            { title: "Turnovers", icon: "🔄" },
+            { title: "Penalties Conceded", icon: "🟡" },
+          ].map(({ title, icon }) => (
+            <div
+              key={title}
+              style={{
+                background: "#fff",
+                border: "1px solid #E4E1D8",
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "12px 18px",
+                  background: "rgba(var(--accent-rgb,217,165,33),.08)",
+                  borderBottom: "2px solid var(--accent)",
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent)" }}>
+                  {title}
+                </span>
+              </div>
+              <div style={{ padding: "20px 18px" }}>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex items-center justify-center shrink-0 rounded-full"
+                    style={{
+                      width: 40,
+                      height: 40,
+                      background: "#F5F4EF",
+                      fontSize: 18,
+                    }}
+                  >
+                    {icon}
+                  </span>
+                  <div>
+                    <span
+                      className="font-display"
+                      style={{ fontSize: 28, lineHeight: 1, color: "#C7C2B5" }}
+                    >
+                      —
+                    </span>
+                    <p style={{ fontSize: 12, color: "#8B8676", margin: "4px 0 0" }}>
+                      Available when season starts
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Standings ────────────────────────────────────────────────── */}
+      <section className="mx-auto" style={{ maxWidth: 1100, padding: "24px 32px 0" }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 8 }}>
+          <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+          <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+            Standings
+          </h2>
         </div>
       </section>
 
@@ -166,7 +244,7 @@ export default async function LadderPage() {
         <section className="mx-auto" style={{ maxWidth: 1100, padding: "40px 32px 70px" }}>
           <div className="text-center" style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "56px 24px" }}>
             <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>🏉</span>
-            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No ladder data available yet</p>
+            <p style={{ fontWeight: 600, color: "#5A6371", margin: 0 }}>No standings data available yet</p>
             <p style={{ fontSize: 14, color: "#8B8676", marginTop: 4 }}>Standings will appear here once competition data is available.</p>
           </div>
         </section>

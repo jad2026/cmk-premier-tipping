@@ -33,7 +33,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
     { href: "/tips", label: "Tips" },
     ...(user ? [{ href: "/my-picks", label: "My Picks" }] : []),
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/ladder", label: "Ladder" },
+    { href: "/stats", label: "Stats" },
     ...(showSquads ? [{ href: "/squads", label: "Squads" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
