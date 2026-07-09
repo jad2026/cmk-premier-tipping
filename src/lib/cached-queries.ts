@@ -1,10 +1,17 @@
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Team } from "@/lib/supabase/types";
+
+function createAnonClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+}
 
 export const getCachedTeams = unstable_cache(
   async (compId: string) => {
-    const supabase = await createClient();
+    const supabase = createAnonClient();
     const { data } = await supabase
       .from("teams")
       .select("*")
@@ -18,7 +25,7 @@ export const getCachedTeams = unstable_cache(
 
 export const getCachedAllTeams = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createAnonClient();
     const { data } = await supabase.from("teams").select("*");
     return (data ?? []) as Team[];
   },
@@ -28,7 +35,7 @@ export const getCachedAllTeams = unstable_cache(
 
 export const getCachedCompetitionFeatures = unstable_cache(
   async (compId: string) => {
-    const supabase = await createClient();
+    const supabase = createAnonClient();
     const { data } = await supabase
       .from("competitions")
       .select("features")
@@ -43,7 +50,7 @@ export const getCachedCompetitionFeatures = unstable_cache(
 
 export const getCachedSeasonConfig = unstable_cache(
   async (compId: string) => {
-    const supabase = await createClient();
+    const supabase = createAnonClient();
     const { data } = await supabase
       .from("season_config")
       .select("season_complete, season_name")
