@@ -23,16 +23,16 @@ export default async function TipsPage() {
   const compLabel = compId === NPC_COMPETITION_ID ? "NPC" : "CMK Premier · Taranaki";
   const tzLocale = await getCompetitionTimezone(compId);
 
-  const { data: compFeatures } = await supabase
-    .from("competitions")
-    .select("features")
-    .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
+  const [{ data: compFeatures }, { data: { user } }] = await Promise.all([
+    supabase
+      .from("competitions")
+      .select("features")
+      .eq("id", compId)
+      .single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
+    supabase.auth.getUser(),
+  ]);
   const marginPicking = compFeatures?.features?.margin_picking === true;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: participant } = await supabase
@@ -54,11 +54,17 @@ export default async function TipsPage() {
     );
   }
 
-  const { data: seasonConfig } = await supabase
-    .from("season_config")
-    .select("season_complete")
-    .eq("competition_id", compId)
-    .single();
+  const [{ data: seasonConfig }, { data: compGwRows }] = await Promise.all([
+    supabase
+      .from("season_config")
+      .select("season_complete")
+      .eq("competition_id", compId)
+      .single(),
+    supabase
+      .from("gameweeks")
+      .select("id")
+      .eq("competition_id", compId),
+  ]);
 
   if (seasonConfig?.season_complete) {
     return (
@@ -74,10 +80,6 @@ export default async function TipsPage() {
     );
   }
 
-  const { data: compGwRows } = await supabase
-    .from("gameweeks")
-    .select("id")
-    .eq("competition_id", compId);
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
   const { count: fixtureCount } = compGwIds.length > 0
@@ -100,7 +102,7 @@ export default async function TipsPage() {
 
   const { data: openGameweeks } = await supabase
     .from("gameweeks")
-    .select("*")
+    .select("id, number, label, deadline, is_open")
     .eq("competition_id", compId)
     .eq("is_open", true)
     .order("number");
@@ -145,7 +147,7 @@ export default async function TipsPage() {
   const { data: allPicks } = allFixtureIds.length > 0
     ? await supabase
         .from("picks")
-        .select("*")
+        .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, predicted_margin, margin_correct, margin_bonus, points")
         .eq("user_id", user.id)
         .in("fixture_id", allFixtureIds)
     : { data: [] as Pick[] };

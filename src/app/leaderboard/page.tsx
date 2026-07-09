@@ -282,7 +282,7 @@ export default async function LeaderboardPage() {
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
     supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id"),
-    supabase.from("teams").select("*"),
+    supabase.from("teams").select("id, name, short_name, colour, logo_url, competition_id, home_ground").eq("competition_id", compId),
     supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
     supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
@@ -302,13 +302,13 @@ export default async function LeaderboardPage() {
   ] = await Promise.all([
     supabase
       .from("gameweeks")
-      .select("*")
+      .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
       .eq("is_open", true)
       .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
     supabase
       .from("gameweeks")
-      .select("*")
+      .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
       .eq("is_open", false)
       .order("number"),
@@ -489,14 +489,14 @@ export default async function LeaderboardPage() {
   });
 
   // Season summary data
-  let summaryGameweeks: Gameweek[] = [];
+  let summaryGameweeks: Pick<Gameweek, "id" | "number" | "label" | "deadline" | "is_open">[] = [];
   const summaryFixturesByGw = new Map<string, RichFixture[]>();
   const summaryPicksByFixture = new Map<string, RichPick[]>();
 
   if (seasonComplete) {
     const { data: allGws } = await supabase
       .from("gameweeks")
-      .select("*")
+      .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
       .order("number");
 

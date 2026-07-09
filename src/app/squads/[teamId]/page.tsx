@@ -36,18 +36,19 @@ export default async function TeamSquadPage({
 
   const team = teamData as Team;
 
-  const { data: players } = await supabase
-    .from("players")
-    .select("*")
-    .eq("team_id", teamId)
-    .eq("is_active", true)
-    .order("jersey_number");
-
-  const { data: coachData } = await supabase
-    .from("coaching_staff")
-    .select("*")
-    .eq("team_id", teamId)
-    .order("display_order");
+  const [{ data: players }, { data: coachData }] = await Promise.all([
+    supabase
+      .from("players")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("is_active", true)
+      .order("jersey_number"),
+    supabase
+      .from("coaching_staff")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("display_order"),
+  ]);
 
   return (
     <div
