@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
+import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
+import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
-import type { Team } from "@/lib/supabase/types";
+import type { Team, Fixture } from "@/lib/supabase/types";
 
 export const revalidate = 300;
 
@@ -37,9 +38,15 @@ function teamMonogram(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
+  home_team: Team;
+  away_team: Team;
+};
+
 export default async function LadderPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
+  const tz = await getCompetitionTimezone(compId);
 
   const CMK_WOMEN_COMPETITION_ID = "952743a7-9e79-4c5b-b15c-7fe07c4ca420";
   const tenantIds = compId === CMK_COMPETITION_ID
@@ -105,6 +112,40 @@ export default async function LadderPage() {
   const compLabel = isNpc ? "NPC" : "CMK Premier";
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
+  // Fetch first fixture from earliest gameweek for the live match preview
+  let previewFixture: RichFixture | null = null;
+  let round1Label: string | null = null;
+  let round1Date: string | null = null;
+  if (isNpc) {
+    const { data: firstGw } = await supabase
+      .from("gameweeks")
+      .select("id, label, deadline")
+      .eq("competition_id", compId)
+      .order("number", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (firstGw) {
+      round1Label = firstGw.label;
+      round1Date = new Date(firstGw.deadline).toLocaleDateString(tz.locale, {
+        timeZone: tz.timezone,
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      });
+
+      const { data: firstFixture } = await supabase
+        .from("fixtures")
+        .select("*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)")
+        .eq("gameweek_id", firstGw.id)
+        .order("match_date", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (firstFixture) previewFixture = firstFixture as unknown as RichFixture;
+    }
+  }
+
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
     if (names.some((n) => n.includes("women"))) return `${compLabel} Women`;
@@ -160,6 +201,120 @@ export default async function LadderPage() {
           </p>
         </div>
       </section>
+
+      {/* ── Live match banner (NPC only) ────────────────────────────── */}
+      {isNpc && previewFixture && (
+        <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
+          <style>{`
+            @keyframes accent-glow {
+              0%, 100% { box-shadow: 0 0 20px 0 rgba(var(--accent-rgb,217,165,33),.15), inset 0 0 0 1px rgba(var(--accent-rgb,217,165,33),.25); }
+              50% { box-shadow: 0 0 32px 4px rgba(var(--accent-rgb,217,165,33),.25), inset 0 0 0 1px rgba(var(--accent-rgb,217,165,33),.4); }
+            }
+            @keyframes live-pulse {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50% { opacity: .5; transform: scale(1.4); }
+            }
+          `}</style>
+          <div
+            style={{
+              background: "#0B0E13",
+              borderRadius: 20,
+              overflow: "hidden",
+              animation: "accent-glow 3s ease-in-out infinite",
+            }}
+          >
+            {/* Header bar */}
+            <div className="flex items-center justify-between" style={{ padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+              <div className="flex items-center gap-3">
+                <div className="shrink-0" style={{ width: 20, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "#fff" }}>
+                  Match Day Live Stats
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "#EF4444",
+                    display: "inline-block",
+                    animation: "live-pulse 2s ease-in-out infinite",
+                  }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#EF4444" }}>
+                  Live
+                </span>
+              </div>
+            </div>
+
+            {/* Match preview */}
+            <div style={{ padding: "28px 24px 20px" }}>
+              <div className="flex items-center justify-between gap-4">
+                {/* Home team */}
+                <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                  <TeamBadge team={previewFixture.home_team} size="lg" />
+                  <span className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+                    {previewFixture.home_team.short_name}
+                  </span>
+                </div>
+
+                {/* Score */}
+                <div className="flex flex-col items-center shrink-0" style={{ gap: 6 }}>
+                  <div className="flex items-center" style={{ gap: 12 }}>
+                    <span className="font-display" style={{ fontSize: 36, color: "rgba(255,255,255,.2)", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                      00
+                    </span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: "rgba(255,255,255,.15)", letterSpacing: ".1em" }}>
+                      –
+                    </span>
+                    <span className="font-display" style={{ fontSize: 36, color: "rgba(255,255,255,.2)", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                      00
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(var(--accent-rgb,217,165,33),.5)", padding: "3px 10px", borderRadius: 999, background: "rgba(var(--accent-rgb,217,165,33),.08)" }}>
+                    VS
+                  </span>
+                </div>
+
+                {/* Away team */}
+                <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                  <TeamBadge team={previewFixture.away_team} size="lg" />
+                  <span className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+                    {previewFixture.away_team.short_name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Placeholder stat row */}
+              <div className="flex items-center justify-center gap-6 sm:gap-10" style={{ marginTop: 24, padding: "14px 0", borderTop: "1px solid rgba(255,255,255,.06)" }}>
+                {[
+                  { label: "Tries", icon: "🏉" },
+                  { label: "Conv", icon: "🥅" },
+                  { label: "Pens", icon: "🏈" },
+                  { label: "Cards", icon: "🟨" },
+                ].map(({ label, icon }) => (
+                  <div key={label} className="flex flex-col items-center" style={{ gap: 4 }}>
+                    <span style={{ fontSize: 16 }}>{icon}</span>
+                    <span className="font-display" style={{ fontSize: 18, color: "rgba(255,255,255,.15)", lineHeight: 1 }}>0</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.25)" }}>
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Coming soon banner */}
+            <div style={{ padding: "12px 24px", background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
+              <p className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
+                Live stats coming {round1Label ?? "Round 1"}
+                {round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Player stat cards (NPC only for now) ────────────────────── */}
       {isNpc && <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
