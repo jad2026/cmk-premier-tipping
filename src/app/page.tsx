@@ -9,6 +9,7 @@ import TeamBadge from "@/components/TeamBadge";
 import ClubsMarquee from "@/components/ClubsMarquee";
 import type { Gameweek, Fixture, Team } from "@/lib/supabase/types";
 import { HomeCountdown, FeaturedCountdown } from "./HomeCountdown";
+import { getCachedTeams, getCachedSeasonConfig } from "@/lib/cached-queries";
 
 export const revalidate = 60;
 
@@ -56,12 +57,12 @@ export default async function HomePage() {
 
   const CMK_WOMEN_COMPETITION_ID = "952743a7-9e79-4c5b-b15c-7fe07c4ca420";
 
-  const [{ data: compGwRows }, { data: seasonConfig }, { data: teams }, { data: womenTeams }] =
+  const [{ data: compGwRows }, seasonConfig, teams, womenTeams] =
     await Promise.all([
       supabase.from("gameweeks").select("*").eq("competition_id", compId).order("number"),
-      supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
-      supabase.from("teams").select("*").eq("competition_id", compId).order("name"),
-      supabase.from("teams").select("*").eq("competition_id", CMK_WOMEN_COMPETITION_ID).order("name"),
+      getCachedSeasonConfig(compId),
+      getCachedTeams(compId),
+      getCachedTeams(CMK_WOMEN_COMPETITION_ID),
     ]);
 
   const gameweeks = compGwRows ?? [];

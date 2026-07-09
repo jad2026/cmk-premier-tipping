@@ -5,6 +5,7 @@ import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
 import MatchCentre from "./MatchCentre";
 import { buildPlaceholderFixture } from "./matchCentreTypes";
+import { getCachedAllTeams } from "@/lib/cached-queries";
 
 export const revalidate = 300;
 
@@ -57,7 +58,7 @@ export default async function LadderPage() {
 
   const [
     { data: activeComps },
-    { data: teams },
+    teams,
     { data: closedGameweeks },
   ] = await Promise.all([
     supabase
@@ -65,7 +66,7 @@ export default async function LadderPage() {
       .select("comp_id")
       .in("id", tenantIds)
       .eq("is_active", true),
-    supabase.from("teams").select("*"),
+    getCachedAllTeams(),
     supabase
       .from("gameweeks")
       .select("number")
@@ -91,7 +92,7 @@ export default async function LadderPage() {
 
   const standings = (rows ?? []) as LadderRow[];
 
-  const teamList = (teams ?? []) as Team[];
+  const teamList = teams;
   const teamByName = new Map<string, Team>();
   for (const t of teamList) {
     teamByName.set(t.name.toLowerCase(), t);

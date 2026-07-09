@@ -6,6 +6,7 @@ import TeamBadge from "@/components/TeamBadge";
 import LeaderboardContent from "./LeaderboardContent";
 import type { LeaderboardRow, LeagueInfo } from "./LeaderboardContent";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
+import { getCachedTeams, getCachedCompetitionFeatures, getCachedSeasonConfig } from "@/lib/cached-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -274,22 +275,22 @@ export default async function LeaderboardPage() {
   const [
     { data: compGwRows },
     { data: profiles },
-    { data: teams },
-    { data: seasonConfig },
+    teams,
+    seasonConfig,
     { data: matchResultsRaw },
     { data: participants },
-    { data: compFeatures },
+    compFeatures,
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
     supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id"),
-    supabase.from("teams").select("id, name, short_name, colour, logo_url, competition_id, home_ground").eq("competition_id", compId),
-    supabase.from("season_config").select("season_complete, season_name").eq("competition_id", compId).single(),
+    getCachedTeams(compId),
+    getCachedSeasonConfig(compId),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
     supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
-    supabase.from("competitions").select("features").eq("id", compId).single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
+    getCachedCompetitionFeatures(compId),
   ]);
-  const marginPicking = compFeatures?.features?.margin_picking === true;
-  const showSupportedTeam = compFeatures?.features?.show_supported_team === true;
+  const marginPicking = compFeatures?.margin_picking === true;
+  const showSupportedTeam = compFeatures?.show_supported_team === true;
   const participantIds = new Set((participants ?? []).map((p) => p.user_id));
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);

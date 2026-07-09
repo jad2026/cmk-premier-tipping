@@ -5,6 +5,7 @@ import { getCurrentCompetitionId, NPC_COMPETITION_ID, getCompetitionTimezone } f
 import TipsForm from "./TipsForm";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Fixture, Pick } from "@/lib/supabase/types";
+import { getCachedCompetitionFeatures, getCachedSeasonConfig } from "@/lib/cached-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +24,11 @@ export default async function TipsPage() {
   const compLabel = compId === NPC_COMPETITION_ID ? "NPC" : "CMK Premier · Taranaki";
   const tzLocale = await getCompetitionTimezone(compId);
 
-  const [{ data: compFeatures }, { data: { user } }] = await Promise.all([
-    supabase
-      .from("competitions")
-      .select("features")
-      .eq("id", compId)
-      .single() as unknown as Promise<{ data: { features: Record<string, boolean> | null } | null }>,
+  const [compFeatures, { data: { user } }] = await Promise.all([
+    getCachedCompetitionFeatures(compId),
     supabase.auth.getUser(),
   ]);
-  const marginPicking = compFeatures?.features?.margin_picking === true;
+  const marginPicking = compFeatures?.margin_picking === true;
 
   if (!user) redirect("/login");
 
@@ -54,12 +51,8 @@ export default async function TipsPage() {
     );
   }
 
-  const [{ data: seasonConfig }, { data: compGwRows }] = await Promise.all([
-    supabase
-      .from("season_config")
-      .select("season_complete")
-      .eq("competition_id", compId)
-      .single(),
+  const [seasonConfig, { data: compGwRows }] = await Promise.all([
+    getCachedSeasonConfig(compId),
     supabase
       .from("gameweeks")
       .select("id")
