@@ -588,7 +588,24 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── 6. How Scoring Works ────────────────────────────────────────────── */}
+      {/* ── 6. NPC SEO content ─────────────────────────────────────────────── */}
+      {isNpc && (
+        <section style={{ background: "#0D1016" }}>
+          <div className="max-w-content mx-auto" style={{ padding: "56px 32px 60px" }}>
+            <h2 className="font-display text-[23px] uppercase tracking-[.02em] text-white mb-[20px]">
+              The NPC rugby tipping competition<span style={{ color: "var(--accent)" }}>.</span>
+            </h2>
+            <p style={{ fontSize: 17, lineHeight: 1.7, color: "#C2C7D0", maxWidth: 640, marginBottom: 18 }}>
+              Club Rugby Tipping runs a free tipping competition for the Bunnings NPC, New Zealand&apos;s premier provincial rugby competition. Pick the winning team and predict the margin for every match across all 14 unions — from Auckland to Southland.
+            </p>
+            <p style={{ fontSize: 17, lineHeight: 1.7, color: "#C2C7D0", maxWidth: 640 }}>
+              Whether you&apos;re backing Canterbury to dominate or tipping Taranaki for an upset, compete against rugby fans across the country on a single national leaderboard. No sign-up fee, no app to download — just pick your winners each round before kickoff.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ── 7. How Scoring Works ────────────────────────────────────────────── */}
       {scoringConfig && (
         <section style={{ background: "#F2F0EA" }}>
           <div className="max-w-content mx-auto" style={{ padding: "10px 32px 40px" }}>
@@ -661,7 +678,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── 7. Ladder snapshots ───────────────────────────────────────────────── */}
+      {/* ── 8. Ladder snapshots ───────────────────────────────────────────────── */}
       {(ladderRows.length > 0 || womenLadderRows.length > 0) && (
         <section style={{ background: "#F2F0EA" }}>
           <div className="max-w-content mx-auto" style={{ padding: "14px 32px 70px" }}>
