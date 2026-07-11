@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://npc.clubrugbytipping.com/sitemap.xml
+Sitemap: https://clubrugbytipping.com/sitemap.xml
