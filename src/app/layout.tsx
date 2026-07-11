@@ -32,8 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const compId = await getCurrentCompetitionId();
   const isNpc = compId === NPC_COMPETITION_ID;
   return {
-    title: isNpc ? "NPC Tipping" : "Club Rugby Tipping",
-    description: "Rugby tipping competition — pick the winners and top the table.",
+    title: isNpc ? "NPC Rugby Tipping Competition 2026 | Club Rugby Tipping" : "Club Rugby Tipping",
+    description: isNpc
+      ? "Free NPC rugby tipping comp — pick the winners each round, predict margins, and climb the national leaderboard. Back your province."
+      : "Rugby tipping competition — pick the winners and top the table.",
     appleWebApp: {
       capable: true,
       title: isNpc ? "NPC Tipping" : "CRT Tipping",
