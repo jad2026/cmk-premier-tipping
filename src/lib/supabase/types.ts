@@ -153,6 +153,16 @@ export type Season = {
   picks_json: unknown;
 };
 
+export type PushSubscription = {
+  id: string;
+  user_id: string;
+  competition_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+};
+
 // ---------------------------------------------------------------------------
 // Database schema — must satisfy @supabase/supabase-js GenericSchema so that
 // the client's insert/update/upsert types resolve correctly.
@@ -245,6 +255,12 @@ export type Database = {
         Row: CoachingStaff;
         Insert: Omit<CoachingStaff, "id" | "created_at" | "photo_url"> & { id?: string; created_at?: string; photo_url?: string | null };
         Update: Partial<CoachingStaff>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: PushSubscription;
+        Insert: Omit<PushSubscription, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<PushSubscription>;
         Relationships: [];
       };
     };

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, user = null, isAdmin = false }: { siteName?: string; showSquads?: boolean; user?: User | null; isAdmin?: boolean }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, user = null, isAdmin = false, competitionId = "" }: { siteName?: string; showSquads?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
@@ -96,6 +97,11 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               {label}
             </Link>
           ))}
+          {user && competitionId && (
+            <div className="ml-2">
+              <PushNotificationToggle competitionId={competitionId} />
+            </div>
+          )}
           <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
             {user ? (
               <form method="POST" action="/api/auth/signout">
@@ -132,6 +138,9 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
 
         {/* Mobile right side: sign-in pill + hamburger */}
         <div className="flex md:hidden items-center gap-2">
+          {user && competitionId && (
+            <PushNotificationToggle competitionId={competitionId} />
+          )}
           {!user && (
             <Link
               href="/login"

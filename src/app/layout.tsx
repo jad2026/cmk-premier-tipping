@@ -113,7 +113,7 @@ export default async function RootLayout({
             alt=""
           />
         </noscript>
-        <Navbar siteName={siteName} showSquads={showSquads} user={user} isAdmin={isAdmin} />
+        <Navbar siteName={siteName} showSquads={showSquads} user={user} isAdmin={isAdmin} competitionId={compId} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
