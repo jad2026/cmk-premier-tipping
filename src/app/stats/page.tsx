@@ -112,7 +112,7 @@ export default async function LadderPage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "NPC" : "CMK Premier";
+  const compLabel = isNpc ? "Provincial" : "CMK Premier";
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
   // Fetch Round 1 fixtures for the match centre preview

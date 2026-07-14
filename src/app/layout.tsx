@@ -32,13 +32,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const compId = await getCurrentCompetitionId();
   const isNpc = compId === NPC_COMPETITION_ID;
   return {
-    title: isNpc ? "NPC Rugby Tipping Competition 2026 | Club Rugby Tipping" : "Club Rugby Tipping",
+    title: isNpc ? "Club Rugby Tipping" : "Club Rugby Tipping",
     description: isNpc
-      ? "Free NPC rugby tipping comp — pick the winners each round, predict margins, and climb the national leaderboard. Back your province."
+      ? "Free rugby tipping comp — pick the winners each round, predict margins, and climb the national leaderboard. Back your province."
       : "Rugby tipping competition — pick the winners and top the table.",
     appleWebApp: {
       capable: true,
-      title: isNpc ? "NPC Tipping" : "CRT Tipping",
+      title: isNpc ? "Club Rugby Tipping" : "CRT Tipping",
       statusBarStyle: "default",
     },
   };
@@ -52,7 +52,7 @@ export default async function RootLayout({
   const compId = await getCurrentCompetitionId();
   const isNpc = compId === NPC_COMPETITION_ID;
   const themeClass = isNpc ? "theme-npc" : "";
-  const siteName = isNpc ? "NPC Tipping" : "Club Rugby Tipping";
+  const siteName = isNpc ? "Club Rugby Tipping" : "Club Rugby Tipping";
   const accentName = getAccentForCompetition(compId);
   const accentVars = getAccentCSSVars(accentName);
 

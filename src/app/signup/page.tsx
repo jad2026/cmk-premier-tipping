@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 function useSiteName() {
   const [name, setName] = useState("Club Rugby Tipping");
   useEffect(() => {
-    if (document.documentElement.classList.contains("theme-npc")) setName("NPC Tipping");
+    if (document.documentElement.classList.contains("theme-npc")) setName("Club Rugby Tipping");
   }, []);
   return name;
 }

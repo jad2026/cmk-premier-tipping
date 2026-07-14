@@ -229,7 +229,7 @@ export default async function HomePage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "NPC" : "CMK Premier";
+  const compLabel = isNpc ? "Provincial" : "CMK Premier";
   const regionLabel = isNpc ? "New Zealand" : "Taranaki";
 
   // Filter out women's teams and deduplicate by name
@@ -292,7 +292,7 @@ export default async function HomePage() {
           {activeRound && activeMode === "open" && (
             <p className="text-[19px] leading-[1.5] text-[#C2C7D0] max-w-[480px] mb-[38px]">
               {isNpc
-                ? "The NPC is here. Pick the winners, back your province, and climb the national leaderboard."
+                ? "Pick the winners, back your province, and climb the national leaderboard."
                 : `${activeRound.gameweek.label} is open. Lock your tips before kickoff, back your clubs and climb the leaderboard.`}
             </p>
           )}
@@ -567,13 +567,13 @@ export default async function HomePage() {
             >
               <div className="relative z-[2]">
                 <div className="text-[12px] font-extrabold tracking-[.16em] uppercase mb-[10px]" style={{ color: "var(--accent)" }}>
-                  Tip the NPC
+                  Tip the Provincials
                 </div>
                 <div className="font-display text-[26px] uppercase leading-none mb-2">
                   Think you know provincial rugby?
                 </div>
                 <div className="text-[15px] text-[#AEB4BE] max-w-[520px]">
-                  Join the NPC tipping competition and go head-to-head with the country.
+                  Join the tipping competition and go head-to-head with the country.
                 </div>
               </div>
               <a
@@ -581,7 +581,7 @@ export default async function HomePage() {
                 className="relative z-[2] inline-flex items-center gap-[9px] px-[26px] py-[15px] rounded-[11px] text-[15px] font-bold text-white no-underline whitespace-nowrap transition-colors hover:bg-white/[.08]"
                 style={{ border: "1.5px solid rgba(255,255,255,.3)" }}
               >
-                Join NPC tipping →
+                Join tipping →
               </a>
             </div>
           </div>
@@ -593,10 +593,10 @@ export default async function HomePage() {
         <section style={{ background: "#0D1016" }}>
           <div className="max-w-content mx-auto" style={{ padding: "56px 32px 60px" }}>
             <h2 className="font-display text-[23px] uppercase tracking-[.02em] text-white mb-[20px]">
-              The NPC rugby tipping competition<span style={{ color: "var(--accent)" }}>.</span>
+              The rugby tipping competition<span style={{ color: "var(--accent)" }}>.</span>
             </h2>
             <p style={{ fontSize: 17, lineHeight: 1.7, color: "#C2C7D0", maxWidth: 640, marginBottom: 18 }}>
-              Club Rugby Tipping runs a free tipping competition for the Bunnings NPC, New Zealand&apos;s premier provincial rugby competition. Pick the winning team and predict the margin for every match across all 14 unions — from Auckland to Southland.
+              Club Rugby Tipping runs a free tipping competition for New Zealand&apos;s premier provincial rugby competition. Pick the winning team and predict the margin for every match across all 14 unions — from Auckland to Southland.
             </p>
             <p style={{ fontSize: 17, lineHeight: 1.7, color: "#C2C7D0", maxWidth: 640 }}>
               Whether you&apos;re backing Canterbury to dominate or tipping Taranaki for an upset, compete against rugby fans across the country on a single national leaderboard. No sign-up fee, no app to download — just pick your winners each round before kickoff.
