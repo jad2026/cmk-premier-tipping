@@ -3,17 +3,6 @@ import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
 
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#4A90A4", "#6B8E5A", "#A0522D", "#7B68AE", "#C4834D",
-    "#5B7FA5", "#8B6F5C", "#6A9B7B", "#A07DA0", "#7C8B5E",
-    "#9C6B4B", "#5C8A9A", "#8B7355", "#6E85A0", "#9A7B6A",
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
-}
-
 function PlayerCard({
   player,
   teamColor,
@@ -21,9 +10,7 @@ function PlayerCard({
   player: Player;
   teamColor: string;
 }) {
-  const initials = `${player.first_name[0]}${player.last_name[0]}`;
   const displayName = `${player.first_name[0]}. ${player.last_name}`;
-  const avatarBg = getAvatarColor(`${player.first_name} ${player.last_name}`);
 
   return (
     <div
@@ -37,23 +24,14 @@ function PlayerCard({
         padding: "10px 14px",
       }}
     >
-      {/* Avatar */}
-      <div
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: "50%",
-          background: avatarBg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          position: "relative",
-        }}
-      >
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: ".03em" }}>
-          {initials}
-        </span>
+      <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", background: "#E4E1D8" }}>
+        <img
+          src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(player.first_name + " " + player.last_name)}`}
+          alt=""
+          width={42}
+          height={42}
+          style={{ width: 42, height: 42 }}
+        />
         {player.is_captain && (
           <span
             style={{
