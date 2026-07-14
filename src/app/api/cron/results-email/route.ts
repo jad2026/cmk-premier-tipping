@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const COMPETITION_SITE_URLS: Record<string, string> = {
   "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
-  "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://npc.clubrugbytipping.com",
+  "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://clubrugbytipping.com",
   "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
 };
 

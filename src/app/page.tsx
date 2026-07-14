@@ -577,7 +577,7 @@ export default async function HomePage() {
                 </div>
               </div>
               <a
-                href="https://npc.clubrugbytipping.com"
+                href="https://clubrugbytipping.com"
                 className="relative z-[2] inline-flex items-center gap-[9px] px-[26px] py-[15px] rounded-[11px] text-[15px] font-bold text-white no-underline whitespace-nowrap transition-colors hover:bg-white/[.08]"
                 style={{ border: "1.5px solid rgba(255,255,255,.3)" }}
               >

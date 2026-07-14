@@ -4,19 +4,29 @@ import { NextResponse, type NextRequest } from "next/server";
 const NPC_COMPETITION_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
 const CMK_COMPETITION_ID = "b3dbe30d-91ef-40c3-9680-3586c6d17ef8";
 const BRIDLINGTON_COMPETITION_ID = "7a27f36c-aab6-4ba8-86e3-2bd9b182361e";
+const WAIKATO_COMPETITION_ID = "24d98bce-ce4b-4411-be28-8af22f4663a7";
 
 const HOST_TO_COMPETITION_ID: Record<string, string> = {
-  "npc.clubrugbytipping.com": NPC_COMPETITION_ID,
+  "taranaki.clubrugbytipping.com": CMK_COMPETITION_ID,
   "bridlington.clubrugbytipping.com": BRIDLINGTON_COMPETITION_ID,
+  "waikato.clubrugbytipping.com": WAIKATO_COMPETITION_ID,
   // Local dev hostnames
   "bridlington": BRIDLINGTON_COMPETITION_ID,
+  "taranaki": CMK_COMPETITION_ID,
 };
 
 export async function middleware(request: NextRequest) {
   // Resolve competition from hostname and inject as a request header so all
   // server components and actions can read it via getCurrentCompetitionId().
+  // Redirect old npc. subdomain to root domain
   const host = (request.headers.get("host") ?? "").replace(/:\d+$/, "");
-  const competitionId = HOST_TO_COMPETITION_ID[host] ?? CMK_COMPETITION_ID;
+  if (host === "npc.clubrugbytipping.com") {
+    const url = request.nextUrl.clone();
+    url.host = "clubrugbytipping.com";
+    url.port = "";
+    return NextResponse.redirect(url, 301);
+  }
+  const competitionId = HOST_TO_COMPETITION_ID[host] ?? NPC_COMPETITION_ID;
   const requestWithCompetition = new Request(request, {
     headers: (() => {
       const h = new Headers(request.headers);

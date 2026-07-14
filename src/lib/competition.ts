@@ -10,7 +10,7 @@ export const NPC_COMPETITION_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
 // absent (e.g. direct server action calls without a middleware hop).
 export async function getCurrentCompetitionId(): Promise<string> {
   const headersList = await headers();
-  return headersList.get("x-competition-id") ?? CMK_COMPETITION_ID;
+  return headersList.get("x-competition-id") ?? NPC_COMPETITION_ID;
 }
 
 export async function getCompetitionTimezone(competitionId: string): Promise<TzLocale> {
