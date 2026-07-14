@@ -3,6 +3,17 @@ import Link from "next/link";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Player, CoachingStaff } from "@/lib/supabase/types";
 
+function getAvatarColor(name: string): string {
+  const colors = [
+    "#4A90A4", "#6B8E5A", "#A0522D", "#7B68AE", "#C4834D",
+    "#5B7FA5", "#8B6F5C", "#6A9B7B", "#A07DA0", "#7C8B5E",
+    "#9C6B4B", "#5C8A9A", "#8B7355", "#6E85A0", "#9A7B6A",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
 function PlayerCard({
   player,
   teamColor,
@@ -10,81 +21,56 @@ function PlayerCard({
   player: Player;
   teamColor: string;
 }) {
-  const displayName = `${player.first_name[0]}. ${player.last_name.toUpperCase()}`;
+  const initials = `${player.first_name[0]}${player.last_name[0]}`;
+  const displayName = `${player.first_name[0]}. ${player.last_name}`;
+  const avatarBg = getAvatarColor(`${player.first_name} ${player.last_name}`);
+
   return (
     <div
       style={{
-        borderRadius: 16,
-        overflow: "hidden",
         display: "flex",
-        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+        background: "#fff",
         border: "1px solid #E4E1D8",
+        borderRadius: 12,
+        padding: "10px 14px",
       }}
     >
-      {/* Dark photo area */}
+      {/* Avatar */}
       <div
         style={{
-          aspectRatio: "1",
-          position: "relative",
+          width: 42,
+          height: 42,
+          borderRadius: "50%",
+          background: avatarBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          overflow: "hidden",
-          background: "#0B0E13",
+          flexShrink: 0,
+          position: "relative",
         }}
       >
-        {player.photo_url ? (
-          <Image
-            src={player.photo_url}
-            alt={`${player.first_name} ${player.last_name}`}
-            fill
-            sizes="(max-width: 640px) 45vw, 180px"
-            style={{ objectFit: "cover" }}
-          />
-        ) : (
-          <span
-            style={{
-              fontSize: 40,
-              fontWeight: 800,
-              color: "rgba(255,255,255,.08)",
-              textTransform: "uppercase",
-              letterSpacing: ".05em",
-            }}
-          >
-            {player.first_name[0]}
-            {player.last_name[0]}
-          </span>
-        )}
-
-        <span
-          className="font-display"
-          style={{
-            position: "absolute",
-            bottom: 8,
-            right: 10,
-            fontSize: 28,
-            lineHeight: 1,
-            color: "rgba(255,255,255,.2)",
-            fontWeight: 900,
-          }}
-        >
-          {player.jersey_number}
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: ".03em" }}>
+          {initials}
         </span>
-
         {player.is_captain && (
           <span
             style={{
               position: "absolute",
-              top: 8,
-              left: 8,
+              top: -3,
+              right: -3,
               background: teamColor,
               color: "#fff",
-              fontSize: 10,
+              fontSize: 8,
               fontWeight: 800,
-              padding: "3px 8px",
-              borderRadius: 6,
-              textTransform: "uppercase",
-              letterSpacing: ".06em",
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "2px solid #fff",
             }}
           >
             C
@@ -92,52 +78,60 @@ function PlayerCard({
         )}
       </div>
 
-      {/* White footer */}
-      <div style={{ padding: "10px 12px 12px", background: "#fff" }}>
-        <span
-          style={{
-            display: "inline-block",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
-            color: "#8B8676",
-            background: "#F2F0EA",
-            padding: "3px 8px",
-            borderRadius: 5,
-            marginBottom: 6,
-          }}
-        >
-          {player.position}
-        </span>
+      {/* Name & position */}
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div
           className="font-display"
           style={{
-            fontSize: 15,
+            fontSize: 14,
             color: "#11151C",
             textTransform: "uppercase",
             lineHeight: 1.2,
             letterSpacing: ".02em",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {displayName}
         </div>
-        {(player.apps > 0 || player.pts > 0) && (
-          <div
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 3 }}>
+          <span
             style={{
-              display: "flex",
-              gap: 12,
-              marginTop: 6,
-              fontSize: 11,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
               color: "#8B8676",
-              fontWeight: 600,
+              background: "#F2F0EA",
+              padding: "2px 7px",
+              borderRadius: 4,
             }}
           >
-            {player.apps > 0 && <span>{player.apps} apps</span>}
-            {player.pts > 0 && <span>{player.pts} pts</span>}
-          </div>
-        )}
+            {player.position}
+          </span>
+          {(player.apps > 0 || player.pts > 0) && (
+            <span style={{ fontSize: 11, color: "#8B8676", fontWeight: 600 }}>
+              {player.apps > 0 && `${player.apps} apps`}
+              {player.apps > 0 && player.pts > 0 && " · "}
+              {player.pts > 0 && `${player.pts} pts`}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Jersey number */}
+      <span
+        className="font-display"
+        style={{
+          fontSize: 20,
+          fontWeight: 900,
+          color: "rgba(0,0,0,.1)",
+          flexShrink: 0,
+        }}
+      >
+        {player.jersey_number}
+      </span>
     </div>
   );
 }
@@ -364,22 +358,27 @@ export default function SquadDisplay({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-            {sorted.length > 0 && (
-              <div>
-                <div
-                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                  style={{ gap: 12 }}
-                >
-                  {sorted.map((p) => (
-                    <PlayerCard
-                      key={p.id}
-                      player={p}
-                      teamColor={team.colour}
-                    />
-                  ))}
+            {sorted.length > 0 && (() => {
+              const forwards = sorted.filter(p => (p.jersey_number ?? 99) >= 1 && (p.jersey_number ?? 99) <= 8);
+              const backs = sorted.filter(p => (p.jersey_number ?? 99) >= 9 && (p.jersey_number ?? 99) <= 15);
+              const reserves = sorted.filter(p => (p.jersey_number ?? 99) >= 16);
+              const groups = [
+                { title: "Forwards", players: forwards },
+                { title: "Backs", players: backs },
+                { title: "Reserves", players: reserves },
+              ].filter(g => g.players.length > 0);
+
+              return groups.map(g => (
+                <div key={g.title}>
+                  <SectionHeading title={g.title} count={g.players.length} color={team.colour} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: 8 }}>
+                    {g.players.map(p => (
+                      <PlayerCard key={p.id} player={p} teamColor={team.colour} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ));
+            })()}
 
             {coaches.length > 0 && (
               <div>
