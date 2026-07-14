@@ -34,6 +34,15 @@ export async function GET(request: Request) {
 
   const now = Date.now();
 
+  // Base URL for the internal /api/push/send call — prefer the incoming request's
+  // host, then explicit config, then Vercel's deployment URL.
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const host = request.headers.get("host");
+  const baseUrl =
+    (host ? `${proto}://${host}` : undefined) ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+
   const { data: gws } = await admin
     .from("gameweeks")
     .select("id, label, deadline, competition_id")
@@ -148,6 +157,33 @@ export async function GET(request: Request) {
       sent++;
       totalSent++;
       console.log(`[reminder] Sent 24h reminder to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
+    }
+
+    // Also fire push notifications to this competition's subscribers.
+    // Wrapped so a push failure never breaks the email reminders.
+    try {
+      const pushRes = await fetch(`${baseUrl}/api/push/send`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${process.env.CRON_SECRET}`,
+        },
+        body: JSON.stringify({
+          competitionId: compId,
+          title: "Tips closing soon",
+          body: `${gw.label} tips close tomorrow — place your picks now`,
+          url: "/tips",
+        }),
+      });
+      const pushResult = (await pushRes.json().catch(() => ({}))) as {
+        sent?: number;
+        failed?: number;
+      };
+      console.log(
+        `[reminder] Push for ${competitionName} ${gw.label}: sent=${pushResult.sent ?? 0} failed=${pushResult.failed ?? 0}`
+      );
+    } catch (err) {
+      console.error(`[reminder] Push failed for ${competitionName} ${gw.label}`, err);
     }
 
     results.push({ round: gw.label, competition: competitionName, sent });
