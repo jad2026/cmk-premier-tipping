@@ -26,7 +26,7 @@ function PlayerCard({
     >
       <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", background: "#E4E1D8" }}>
         <img
-          src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(player.first_name + " " + player.last_name)}`}
+          src={`https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(player.first_name + " " + player.last_name)}`}
           alt=""
           width={42}
           height={42}
