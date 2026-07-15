@@ -36,7 +36,11 @@ function getClientIp(request: Request): string | null {
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
-  isArray: (name) => name === "fixture" || name === "game" || name === "team",
+  isArray: (name) =>
+    name === "fixture" || name === "game" || name === "team" ||
+    name === "match" || name === "event" || name === "sub" ||
+    name === "Player" || name === "PlayerStat" || name === "TeamStat" ||
+    name === "Team" || name === "Message",
 });
 
 function createAdmin() {
@@ -80,9 +84,12 @@ export async function POST(request: Request) {
   const admin = createAdmin();
 
   // --- Determine feed type ---
-  let feedType: "RU1" | "RU5" | "unknown" = "unknown";
+  let feedType: "RU1" | "RU5" | "RU6" | "RU7" | "RU8" | "unknown" = "unknown";
   if (rawXml.includes("<fixtures")) feedType = "RU1";
   else if (rawXml.includes("<livescores")) feedType = "RU5";
+  else if (rawXml.includes("<wapresults")) feedType = "RU6";
+  else if (rawXml.includes("<RRML")) feedType = "RU7";
+  else if (rawXml.includes("<RugbyCommentary")) feedType = "RU8";
 
   // --- Capture raw XML first ---
   const { error: rawError } = await admin.from("opta_raw_feed").insert({
@@ -114,6 +121,18 @@ export async function POST(request: Request) {
     }
     if (feedType === "RU5") {
       const result = await processRU5(admin, parsed, optaCompId);
+      return NextResponse.json({ feedType, ...result });
+    }
+    if (feedType === "RU6") {
+      const result = await processRU6(admin, parsed);
+      return NextResponse.json({ feedType, ...result });
+    }
+    if (feedType === "RU7") {
+      const result = await processRU7(admin, parsed);
+      return NextResponse.json({ feedType, ...result });
+    }
+    if (feedType === "RU8") {
+      const result = await processRU8(admin, parsed);
       return NextResponse.json({ feedType, ...result });
     }
 
@@ -384,4 +403,346 @@ async function processRU5(
 
   console.log(`[opta/RU5] Done: processed=${processed}, errors=${errors}`);
   return { processed, errors, skipped: games.length - relevant.length };
+}
+
+// ---------------------------------------------------------------------------
+// Fixture lookup by opta_fixture_id (shared by RU6, RU7, RU8)
+// ---------------------------------------------------------------------------
+
+async function lookupFixtureId(
+  admin: ReturnType<typeof createAdmin>,
+  optaGameId: string
+): Promise<string | null> {
+  const { data } = await admin
+    .from("fixtures")
+    .select("id")
+    .eq("opta_fixture_id", optaGameId)
+    .single();
+  return data?.id ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// RU6 — Key Events (wapresults)
+// ---------------------------------------------------------------------------
+
+interface RU6Event {
+  "@_period"?: string;
+  "@_time"?: string;
+  "@_secs"?: string;
+  "@_type"?: string;
+  "@_event_id"?: string;
+  "player-name"?: string;
+  "player-code"?: string;
+  "team-id"?: string;
+}
+
+interface RU6Sub {
+  "@_period"?: string;
+  "@_time"?: string;
+  "@_secs"?: string;
+  "@_event_id"?: string;
+  "player-code"?: string;
+  "team-id"?: string;
+  type?: { "@_event_name"?: string };
+  "sub-id"?: string;
+}
+
+interface RU6Match {
+  "@_game-id"?: string;
+  events?: { event?: RU6Event[] };
+  subs?: { sub?: RU6Sub[] };
+}
+
+async function processRU6(
+  admin: ReturnType<typeof createAdmin>,
+  parsed: Record<string, unknown>
+) {
+  const root = parsed.wapresults as { match?: RU6Match[] } | undefined;
+  const matches = root?.match ?? [];
+
+  let processed = 0;
+  let errors = 0;
+
+  for (const match of matches) {
+    const optaGameId = String(match["@_game-id"] ?? "");
+    if (!optaGameId) { errors++; continue; }
+
+    const fixtureId = await lookupFixtureId(admin, optaGameId);
+
+    // Process events
+    const events = match.events?.event ?? [];
+    for (const ev of events) {
+      try {
+        const { error } = await admin.from("opta_match_events").upsert(
+          {
+            opta_game_id: optaGameId,
+            event_id: String(ev["@_event_id"] ?? ""),
+            fixture_id: fixtureId,
+            event_type: ev["@_type"] ?? null,
+            minute: ev["@_time"] != null ? parseInt(ev["@_time"], 10) : null,
+            second: ev["@_secs"] != null ? parseInt(ev["@_secs"], 10) : null,
+            period: ev["@_period"] ?? null,
+            player_name: ev["player-name"] ?? null,
+            opta_player_id: ev["player-code"] != null ? String(ev["player-code"]) : null,
+            opta_team_id: ev["team-id"] != null ? String(ev["team-id"]) : null,
+          },
+          { onConflict: "opta_game_id,event_id" }
+        );
+        if (error) {
+          console.error(`[opta/RU6] Event upsert failed (game=${optaGameId}, event=${ev["@_event_id"]}):`, error.message);
+          errors++;
+        } else {
+          processed++;
+        }
+      } catch (err) {
+        console.error("[opta/RU6] Event error:", err);
+        errors++;
+      }
+    }
+
+    // Process subs
+    const subs = match.subs?.sub ?? [];
+    for (const sub of subs) {
+      try {
+        const eventName = sub.type?.["@_event_name"] ?? null;
+        const { error } = await admin.from("opta_match_events").upsert(
+          {
+            opta_game_id: optaGameId,
+            event_id: String(sub["@_event_id"] ?? ""),
+            fixture_id: fixtureId,
+            event_type: eventName,
+            minute: sub["@_time"] != null ? parseInt(sub["@_time"], 10) : null,
+            second: sub["@_secs"] != null ? parseInt(sub["@_secs"], 10) : null,
+            period: sub["@_period"] ?? null,
+            opta_player_id: sub["player-code"] != null ? String(sub["player-code"]) : null,
+            opta_team_id: sub["team-id"] != null ? String(sub["team-id"]) : null,
+            sub_id: sub["sub-id"] != null ? String(sub["sub-id"]) : null,
+          },
+          { onConflict: "opta_game_id,event_id" }
+        );
+        if (error) {
+          console.error(`[opta/RU6] Sub upsert failed (game=${optaGameId}, event=${sub["@_event_id"]}):`, error.message);
+          errors++;
+        } else {
+          processed++;
+        }
+      } catch (err) {
+        console.error("[opta/RU6] Sub error:", err);
+        errors++;
+      }
+    }
+  }
+
+  console.log(`[opta/RU6] Done: processed=${processed}, errors=${errors}`);
+  return { processed, errors };
+}
+
+// ---------------------------------------------------------------------------
+// RU7 — Player/Team Stats (RRML)
+// ---------------------------------------------------------------------------
+
+interface RU7PlayerStat {
+  [key: string]: string | undefined;
+}
+
+interface RU7Player {
+  "@_id"?: string;
+  "@_player_name"?: string;
+  "@_playerFirstName"?: string;
+  "@_playerLastName"?: string;
+  "@_shirtNum"?: string;
+  "@_position"?: string;
+  "@_position_id"?: string;
+  "@_captain"?: string;
+  PlayerStats?: { PlayerStat?: RU7PlayerStat[] };
+}
+
+interface RU7TeamStat {
+  [key: string]: string | undefined;
+}
+
+interface RU7Team {
+  "@_home_or_away"?: string;
+  "@_team_id"?: string;
+  "@_team_name"?: string;
+  Player?: RU7Player[];
+  TeamStats?: { TeamStat?: RU7TeamStat[] };
+}
+
+async function processRU7(
+  admin: ReturnType<typeof createAdmin>,
+  parsed: Record<string, unknown>
+) {
+  const root = parsed.RRML as Record<string, unknown> | undefined;
+  const optaGameId = String(root?.["@_id"] ?? "");
+  if (!optaGameId) {
+    console.warn("[opta/RU7] No game ID found in RRML root");
+    return { processed: 0, errors: 1 };
+  }
+
+  const fixtureId = await lookupFixtureId(admin, optaGameId);
+
+  const teamDetail = root?.TeamDetail as { Team?: RU7Team[] } | undefined;
+  const teams = teamDetail?.Team ?? [];
+
+  let processed = 0;
+  let errors = 0;
+
+  for (const team of teams) {
+    const optaTeamId = String(team["@_team_id"] ?? "");
+    const homeOrAway = team["@_home_or_away"] ?? null;
+
+    // Player stats
+    const players = team.Player ?? [];
+    for (const player of players) {
+      try {
+        const stats: Record<string, string> = {};
+        const playerStats = player.PlayerStats?.PlayerStat ?? [];
+        for (const ps of playerStats) {
+          for (const [key, val] of Object.entries(ps)) {
+            if (key.startsWith("@_") || val == null) continue;
+            stats[key] = String(val);
+          }
+          for (const [key, val] of Object.entries(ps)) {
+            if (!key.startsWith("@_") || key === "@_") continue;
+            const statName = key.slice(2);
+            if (val != null) stats[statName] = String(val);
+          }
+        }
+
+        const { error } = await admin.from("opta_player_stats").upsert(
+          {
+            opta_game_id: optaGameId,
+            opta_player_id: String(player["@_id"] ?? ""),
+            fixture_id: fixtureId,
+            opta_team_id: optaTeamId,
+            home_or_away: homeOrAway,
+            player_name: player["@_player_name"] ?? null,
+            first_name: player["@_playerFirstName"] ?? null,
+            last_name: player["@_playerLastName"] ?? null,
+            shirt_number: player["@_shirtNum"] != null ? parseInt(player["@_shirtNum"], 10) : null,
+            position: player["@_position"] ?? null,
+            position_id: player["@_position_id"] != null ? parseInt(player["@_position_id"], 10) : null,
+            is_captain: player["@_captain"] === "true" || player["@_captain"] === "1",
+            stats,
+          },
+          { onConflict: "opta_game_id,opta_player_id" }
+        );
+        if (error) {
+          console.error(`[opta/RU7] Player stat upsert failed (game=${optaGameId}, player=${player["@_id"]}):`, error.message);
+          errors++;
+        } else {
+          processed++;
+        }
+      } catch (err) {
+        console.error("[opta/RU7] Player stat error:", err);
+        errors++;
+      }
+    }
+
+    // Team stats
+    try {
+      const teamStats: Record<string, string> = {};
+      const tStats = team.TeamStats?.TeamStat ?? [];
+      for (const ts of tStats) {
+        for (const [key, val] of Object.entries(ts)) {
+          if (!key.startsWith("@_") || key === "@_") continue;
+          const statName = key.slice(2);
+          if (val != null) teamStats[statName] = String(val);
+        }
+      }
+
+      if (Object.keys(teamStats).length > 0) {
+        const { error } = await admin.from("opta_team_stats").upsert(
+          {
+            opta_game_id: optaGameId,
+            opta_team_id: optaTeamId,
+            fixture_id: fixtureId,
+            home_or_away: homeOrAway,
+            team_name: team["@_team_name"] ?? null,
+            stats: teamStats,
+          },
+          { onConflict: "opta_game_id,opta_team_id" }
+        );
+        if (error) {
+          console.error(`[opta/RU7] Team stat upsert failed (game=${optaGameId}, team=${optaTeamId}):`, error.message);
+          errors++;
+        } else {
+          processed++;
+        }
+      }
+    } catch (err) {
+      console.error("[opta/RU7] Team stat error:", err);
+      errors++;
+    }
+  }
+
+  console.log(`[opta/RU7] Done: processed=${processed}, errors=${errors}`);
+  return { processed, errors };
+}
+
+// ---------------------------------------------------------------------------
+// RU8 — Commentary (RugbyCommentary)
+// ---------------------------------------------------------------------------
+
+interface RU8Message {
+  "@_id"?: string;
+  "@_comment"?: string;
+  "@_time"?: string;
+  "@_type"?: string;
+  "@_player_id"?: string;
+  "@_team_id"?: string;
+}
+
+async function processRU8(
+  admin: ReturnType<typeof createAdmin>,
+  parsed: Record<string, unknown>
+) {
+  const root = parsed.RugbyCommentary as Record<string, unknown> | undefined;
+  const gameDetail = root?.GameDetail as Record<string, unknown> | undefined;
+  const optaGameId = String(gameDetail?.["@_game_id"] ?? "");
+  if (!optaGameId) {
+    console.warn("[opta/RU8] No game_id found in GameDetail");
+    return { processed: 0, errors: 1 };
+  }
+
+  const fixtureId = await lookupFixtureId(admin, optaGameId);
+
+  const messages = (root?.Message ?? []) as RU8Message[];
+  const filtered = messages.filter((m) => m["@_type"] !== "Leader Table" && m["@_id"] != null);
+
+  console.log(`[opta/RU8] ${messages.length} total messages, ${filtered.length} after filtering (game=${optaGameId})`);
+
+  let processed = 0;
+  let errors = 0;
+
+  for (const msg of filtered) {
+    try {
+      const { error } = await admin.from("opta_commentary").upsert(
+        {
+          opta_game_id: optaGameId,
+          message_id: String(msg["@_id"]),
+          fixture_id: fixtureId,
+          minute: msg["@_time"] != null ? parseInt(msg["@_time"], 10) : null,
+          event_type: msg["@_type"] ?? null,
+          comment: msg["@_comment"] ?? null,
+          opta_player_id: msg["@_player_id"] != null ? String(msg["@_player_id"]) : null,
+          opta_team_id: msg["@_team_id"] != null ? String(msg["@_team_id"]) : null,
+        },
+        { onConflict: "opta_game_id,message_id" }
+      );
+      if (error) {
+        console.error(`[opta/RU8] Commentary upsert failed (game=${optaGameId}, msg=${msg["@_id"]}):`, error.message);
+        errors++;
+      } else {
+        processed++;
+      }
+    } catch (err) {
+      console.error("[opta/RU8] Commentary error:", err);
+      errors++;
+    }
+  }
+
+  console.log(`[opta/RU8] Done: processed=${processed}, errors=${errors}`);
+  return { processed, errors };
 }
