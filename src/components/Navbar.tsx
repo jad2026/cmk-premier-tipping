@@ -59,7 +59,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
             className="block w-[26px] h-[3px] rounded-full shrink-0"
             style={{ background: "var(--accent)" }}
           />
-          <span className="font-display text-[17px] uppercase tracking-[.06em] text-white truncate">
+          <span className="font-display text-[17px] uppercase tracking-[.06em] text-white lg:truncate">
             {siteName}
           </span>
         </Link>
