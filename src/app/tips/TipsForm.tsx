@@ -7,45 +7,174 @@ import TeamBadge from "@/components/TeamBadge";
 import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
 
-function useVerticalSwipe(
-  onChange: (delta: number) => void,
-  disabled: boolean,
-) {
-  const ref = useRef<HTMLDivElement>(null);
-  const startY = useRef(0);
-  const accumulated = useRef(0);
+// ── Mobile scroll-snap margin picker ────────────────────────────────────────
+
+const PICKER_MAX = 50;
+const PICKER_ITEM_H = 36;
+const PICKER_VISIBLE = 5;
+const PICKER_HEIGHT = PICKER_ITEM_H * PICKER_VISIBLE;
+const PICKER_PAD = Math.floor(PICKER_VISIBLE / 2) * PICKER_ITEM_H;
+
+function buildPickerItems(homeName: string, awayName: string) {
+  const items: { label: string; value: number }[] = [];
+  for (let i = PICKER_MAX; i >= 1; i--) items.push({ label: `${homeName} by ${i}`, value: i });
+  items.push({ label: "Draw", value: 0 });
+  for (let i = 1; i <= PICKER_MAX; i++) items.push({ label: `${awayName} by ${i}`, value: -i });
+  return items;
+}
+
+function MobileMarginPicker({
+  homeName,
+  awayName,
+  homeColor,
+  awayColor,
+  value,
+  onChange,
+  disabled,
+}: {
+  homeName: string;
+  awayName: string;
+  homeColor?: string;
+  awayColor?: string;
+  value: number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+}) {
+  const items = useRef(buildPickerItems(homeName, awayName)).current;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const settling = useRef(true);
+  const debounce = useRef<ReturnType<typeof setTimeout>>();
+
+  const valueToIndex = (v: number) => {
+    if (v > 0) return PICKER_MAX - v;
+    if (v < 0) return PICKER_MAX + Math.abs(v);
+    return PICKER_MAX;
+  };
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el || disabled) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = valueToIndex(value) * PICKER_ITEM_H;
+    const id = setTimeout(() => { settling.current = false; }, 80);
+    return () => clearTimeout(id);
+  }, []);
 
-    const THRESHOLD = 20;
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || disabled || settling.current) return;
+    clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      const idx = Math.round(el.scrollTop / PICKER_ITEM_H);
+      const clamped = Math.max(0, Math.min(items.length - 1, idx));
+      onChange(items[clamped].value);
+    }, 60);
+  }, [disabled, onChange, items]);
 
-    function onTouchStart(e: TouchEvent) {
-      startY.current = e.touches[0].clientY;
-      accumulated.current = 0;
+  useEffect(() => () => clearTimeout(debounce.current), []);
+
+  useEffect(() => {
+    if (settling.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const targetIdx = valueToIndex(value);
+    const targetTop = targetIdx * PICKER_ITEM_H;
+    if (Math.abs(el.scrollTop - targetTop) > 2) {
+      settling.current = true;
+      el.scrollTo({ top: targetTop, behavior: "smooth" });
+      setTimeout(() => { settling.current = false; }, 200);
     }
+  }, [value]);
 
-    function onTouchMove(e: TouchEvent) {
-      e.preventDefault();
-      const dy = startY.current - e.touches[0].clientY;
-      const steps = Math.trunc(dy / THRESHOLD);
-      if (steps !== accumulated.current) {
-        const delta = steps - accumulated.current;
-        accumulated.current = steps;
-        onChange(delta);
-      }
-    }
+  const centerColor = value > 0 ? (homeColor || "var(--accent)") : value < 0 ? (awayColor || "var(--accent)") : "var(--accent)";
 
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-    };
-  }, [onChange, disabled]);
+  return (
+    <div
+      style={{
+        position: "relative",
+        height: PICKER_HEIGHT,
+        overflow: "hidden",
+        background: "#FAFAF8",
+        borderBottom: "1px solid #EFEDE6",
+      }}
+    >
+      {/* Centre highlight band */}
+      <div
+        style={{
+          position: "absolute",
+          top: PICKER_PAD,
+          left: 0,
+          right: 0,
+          height: PICKER_ITEM_H,
+          background: `color-mix(in srgb, ${centerColor} 12%, transparent)`,
+          borderTop: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
+          borderBottom: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
+          pointerEvents: "none",
+          zIndex: 2,
+          transition: "background .15s, border-color .15s",
+        }}
+      />
 
-  return ref;
+      {/* Top/bottom fade masks */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to bottom, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to top, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
+
+      {/* Scrollable list */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="mobile-margin-picker"
+        style={{
+          height: PICKER_HEIGHT,
+          overflowY: disabled ? "hidden" : "auto",
+          scrollSnapType: "y mandatory",
+          overscrollBehavior: "contain",
+          touchAction: "pan-y",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={{ height: PICKER_PAD }} />
+        {items.map((item, i) => {
+          const dist = Math.abs(i - valueToIndex(value));
+          const isCenter = dist === 0;
+          const opacity = isCenter ? 1 : dist === 1 ? 0.55 : dist === 2 ? 0.3 : 0.15;
+          const fontSize = isCenter ? 15 : 13;
+          const fontWeight = isCenter ? 800 : 600;
+          const color = isCenter ? centerColor : "#666";
+          return (
+            <div
+              key={item.value}
+              style={{
+                height: PICKER_ITEM_H,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                scrollSnapAlign: "center",
+                fontSize,
+                fontWeight,
+                color,
+                opacity,
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                transition: "opacity .1s",
+                fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                textTransform: "uppercase",
+                letterSpacing: ".02em",
+              }}
+            >
+              {item.label}
+            </div>
+          );
+        })}
+        <div style={{ height: PICKER_PAD }} />
+      </div>
+
+      <style>{`
+        .mobile-margin-picker::-webkit-scrollbar{display:none}
+        .mobile-margin-picker{scrollbar-width:none}
+      `}</style>
+    </div>
+  );
 }
 
 type Props = {
@@ -452,21 +581,7 @@ function FixtureCard({
     return 0;
   })();
 
-  const stepperColor = wheelInitial > 0
-    ? (home.colour || "var(--accent)")
-    : wheelInitial < 0
-    ? (away.colour || "var(--accent)")
-    : "var(--accent)";
-
   const cardBorder = hasSelection && !resultLocked ? "var(--accent)" : "#E4E1D8";
-
-  const wheelVal = useRef(wheelInitial);
-  wheelVal.current = wheelInitial;
-  const handleSwipeDelta = useCallback(
-    (delta: number) => onWheelChange(Math.max(-100, Math.min(100, wheelVal.current + delta))),
-    [onWheelChange],
-  );
-  const swipeRef = useVerticalSwipe(handleSwipeDelta, isLocked);
 
   return (
     <div
@@ -499,119 +614,81 @@ function FixtureCard({
       {/* ── Wheel mode (NPC margin picking) ────────────────────────────── */}
       {marginPicking && !resultLocked && (
         <>
-          {/* Home team row */}
-          <button
-            onClick={() => { wheelRef.current?.scrollTo(7); onWheelChange(7); }}
-            disabled={isLocked}
-            className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
-            style={{
-              padding: compact ? "4px 10px" : "6px 12px",
-              background: homePicked
-                ? `color-mix(in srgb, ${home.colour || "var(--accent)"} 6%, #fff)`
-                : "#fff",
-              borderLeft: homePicked ? `4px solid ${home.colour || "var(--accent)"}` : "4px solid transparent",
-              borderBottom: "1px solid #EFEDE6",
-              opacity: awayPicked ? 0.5 : 1,
-            }}
-          >
-            <TeamBadge team={home} size="xs" />
-            <span className="font-display text-[13px] sm:text-[14px] leading-none uppercase truncate flex-1 min-w-0">{home.name}</span>
-            {homePicked ? (
-              <span className="text-[11px] shrink-0" style={{ color: home.colour || "var(--accent)" }}>✓</span>
-            ) : (
-              <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
-            )}
-          </button>
-
-          {/* Margin control */}
           {compact ? (
-            <div
-              ref={swipeRef}
-              className="flex items-center justify-center gap-3 touch-none"
-              style={{
-                padding: "6px 10px",
-                background: "#FAFAF8",
-                borderBottom: "1px solid #EFEDE6",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => !isLocked && onWheelChange(Math.max(-100, wheelInitial - 1))}
-                disabled={isLocked}
-                className="flex items-center justify-center rounded-lg font-bold text-[18px] select-none disabled:opacity-40"
-                style={{
-                  width: 40,
-                  height: 40,
-                  background: "#EDEAE2",
-                  color: "#555",
-                  border: "1px solid #DDD9CE",
-                }}
-              >
-                −
-              </button>
-              <div className="flex flex-col items-center select-none" style={{ minWidth: 44 }}>
-                <span className="text-[8px] text-[#B4B0A2] leading-none">▲</span>
-                <span
-                  className="font-display text-[22px] leading-none text-center"
-                  style={{ color: stepperColor, fontWeight: 800 }}
-                >
-                  {Math.abs(wheelInitial)}
-                </span>
-                <span className="text-[8px] text-[#B4B0A2] leading-none">▼</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => !isLocked && onWheelChange(Math.min(100, wheelInitial + 1))}
-                disabled={isLocked}
-                className="flex items-center justify-center rounded-lg font-bold text-[18px] select-none disabled:opacity-40"
-                style={{
-                  width: 40,
-                  height: 40,
-                  background: "#EDEAE2",
-                  color: "#555",
-                  border: "1px solid #DDD9CE",
-                }}
-              >
-                +
-              </button>
-            </div>
+            /* Mobile: inline scroll-snap picker */
+            <MobileMarginPicker
+              homeName={home.name}
+              awayName={away.name}
+              homeColor={home.colour}
+              awayColor={away.colour}
+              value={wheelInitial}
+              onChange={onWheelChange}
+              disabled={isLocked}
+            />
           ) : (
-            <div className="px-3 sm:px-5" style={{ background: "#fff" }}>
-              <MarginWheel
-                ref={wheelRef}
-                initialValue={wheelInitial}
-                onChange={onWheelChange}
-                homeColor={home.colour}
-                awayColor={away.colour}
+            /* Desktop: team rows + MarginWheel */
+            <>
+              {/* Home team row */}
+              <button
+                onClick={() => { wheelRef.current?.scrollTo(7); onWheelChange(7); }}
                 disabled={isLocked}
-                compact={compact}
-              />
-            </div>
-          )}
+                className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
+                style={{
+                  padding: "6px 12px",
+                  background: homePicked
+                    ? `color-mix(in srgb, ${home.colour || "var(--accent)"} 6%, #fff)`
+                    : "#fff",
+                  borderLeft: homePicked ? `4px solid ${home.colour || "var(--accent)"}` : "4px solid transparent",
+                  borderBottom: "1px solid #EFEDE6",
+                  opacity: awayPicked ? 0.5 : 1,
+                }}
+              >
+                <TeamBadge team={home} size="xs" />
+                <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{home.name}</span>
+                {homePicked ? (
+                  <span className="text-[11px] shrink-0" style={{ color: home.colour || "var(--accent)" }}>✓</span>
+                ) : (
+                  <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▲</span>
+                )}
+              </button>
 
-          {/* Away team row */}
-          <button
-            onClick={() => { wheelRef.current?.scrollTo(-7); onWheelChange(-7); }}
-            disabled={isLocked}
-            className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
-            style={{
-              padding: compact ? "4px 10px" : "6px 12px",
-              background: awayPicked
-                ? `color-mix(in srgb, ${away.colour || "var(--accent)"} 6%, #fff)`
-                : "#fff",
-              borderLeft: awayPicked ? `4px solid ${away.colour || "var(--accent)"}` : "4px solid transparent",
-              borderBottom: "1px solid #EFEDE6",
-              opacity: homePicked ? 0.5 : 1,
-            }}
-          >
-            <TeamBadge team={away} size="xs" />
-            <span className="font-display text-[13px] sm:text-[14px] leading-none uppercase truncate flex-1 min-w-0">{away.name}</span>
-            {awayPicked ? (
-              <span className="text-[11px] shrink-0" style={{ color: away.colour || "var(--accent)" }}>✓</span>
-            ) : (
-              <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
-            )}
-          </button>
+              <div className="px-3 sm:px-5" style={{ background: "#fff" }}>
+                <MarginWheel
+                  ref={wheelRef}
+                  initialValue={wheelInitial}
+                  onChange={onWheelChange}
+                  homeColor={home.colour}
+                  awayColor={away.colour}
+                  disabled={isLocked}
+                  compact={compact}
+                />
+              </div>
+
+              {/* Away team row */}
+              <button
+                onClick={() => { wheelRef.current?.scrollTo(-7); onWheelChange(-7); }}
+                disabled={isLocked}
+                className="w-full flex items-center gap-2 text-left transition-all duration-150 disabled:cursor-not-allowed"
+                style={{
+                  padding: "6px 12px",
+                  background: awayPicked
+                    ? `color-mix(in srgb, ${away.colour || "var(--accent)"} 6%, #fff)`
+                    : "#fff",
+                  borderLeft: awayPicked ? `4px solid ${away.colour || "var(--accent)"}` : "4px solid transparent",
+                  borderBottom: "1px solid #EFEDE6",
+                  opacity: homePicked ? 0.5 : 1,
+                }}
+              >
+                <TeamBadge team={away} size="xs" />
+                <span className="font-display text-[14px] leading-none uppercase truncate flex-1 min-w-0">{away.name}</span>
+                {awayPicked ? (
+                  <span className="text-[11px] shrink-0" style={{ color: away.colour || "var(--accent)" }}>✓</span>
+                ) : (
+                  <span className="text-[9px] text-[#B4B0A2] font-bold tracking-wide uppercase shrink-0">▼</span>
+                )}
+              </button>
+            </>
+          )}
 
           {/* Prediction label */}
           <div
@@ -632,7 +709,7 @@ function FixtureCard({
               </span>
             ) : (
               <span className="text-[10px] font-semibold text-[#C7C2B5]">
-                ↕ Scroll or tap a team
+                ↕ Scroll to pick
               </span>
             )}
           </div>
