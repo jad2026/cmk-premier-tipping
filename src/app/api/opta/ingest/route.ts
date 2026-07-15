@@ -11,6 +11,7 @@ const OPTA_ALLOWED_CIDRS = [
   { base: parseIp("81.19.48.109"), mask: 32 },
   { base: parseIp("81.19.48.69"), mask: 32 },
   { base: parseIp("194.76.58.0"), mask: 23 },
+  { base: parseIp("194.76.104.0"), mask: 23 },
 ];
 
 function parseIp(ip: string): number {
