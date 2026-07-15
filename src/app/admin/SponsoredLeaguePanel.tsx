@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   getSponsoredLeagueData,
+  createSponsoredLeague,
   updateLeagueSponsor,
+  uploadSponsorLogo,
   upsertPrizes,
 } from "./sponsoredLeagueActions";
 
 type LeagueRow = {
   id: string;
   name: string;
+  invite_code: string;
   member_count: number;
   is_sponsored?: boolean;
   sponsor_name?: string | null;
@@ -34,6 +37,31 @@ type PrizeRow = {
   winner_display_name?: string | null;
 };
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+      style={{
+        background: copied ? "#16a34a" : "var(--accent)",
+        color: copied ? "#fff" : "var(--accent-text, #11151C)",
+      }}
+    >
+      {copied ? "Copied!" : "Copy Code"}
+    </button>
+  );
+}
+
 export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
   const [leagues, setLeagues] = useState<LeagueRow[]>([]);
   const [gameweeks, setGameweeks] = useState<GameweekRow[]>([]);
@@ -41,12 +69,23 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  // Sponsor form
+  // Create form
+  const [createName, setCreateName] = useState("");
+  const [createSponsor, setCreateSponsor] = useState("");
+  const [createColor, setCreateColor] = useState("#D9A521");
+  const [createFeedback, setCreateFeedback] = useState<{ code: string } | null>(null);
+  const [createError, setCreateError] = useState("");
+
+  // Edit form
   const [sponsorName, setSponsorName] = useState("");
-  const [sponsorLogoUrl, setSponsorLogoUrl] = useState("");
   const [sponsorAccentColor, setSponsorAccentColor] = useState("#D9A521");
   const [sponsorFeedback, setSponsorFeedback] = useState("");
   const [sponsorError, setSponsorError] = useState("");
+
+  // Logo upload
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Prizes
   const [prizeDescs, setPrizeDescs] = useState<Record<string, string>>({});
@@ -54,6 +93,7 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
   const [prizeFeedback, setPrizeFeedback] = useState("");
   const [prizeError, setPrizeError] = useState("");
 
+  const sponsoredLeagues = leagues.filter((l) => l.is_sponsored);
   const selected = leagues.find((l) => l.id === selectedId);
 
   function load() {
@@ -68,10 +108,14 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
   useEffect(() => { load(); }, [compId]);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      setExistingPrizes([]);
+      setPrizeDescs({});
+      return;
+    }
     setSponsorName(selected.sponsor_name ?? "");
-    setSponsorLogoUrl(selected.sponsor_logo_url ?? "");
     setSponsorAccentColor(selected.sponsor_accent_color ?? "#D9A521");
+    setLogoUrl(selected.sponsor_logo_url ?? null);
     setSponsorFeedback("");
     setSponsorError("");
     setPrizeFeedback("");
@@ -87,11 +131,11 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
 
   async function loadPrizes(leagueId: string) {
     const { createClient } = await import("@supabase/supabase-js");
-    const admin = createClient(
+    const sb = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-    const { data: prizes } = await admin
+    const { data: prizes } = await sb
       .from("league_prizes")
       .select("*, profiles:winner_user_id(display_name)")
       .eq("league_id", leagueId);
@@ -113,18 +157,26 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
     setPrizeDescs(descs);
   }
 
-  function handleMakeSponsored() {
-    if (!selected) return;
+  function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setCreateError("");
+    setCreateFeedback(null);
     startTransition(async () => {
-      const { error } = await updateLeagueSponsor(selected.id, {
-        is_sponsored: true,
-        sponsor_name: null,
-        sponsor_logo_url: null,
-        sponsor_accent_color: null,
+      const { error, league } = await createSponsoredLeague({
+        name: createName.trim(),
+        competition_id: compId,
+        sponsor_name: createSponsor.trim(),
+        sponsor_accent_color: createColor.trim() || null,
       });
-      if (error) { setSponsorError(error); return; }
+      if (error || !league) { setCreateError(error ?? "Failed to create league."); return; }
+      const code = league.invite_code as string;
+      const id = league.id as string;
+      setCreateFeedback({ code });
+      setCreateName("");
+      setCreateSponsor("");
+      setCreateColor("#D9A521");
       load();
-      setSponsorFeedback("League marked as sponsored.");
+      setTimeout(() => setSelectedId(id), 300);
     });
   }
 
@@ -137,13 +189,29 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
       const { error } = await updateLeagueSponsor(selected.id, {
         is_sponsored: true,
         sponsor_name: sponsorName.trim() || null,
-        sponsor_logo_url: sponsorLogoUrl.trim() || null,
+        sponsor_logo_url: logoUrl,
         sponsor_accent_color: sponsorAccentColor.trim() || null,
       });
       if (error) { setSponsorError(error); return; }
       setSponsorFeedback("Sponsor details saved.");
       load();
     });
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !selected) return;
+    if (file.size > 2 * 1024 * 1024) { setSponsorError("Logo must be under 2 MB."); return; }
+
+    setLogoUploading(true);
+    setSponsorError("");
+    const fd = new FormData();
+    fd.append("file", file);
+    const { error, url } = await uploadSponsorLogo(selected.id, fd);
+    setLogoUploading(false);
+
+    if (error) { setSponsorError(error); return; }
+    if (url) setLogoUrl(url);
   }
 
   function handleSavePrizes() {
@@ -172,13 +240,89 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* ── Section A: League Selection & Sponsor Config ──────────────── */}
+      {/* ── Section A: Create New Sponsored League ────────────────────── */}
       <div className="card p-5">
         <h2 className="text-sm font-bold text-brand uppercase tracking-wide mb-4">
-          Sponsored League Setup
+          Create New Sponsored League
         </h2>
 
-        {/* League selector */}
+        {createFeedback && (
+          <div className="mb-4 p-4 rounded-xl border-2 border-green-200 bg-green-50">
+            <p className="text-sm font-semibold text-green-800 mb-2">League created!</p>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-2xl font-bold tracking-[.15em] text-green-900">
+                {createFeedback.code}
+              </span>
+              <CopyButton text={createFeedback.code} />
+            </div>
+            <p className="text-xs text-green-700 mt-2">Share this invite code with league members.</p>
+          </div>
+        )}
+
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              League Name *
+            </label>
+            <input
+              className="input"
+              required
+              maxLength={100}
+              placeholder="Premier League Tips"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              Sponsor Name *
+            </label>
+            <input
+              className="input"
+              required
+              maxLength={100}
+              placeholder="Acme Corp"
+              value={createSponsor}
+              onChange={(e) => setCreateSponsor(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              Accent Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={createColor}
+                onChange={(e) => setCreateColor(e.target.value)}
+                className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+              />
+              <input
+                className="input flex-1"
+                maxLength={7}
+                placeholder="#D9A521"
+                value={createColor}
+                onChange={(e) => setCreateColor(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {createError && <p className="text-sm text-red-600">{createError}</p>}
+
+          <button type="submit" className="btn-primary" disabled={isPending}>
+            {isPending ? "Creating…" : "Create Sponsored League"}
+          </button>
+        </form>
+      </div>
+
+      {/* ── Section B: Manage Existing Sponsored Leagues ─────────────── */}
+      <div className="card p-5">
+        <h2 className="text-sm font-bold text-brand uppercase tracking-wide mb-4">
+          Manage Sponsored Leagues
+        </h2>
+
         <div className="mb-4">
           <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
             Select League
@@ -188,99 +332,120 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
           >
-            <option value="">— Choose a league —</option>
-            {leagues.map((l) => (
+            <option value="">— Choose a sponsored league —</option>
+            {sponsoredLeagues.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name} ({l.member_count} member{l.member_count === 1 ? "" : "s"})
+                {l.name} ({l.member_count} member{l.member_count === 1 ? "" : "s"}) — {l.invite_code}
               </option>
             ))}
           </select>
         </div>
 
-        {selected && !selected.is_sponsored && (
-          <div className="pt-2">
-            <button
-              className="btn-primary text-sm"
-              onClick={handleMakeSponsored}
-              disabled={isPending}
-            >
-              {isPending ? "Saving…" : "Make Sponsored"}
-            </button>
-            {sponsorFeedback && <p className="text-sm text-green-700 mt-2">{sponsorFeedback}</p>}
-            {sponsorError && <p className="text-sm text-red-600 mt-2">{sponsorError}</p>}
-          </div>
-        )}
-
         {selected && selected.is_sponsored && (
-          <form onSubmit={handleSaveSponsor} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                Sponsor Name
-              </label>
-              <input
-                className="input"
-                maxLength={100}
-                placeholder="Acme Corp"
-                value={sponsorName}
-                onChange={(e) => setSponsorName(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                Sponsor Logo URL
-              </label>
-              <input
-                className="input"
-                type="url"
-                placeholder="https://example.com/logo.png"
-                value={sponsorLogoUrl}
-                onChange={(e) => setSponsorLogoUrl(e.target.value)}
-              />
-              {sponsorLogoUrl.trim() && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={sponsorLogoUrl}
-                    alt="Sponsor logo preview"
-                    className="max-h-12 object-contain"
-                  />
+          <>
+            {/* Invite code + member count */}
+            <div className="mb-5 p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Invite Code</p>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-2xl font-bold tracking-[.15em] text-gray-900">
+                      {selected.invite_code}
+                    </span>
+                    <CopyButton text={selected.invite_code} />
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                Sponsor Accent Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={sponsorAccentColor}
-                  onChange={(e) => setSponsorAccentColor(e.target.value)}
-                  className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
-                />
-                <input
-                  className="input flex-1"
-                  maxLength={7}
-                  placeholder="#D9A521"
-                  value={sponsorAccentColor}
-                  onChange={(e) => setSponsorAccentColor(e.target.value)}
-                />
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Members</p>
+                  <p className="text-2xl font-bold text-gray-900">{selected.member_count}</p>
+                </div>
               </div>
             </div>
 
-            {sponsorError && <p className="text-sm text-red-600">{sponsorError}</p>}
-            {sponsorFeedback && <p className="text-sm text-green-700">{sponsorFeedback}</p>}
+            {/* Edit form */}
+            <form onSubmit={handleSaveSponsor} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                  Sponsor Name
+                </label>
+                <input
+                  className="input"
+                  maxLength={100}
+                  placeholder="Acme Corp"
+                  value={sponsorName}
+                  onChange={(e) => setSponsorName(e.target.value)}
+                />
+              </div>
 
-            <button type="submit" className="btn-primary" disabled={isPending}>
-              {isPending ? "Saving…" : "Save Sponsor Details"}
-            </button>
-          </form>
+              {/* Logo upload */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                  Sponsor Logo
+                </label>
+                {logoUrl && (
+                  <div className="mb-2 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoUrl}
+                      alt="Sponsor logo"
+                      style={{ maxWidth: 200 }}
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+                <div
+                  className="flex items-center gap-4 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand/40 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <div>
+                    <p className="text-xs font-medium text-brand">
+                      {logoUploading ? "Uploading…" : "Click to upload logo"}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">PNG, JPG, SVG · max 2 MB</p>
+                  </div>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                  Accent Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={sponsorAccentColor}
+                    onChange={(e) => setSponsorAccentColor(e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                  />
+                  <input
+                    className="input flex-1"
+                    maxLength={7}
+                    placeholder="#D9A521"
+                    value={sponsorAccentColor}
+                    onChange={(e) => setSponsorAccentColor(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {sponsorError && <p className="text-sm text-red-600">{sponsorError}</p>}
+              {sponsorFeedback && <p className="text-sm text-green-700">{sponsorFeedback}</p>}
+
+              <button type="submit" className="btn-primary" disabled={isPending || logoUploading}>
+                {isPending ? "Saving…" : "Save Changes"}
+              </button>
+            </form>
+          </>
         )}
       </div>
 
-      {/* ── Section B: Prize Setup ────────────────────────────────────── */}
+      {/* ── Section C: Prize Setup ────────────────────────────────────── */}
       {selected && selected.is_sponsored && (
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">

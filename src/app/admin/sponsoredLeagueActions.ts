@@ -8,6 +8,18 @@ function serviceClient() {
   return createServiceClient(url, key);
 }
 
+const SAFE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+function generateInviteCode(): string {
+  let code = "";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < 6; i++) {
+    code += SAFE_CHARS[bytes[i] % SAFE_CHARS.length];
+  }
+  return code;
+}
+
 export async function getSponsoredLeagueData(compId: string) {
   const admin = serviceClient();
 
@@ -36,6 +48,38 @@ export async function getSponsoredLeagueData(compId: string) {
   return { leagues: mapped, gameweeks: gameweeks ?? [] };
 }
 
+export async function createSponsoredLeague(data: {
+  name: string;
+  competition_id: string;
+  sponsor_name: string;
+  sponsor_accent_color: string | null;
+}): Promise<{ error?: string; league?: Record<string, unknown> }> {
+  const admin = serviceClient();
+
+  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1 });
+  const adminUserId = users?.[0]?.id;
+  if (!adminUserId) return { error: "No admin user found" };
+
+  const invite_code = generateInviteCode();
+
+  const { data: league, error } = await admin
+    .from("leagues")
+    .insert({
+      name: data.name,
+      competition_id: data.competition_id,
+      invite_code,
+      is_sponsored: true,
+      sponsor_name: data.sponsor_name,
+      sponsor_accent_color: data.sponsor_accent_color,
+      created_by: adminUserId,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  return { league: league as Record<string, unknown> };
+}
+
 export async function updateLeagueSponsor(
   leagueId: string,
   data: {
@@ -49,6 +93,32 @@ export async function updateLeagueSponsor(
   const { error } = await admin.from("leagues").update(data).eq("id", leagueId);
   if (error) return { error: error.message };
   return {};
+}
+
+export async function uploadSponsorLogo(
+  leagueId: string,
+  formData: FormData
+): Promise<{ error?: string; url?: string }> {
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "No file provided" };
+
+  const ext = file.name.split(".").pop() ?? "png";
+  const path = `${leagueId}/logo.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const admin = serviceClient();
+  const { error } = await admin.storage
+    .from("sponsor-logos")
+    .upload(path, buffer, { upsert: true, contentType: file.type });
+
+  if (error) return { error: error.message };
+
+  const { data: { publicUrl } } = admin.storage.from("sponsor-logos").getPublicUrl(path);
+  const url = `${publicUrl}?t=${Date.now()}`;
+
+  await admin.from("leagues").update({ sponsor_logo_url: url }).eq("id", leagueId);
+
+  return { url };
 }
 
 export async function upsertPrizes(
