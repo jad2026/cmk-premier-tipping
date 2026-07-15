@@ -14,8 +14,9 @@ import SponsorsPanel from "./SponsorsPanel";
 import TryOfTheWeekPanel from "./TryOfTheWeekPanel";
 import SquadManagementPanel from "./SquadManagementPanel";
 import NotificationsPanel from "./NotificationsPanel";
+import SponsoredLeaguePanel from "./SponsoredLeaguePanel";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "squads" | "participants" | "history" | "season" | "sponsors" | "try" | "notifications";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "squads" | "participants" | "history" | "season" | "sponsors" | "sponsored" | "try" | "notifications";
 
 type Props = {
   teams: Team[];
@@ -43,6 +44,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
     { id: "history", label: "Results History" },
     { id: "season", label: "Season" },
     { id: "sponsors", label: "Sponsors" },
+    { id: "sponsored", label: "Sponsored Leagues" },
     { id: "notifications", label: "Notifications" },
   ];
 
@@ -146,6 +148,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
           {activeTab === "participants" && <ParticipantsPanel timezone={timezone} locale={locale} />}
           {activeTab === "history" && <ResultsHistoryPanel />}
           {activeTab === "sponsors" && <SponsorsPanel compId={compId} />}
+          {activeTab === "sponsored" && <SponsoredLeaguePanel compId={compId} />}
           {activeTab === "try" && <TryOfTheWeekPanel compId={compId} />}
           {activeTab === "squads" && <SquadManagementPanel teams={teams} />}
           {activeTab === "notifications" && <NotificationsPanel />}
