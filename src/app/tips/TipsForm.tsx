@@ -87,7 +87,7 @@ function MobileMarginPicker({
 
   const centerColor = value > 0 ? (homeColor || "var(--accent)") : value < 0 ? (awayColor || "var(--accent)") : "var(--accent)";
 
-  const TEAM_ROW_H = 30;
+  const TEAM_ROW_H = 34;
 
   return (
     <div style={{ borderBottom: "1px solid #EFEDE6" }}>
@@ -101,10 +101,10 @@ function MobileMarginPicker({
           background: "#FAF9F5",
           borderBottom: "1px solid #EFEDE6",
           color: homeColor || "var(--accent)",
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 800,
           textTransform: "uppercase",
-          letterSpacing: ".08em",
+          letterSpacing: ".06em",
           fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
         }}
       >
@@ -209,10 +209,10 @@ function MobileMarginPicker({
           background: "#FAF9F5",
           borderTop: "1px solid #EFEDE6",
           color: awayColor || "var(--accent)",
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 800,
           textTransform: "uppercase",
-          letterSpacing: ".08em",
+          letterSpacing: ".06em",
           fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
         }}
       >
