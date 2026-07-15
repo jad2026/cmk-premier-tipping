@@ -757,7 +757,8 @@ async function processRU8(
 
 interface RU10Player {
   "@_player_id"?: string;
-  "@_player_known_name"?: string;
+  "@_player_first_name"?: string;
+  "@_player_last_name"?: string;
   "@_position"?: string;
 }
 
@@ -775,7 +776,7 @@ interface RU10Competition {
 async function processRU10(
   admin: ReturnType<typeof createAdmin>,
   parsed: Record<string, unknown>,
-  optaCompId: string
+  _optaCompId: string
 ) {
   const root = parsed.RU10_Profile as Record<string, unknown> | undefined;
   if (!root) {
@@ -789,19 +790,6 @@ async function processRU10(
     console.log(`[opta/RU10] Skipping — season_id ${competition["@_season_id"]} does not match ${seasonId}`);
     return { processed: 0, skipped: true, reason: "season_id mismatch" };
   }
-
-  // Look up our competition UUID from opta_comp_id
-  const { data: compRow } = await admin
-    .from("competitions")
-    .select("id")
-    .eq("opta_comp_id", optaCompId)
-    .single();
-
-  if (!compRow) {
-    console.error(`[opta/RU10] No competition found with opta_comp_id=${optaCompId}`);
-    return { processed: 0, errors: 1 };
-  }
-  const competitionId = compRow.id as string;
 
   const teamMap = await getTeamMap(admin);
   const teams = (root.team ?? []) as RU10Team[];
@@ -827,23 +815,24 @@ async function processRU10(
       const position = p["@_position"] ?? "";
       if (position === "Unknown") continue;
 
-      const name = p["@_player_known_name"] ?? "";
+      const firstName = p["@_player_first_name"] ?? "";
+      const lastName = p["@_player_last_name"] ?? "";
       const optaPlayerId = p["@_player_id"] != null ? String(p["@_player_id"]) : "";
-      if (!name || !optaPlayerId) continue;
+      if ((!firstName && !lastName) || !optaPlayerId) continue;
 
       try {
         const { error } = await admin.from("players").upsert(
           {
-            name,
+            first_name: firstName,
+            last_name: lastName,
             team_id: platformTeamId,
-            competition_id: competitionId,
             is_active: true,
             opta_player_id: optaPlayerId,
           },
           { onConflict: "opta_player_id" }
         );
         if (error) {
-          console.error(`[opta/RU10] Player upsert failed (${name}, opta_id=${optaPlayerId}):`, error.message);
+          console.error(`[opta/RU10] Player upsert failed (${firstName} ${lastName}, opta_id=${optaPlayerId}):`, error.message);
           errors++;
         } else {
           processed++;
