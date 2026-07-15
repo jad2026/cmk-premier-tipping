@@ -1,11 +1,52 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Fixture } from "@/lib/supabase/types";
 import TeamBadge from "@/components/TeamBadge";
 import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
+
+function useVerticalSwipe(
+  onChange: (delta: number) => void,
+  disabled: boolean,
+) {
+  const ref = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const accumulated = useRef(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || disabled) return;
+
+    const THRESHOLD = 20;
+
+    function onTouchStart(e: TouchEvent) {
+      startY.current = e.touches[0].clientY;
+      accumulated.current = 0;
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      e.preventDefault();
+      const dy = startY.current - e.touches[0].clientY;
+      const steps = Math.trunc(dy / THRESHOLD);
+      if (steps !== accumulated.current) {
+        const delta = steps - accumulated.current;
+        accumulated.current = steps;
+        onChange(delta);
+      }
+    }
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [onChange, disabled]);
+
+  return ref;
+}
 
 type Props = {
   rounds: RoundData[];
@@ -419,6 +460,14 @@ function FixtureCard({
 
   const cardBorder = hasSelection && !resultLocked ? "var(--accent)" : "#E4E1D8";
 
+  const wheelVal = useRef(wheelInitial);
+  wheelVal.current = wheelInitial;
+  const handleSwipeDelta = useCallback(
+    (delta: number) => onWheelChange(Math.max(-100, Math.min(100, wheelVal.current + delta))),
+    [onWheelChange],
+  );
+  const swipeRef = useVerticalSwipe(handleSwipeDelta, isLocked);
+
   return (
     <div
       className="overflow-hidden rounded-xl sm:rounded-2xl"
@@ -477,7 +526,8 @@ function FixtureCard({
           {/* Margin control */}
           {compact ? (
             <div
-              className="flex items-center justify-center gap-3"
+              ref={swipeRef}
+              className="flex items-center justify-center gap-3 touch-none"
               style={{
                 padding: "6px 10px",
                 background: "#FAFAF8",
@@ -499,12 +549,16 @@ function FixtureCard({
               >
                 −
               </button>
-              <span
-                className="font-display text-[22px] leading-none text-center"
-                style={{ minWidth: 44, color: stepperColor, fontWeight: 800 }}
-              >
-                {Math.abs(wheelInitial)}
-              </span>
+              <div className="flex flex-col items-center select-none" style={{ minWidth: 44 }}>
+                <span className="text-[8px] text-[#B4B0A2] leading-none">▲</span>
+                <span
+                  className="font-display text-[22px] leading-none text-center"
+                  style={{ color: stepperColor, fontWeight: 800 }}
+                >
+                  {Math.abs(wheelInitial)}
+                </span>
+                <span className="text-[8px] text-[#B4B0A2] leading-none">▼</span>
+              </div>
               <button
                 type="button"
                 onClick={() => !isLocked && onWheelChange(Math.min(100, wheelInitial + 1))}
@@ -597,8 +651,8 @@ function FixtureCard({
               className="flex items-center gap-[14px] text-left transition-colors duration-150 disabled:cursor-not-allowed"
               style={{
                 padding: compact ? "14px 16px" : "20px 22px",
-                background: homePicked && !resultLocked ? "var(--accent-wash)" : "#fff",
-                boxShadow: homePicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
+                background: homePicked && !resultLocked ? "rgba(44,159,212,.10)" : "#fff",
+                boxShadow: homePicked && !resultLocked ? "inset 4px 0 0 #2C9FD4" : "none",
               }}
               onMouseEnter={(e) => {
                 if (!isLocked && !homePicked) e.currentTarget.style.background = "#FBFAF6";
@@ -643,8 +697,8 @@ function FixtureCard({
               className="flex items-center gap-[14px] text-right justify-end transition-colors duration-150 disabled:cursor-not-allowed"
               style={{
                 padding: compact ? "14px 16px" : "20px 22px",
-                background: awayPicked && !resultLocked ? "var(--accent-wash)" : "#fff",
-                boxShadow: awayPicked && !resultLocked ? "inset 0 0 0 2px var(--accent)" : "none",
+                background: awayPicked && !resultLocked ? "rgba(44,159,212,.10)" : "#fff",
+                boxShadow: awayPicked && !resultLocked ? "inset -4px 0 0 #2C9FD4" : "none",
               }}
               onMouseEnter={(e) => {
                 if (!isLocked && !awayPicked) e.currentTarget.style.background = "#FBFAF6";
