@@ -31,8 +31,6 @@ function BellIcon({ active }: { active: boolean }) {
 export default function PushNotificationToggle({ competitionId }: { competitionId: string }) {
   const { status, busy, subscribe, unsubscribe } = usePushNotifications(competitionId);
 
-  console.log("[PushNotificationToggle] mounted, status:", status, "competitionId:", competitionId);
-
   const baseClasses =
     "flex items-center justify-center w-11 h-11 rounded-[9px] transition-all duration-150 outline-none";
 

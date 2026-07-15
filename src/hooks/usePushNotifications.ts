@@ -58,29 +58,22 @@ export function usePushNotifications(competitionId: string) {
     let cancelled = false;
 
     async function init() {
-      console.log("[usePush] init — checking support");
       if (!isPushSupported()) {
-        console.log("[usePush] push not supported");
         if (!cancelled) setStatus("unsupported");
         return;
       }
 
-      console.log("[usePush] Notification.permission:", Notification.permission);
       if (Notification.permission === "denied") {
         if (!cancelled) setStatus("denied");
         return;
       }
 
       try {
-        console.log("[usePush] registering SW at", SW_PATH, "scope", SW_SCOPE);
         const registration = await navigator.serviceWorker.register(SW_PATH, {
           scope: SW_SCOPE,
         });
-        console.log("[usePush] SW registered, waiting for activation");
         await waitForActive(registration);
-        console.log("[usePush] SW active, checking existing subscription");
         const existing = await registration.pushManager.getSubscription();
-        console.log("[usePush] existing subscription:", existing ? "yes" : "no");
         if (cancelled) return;
 
         if (existing) {
@@ -89,12 +82,10 @@ export function usePushNotifications(competitionId: string) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ subscription: existing, competitionId }),
           });
-          console.log("[usePush] sync existing subscription to DB:", res.status);
         }
 
         setStatus(existing ? "subscribed" : "unsubscribed");
       } catch (err) {
-        console.error("[usePush] init failed:", err);
         if (!cancelled) {
           setStatus("unsupported");
           setError(err instanceof Error ? err.message : "Service worker registration failed");
@@ -123,7 +114,6 @@ export function usePushNotifications(competitionId: string) {
       }
 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      console.log("[usePush] VAPID key:", vapidKey ? `${vapidKey.slice(0, 8)}…` : "MISSING");
       if (!vapidKey) {
         throw new Error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
       }
@@ -146,15 +136,12 @@ export function usePushNotifications(competitionId: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription, competitionId }),
       });
-      const body = await res.json().catch(() => null);
-      console.log("[usePush] subscribe API response:", res.status, body);
       if (!res.ok) {
-        throw new Error(`Failed to save subscription (${res.status}): ${JSON.stringify(body)}`);
+        throw new Error(`Failed to save subscription (${res.status})`);
       }
 
       setStatus("subscribed");
     } catch (err) {
-      console.error("[usePush] subscribe failed:", err);
       setError(err instanceof Error ? err.message : "Failed to enable notifications");
     } finally {
       setBusy(false);
