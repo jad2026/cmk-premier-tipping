@@ -262,7 +262,7 @@ export default async function HomePage() {
       {/* ── 1. Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden text-white" style={{ background: "#0B0E13" }}>
         <Image
-          src={isNpc ? "/npc-hero.jpg" : "/hero.jpg"}
+          src={isNpc ? "/hero-provincial.jpg" : "/hero.jpg"}
           alt=""
           fill
           priority
