@@ -268,6 +268,7 @@ export default async function HomePage() {
           priority
           sizes="100vw"
           className="object-cover pointer-events-none"
+          style={{ objectFit: "cover", objectPosition: "center 30%" }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
