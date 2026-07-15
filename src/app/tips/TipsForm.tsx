@@ -87,93 +87,137 @@ function MobileMarginPicker({
 
   const centerColor = value > 0 ? (homeColor || "var(--accent)") : value < 0 ? (awayColor || "var(--accent)") : "var(--accent)";
 
+  const TEAM_ROW_H = 30;
+
   return (
-    <div
-      style={{
-        position: "relative",
-        height: PICKER_HEIGHT,
-        overflow: "hidden",
-        background: "#FAFAF8",
-        borderBottom: "1px solid #EFEDE6",
-      }}
-    >
-      {/* Centre highlight band */}
+    <div style={{ borderBottom: "1px solid #EFEDE6" }}>
+      {/* Fixed home team label */}
       <div
         style={{
-          position: "absolute",
-          top: PICKER_PAD,
-          left: 0,
-          right: 0,
-          height: PICKER_ITEM_H,
-          background: `color-mix(in srgb, ${centerColor} 12%, transparent)`,
-          borderTop: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
-          borderBottom: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
-          pointerEvents: "none",
-          zIndex: 2,
-          transition: "background .15s, border-color .15s",
-        }}
-      />
-
-      {/* Top/bottom fade masks */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to bottom, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to top, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
-
-      {/* Scrollable list */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="mobile-margin-picker"
-        style={{
-          height: PICKER_HEIGHT,
-          overflowY: disabled ? "hidden" : "auto",
-          scrollSnapType: "y mandatory",
-          overscrollBehavior: "contain",
-          touchAction: "pan-y",
-          position: "relative",
-          zIndex: 1,
+          height: TEAM_ROW_H,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#FAF9F5",
+          borderBottom: "1px solid #EFEDE6",
+          color: homeColor || "var(--accent)",
+          fontSize: 11,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: ".08em",
+          fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
         }}
       >
-        <div style={{ height: PICKER_PAD }} />
-        {items.map((item, i) => {
-          const dist = Math.abs(i - valueToIndex(value));
-          const isCenter = dist === 0;
-          const opacity = isCenter ? 1 : dist === 1 ? 0.7 : dist === 2 ? 0.45 : 0.3;
-          const fontSize = isCenter ? 15 : 13;
-          const fontWeight = isCenter ? 800 : 600;
-          const color = isCenter ? centerColor : "#555";
-          return (
-            <div
-              key={item.value}
-              style={{
-                height: PICKER_ITEM_H,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                scrollSnapAlign: "center",
-                fontSize,
-                fontWeight,
-                color,
-                opacity,
-                userSelect: "none",
-                WebkitUserSelect: "none",
-                textAlign: "center",
-                transition: "opacity .1s",
-                fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-                textTransform: "uppercase",
-                letterSpacing: ".02em",
-              }}
-            >
-              {item.label}
-            </div>
-          );
-        })}
-        <div style={{ height: PICKER_PAD }} />
+        ▲ {homeName}
       </div>
 
-      <style>{`
-        .mobile-margin-picker::-webkit-scrollbar{display:none}
-        .mobile-margin-picker{scrollbar-width:none}
-      `}</style>
+      {/* Scroll picker */}
+      <div
+        style={{
+          position: "relative",
+          height: PICKER_HEIGHT,
+          overflow: "hidden",
+          background: "#FAFAF8",
+        }}
+      >
+        {/* Centre highlight band */}
+        <div
+          style={{
+            position: "absolute",
+            top: PICKER_PAD,
+            left: 0,
+            right: 0,
+            height: PICKER_ITEM_H,
+            background: `color-mix(in srgb, ${centerColor} 12%, transparent)`,
+            borderTop: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
+            borderBottom: `1px solid color-mix(in srgb, ${centerColor} 25%, transparent)`,
+            pointerEvents: "none",
+            zIndex: 2,
+            transition: "background .15s, border-color .15s",
+          }}
+        />
+
+        {/* Top/bottom fade masks */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to bottom, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: PICKER_PAD, background: "linear-gradient(to top, #FAFAF8 0%, transparent 100%)", pointerEvents: "none", zIndex: 3 }} />
+
+        {/* Scrollable list — only this div captures vertical touch */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="mobile-margin-picker"
+          style={{
+            height: PICKER_HEIGHT,
+            overflowY: disabled ? "hidden" : "auto",
+            scrollSnapType: "y mandatory",
+            overscrollBehavior: "contain",
+            touchAction: "pan-y",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div style={{ height: PICKER_PAD }} />
+          {items.map((item, i) => {
+            const dist = Math.abs(i - valueToIndex(value));
+            const isCenter = dist === 0;
+            const opacity = isCenter ? 1 : dist === 1 ? 0.7 : dist === 2 ? 0.45 : 0.3;
+            const fontSize = isCenter ? 15 : 13;
+            const fontWeight = isCenter ? 800 : 600;
+            const color = isCenter ? centerColor : "#555";
+            return (
+              <div
+                key={item.value}
+                style={{
+                  height: PICKER_ITEM_H,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  scrollSnapAlign: "center",
+                  fontSize,
+                  fontWeight,
+                  color,
+                  opacity,
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  textAlign: "center",
+                  transition: "opacity .1s",
+                  fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                  textTransform: "uppercase",
+                  letterSpacing: ".02em",
+                }}
+              >
+                {item.label}
+              </div>
+            );
+          })}
+          <div style={{ height: PICKER_PAD }} />
+        </div>
+
+        <style>{`
+          .mobile-margin-picker::-webkit-scrollbar{display:none}
+          .mobile-margin-picker{scrollbar-width:none}
+        `}</style>
+      </div>
+
+      {/* Fixed away team label */}
+      <div
+        style={{
+          height: TEAM_ROW_H,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#FAF9F5",
+          borderTop: "1px solid #EFEDE6",
+          color: awayColor || "var(--accent)",
+          fontSize: 11,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: ".08em",
+          fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+        }}
+      >
+        ▼ {awayName}
+      </div>
     </div>
   );
 }
