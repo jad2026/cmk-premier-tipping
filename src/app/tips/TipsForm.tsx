@@ -137,10 +137,10 @@ function MobileMarginPicker({
         {items.map((item, i) => {
           const dist = Math.abs(i - valueToIndex(value));
           const isCenter = dist === 0;
-          const opacity = isCenter ? 1 : dist === 1 ? 0.55 : dist === 2 ? 0.3 : 0.15;
+          const opacity = isCenter ? 1 : dist === 1 ? 0.7 : dist === 2 ? 0.45 : 0.3;
           const fontSize = isCenter ? 15 : 13;
           const fontWeight = isCenter ? 800 : 600;
-          const color = isCenter ? centerColor : "#666";
+          const color = isCenter ? centerColor : "#555";
           return (
             <div
               key={item.value}
@@ -156,6 +156,7 @@ function MobileMarginPicker({
                 opacity,
                 userSelect: "none",
                 WebkitUserSelect: "none",
+                textAlign: "center",
                 transition: "opacity .1s",
                 fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
                 textTransform: "uppercase",
