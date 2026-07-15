@@ -63,11 +63,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // --- Auth: IP allowlist ---
+  // --- Auth: IP allowlist (advisory — valid token is sufficient) ---
   const clientIp = getClientIp(request);
   if (clientIp && !isIpAllowed(clientIp)) {
-    console.error(`[opta] Blocked IP: ${clientIp}`);
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    console.warn(`[opta] Request from non-Opta IP ${clientIp} — allowed via valid token`);
   }
 
   // --- Read body ---
