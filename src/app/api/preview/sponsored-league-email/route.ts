@@ -14,9 +14,10 @@ export async function GET() {
   const { data: league } = await admin
     .from("leagues")
     .select("id, name")
-    .eq("is_sponsored", true)
-    .limit(1)
+    .eq("id", "985e1a00-87ad-41f7-a1ae-d73fb3d84813")
     .single();
+
+  console.log("Preview league:", JSON.stringify(league));
 
   if (!league) {
     return NextResponse.json({ error: "No sponsored league found" }, { status: 404 });
