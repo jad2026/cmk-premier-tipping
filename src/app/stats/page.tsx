@@ -59,18 +59,24 @@ type PlayerAgg = {
 async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: rows } = await supabase
     .from("opta_player_stats")
-    .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats");
+    .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats") as {
+      data: { opta_player_id: string; player_name: string | null; first_name: string | null; last_name: string | null; opta_team_id: number | null; stats: Record<string, string> | null }[] | null;
+    };
 
   if (!rows || rows.length === 0) return null;
 
   const { data: mappings } = await supabase
     .from("opta_team_mapping")
-    .select("opta_team_id, team_id");
+    .select("opta_team_id, team_id") as {
+      data: { opta_team_id: number; team_id: string }[] | null;
+    };
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
 
-  const { data: teamRows } = await supabase.from("teams").select("id, name");
+  const { data: teamRows } = await supabase.from("teams").select("id, name") as {
+    data: { id: string; name: string }[] | null;
+  };
   const teamIdToName = new Map<string, string>();
   for (const t of teamRows ?? []) teamIdToName.set(t.id, t.name);
 
