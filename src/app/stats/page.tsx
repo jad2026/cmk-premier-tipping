@@ -57,22 +57,37 @@ type PlayerAgg = {
 };
 
 async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: rows } = await supabase
-    .from("opta_player_stats")
-    .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats") as {
-      data: { opta_player_id: string; player_name: string | null; first_name: string | null; last_name: string | null; opta_team_id: number | null; stats: Record<string, string> | null }[] | null;
-    };
+  const allRows: { opta_player_id: string; player_name: string | null; first_name: string | null; last_name: string | null; opta_team_id: number | null; stats: Record<string, string> | null }[] = [];
+  const PAGE_SIZE = 1000;
+  let offset = 0;
+  while (true) {
+    const { data: page } = await supabase
+      .from("opta_player_stats")
+      .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats")
+      .range(offset, offset + PAGE_SIZE - 1) as {
+        data: typeof allRows | null;
+      };
+    if (!page || page.length === 0) break;
+    allRows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
 
-  if (!rows || rows.length === 0) return null;
+  const rows = allRows;
+  if (rows.length === 0) return null;
+
+  console.log(`[stats] Loaded ${rows.length} player stat rows`);
+  console.log(`[stats] Sample stat keys (first 3):`, rows.slice(0, 3).map(r => ({ player: r.player_name, team_id: r.opta_team_id, keys: Object.keys(r.stats ?? {}) })));
 
   const { data: mappings } = await supabase
     .from("opta_team_mapping")
     .select("opta_team_id, team_id") as {
-      data: { opta_team_id: number; team_id: string }[] | null;
+      data: { opta_team_id: string; team_id: string }[] | null;
     };
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
+  console.log(`[stats] Team mappings loaded: ${optaToTeamId.size} entries, sample keys:`, [...optaToTeamId.keys()].slice(0, 5));
 
   const { data: teamRows } = await supabase.from("teams").select("id, name") as {
     data: { id: string; name: string }[] | null;
