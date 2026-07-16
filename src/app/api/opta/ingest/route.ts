@@ -215,7 +215,7 @@ async function processRU1(
   const root = parsed.fixtures as { fixture?: RU1Fixture[] } | undefined;
   const fixtures = root?.fixture ?? [];
   const relevant = fixtures.filter(
-    (f) => String(f["@_comp_id"]) === optaCompId && f["@_season_id"] === "2026"
+    (f) => String(f["@_comp_id"]) === optaCompId && f["@_season_id"] === (process.env.OPTA_NPC_SEASON_ID || "2027")
   );
 
   console.log(`[opta/RU1] ${fixtures.length} total fixtures, ${relevant.length} relevant (comp=${optaCompId}, season=2026)`);
