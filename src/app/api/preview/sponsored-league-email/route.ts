@@ -21,18 +21,26 @@ export async function GET() {
     return NextResponse.json({ error: "No sponsored league found" }, { status: 404 });
   }
 
-  const { data: logos } = await admin
-    .from("league_sponsor_logos")
-    .select("name, logo_url")
-    .eq("league_id", league.id)
-    .order("display_order");
+  const [{ data: logos }, { data: prizes }] = await Promise.all([
+    admin
+      .from("league_sponsor_logos")
+      .select("name, logo_url")
+      .eq("league_id", league.id)
+      .order("display_order"),
+    admin
+      .from("league_prizes")
+      .select("prize_description, gameweek_id, gameweeks(label)")
+      .eq("league_id", league.id)
+      .order("created_at", { ascending: true })
+      .limit(1),
+  ]);
 
   const { html } = buildSponsoredLeagueEmail({
     recipientName: "John D",
     leagueName: league.name,
     roundLabel: "Round 3",
     sponsorLogos: (logos ?? []) as { name: string; logo_url: string }[],
-    prize: { description: "$100 investment consultation with Forsyth Barr + Mellowpuff hamper pack" },
+    prize: prizes?.[0] ? { description: prizes[0].prize_description as string } : null,
     lastWinner: { name: "Sarah M", score: "6/7 correct", prize: "$50 cafe voucher" },
     standings: [
       { rank: 1, name: "Sarah M", total: 18, isRecipient: false },

@@ -29,7 +29,9 @@ export function buildSponsoredLeagueEmail(p: SponsoredLeagueEmailPayload): { sub
       (logo, i) =>
         `${i > 0 ? '<td style="padding:0 4px;vertical-align:middle;color:rgba(255,255,255,0.2);font-size:10px;">x</td>' : ""}
          <td style="padding:0 6px;vertical-align:middle;">
-           <img src="${logo.logo_url}" alt="${logo.name}" style="display:block;max-height:24px;max-width:80px;" />
+           <div style="background:#fff;border-radius:6px;padding:4px 8px;display:inline-block;">
+             <img src="${logo.logo_url}" alt="${logo.name}" style="display:block;max-height:40px;max-width:110px;" />
+           </div>
          </td>`
     )
     .join("");
