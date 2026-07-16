@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
 import TeamBadge from "@/components/TeamBadge";
 import LeaderboardTable from "./LeaderboardTable";
@@ -175,6 +176,21 @@ export default function LeaderboardContent({
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinFeedback, setJoinFeedback] = useState("");
+  const [sponsorLogos, setSponsorLogos] = useState<{id: string; name: string; logo_url: string; display_order: number}[]>([]);
+
+  useEffect(() => {
+    if (!selectedLeague || selectedLeague === "overall") {
+      setSponsorLogos([]);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("league_sponsor_logos")
+      .select("id, name, logo_url, display_order")
+      .eq("league_id", selectedLeague)
+      .order("display_order", { ascending: true })
+      .then(({ data }) => setSponsorLogos(data || []));
+  }, [selectedLeague]);
 
   const filtered =
     selectedLeague === "overall"
@@ -319,6 +335,25 @@ export default function LeaderboardContent({
               </span>
             )}
           </div>
+
+          {sponsorLogos.length > 0 && (
+            <div style={{ background: '#0B0E13', borderRadius: 12, padding: '16px 20px', marginTop: 16, marginBottom: 8 }}>
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: '#C7CCD4', marginBottom: 12, textAlign: 'center' as const }}>Proudly supported by</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
+                {sponsorLogos.map((logo, i) => (
+                  <React.Fragment key={logo.id}>
+                    {i > 0 && <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>x</span>}
+                    <img
+                      src={logo.logo_url}
+                      alt={logo.name}
+                      title={logo.name}
+                      style={{ maxHeight: 48, maxWidth: 120, objectFit: 'contain' as const }}
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
