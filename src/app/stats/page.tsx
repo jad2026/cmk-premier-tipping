@@ -87,7 +87,7 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
-  console.log(`[stats] Team mappings loaded: ${optaToTeamId.size} entries, sample keys:`, [...optaToTeamId.keys()].slice(0, 5));
+  console.log(`[stats] Team mappings loaded: ${optaToTeamId.size} entries, sample keys:`, Array.from(optaToTeamId.keys()).slice(0, 5));
 
   const { data: teamRows } = await supabase.from("teams").select("id, name") as {
     data: { id: string; name: string }[] | null;
