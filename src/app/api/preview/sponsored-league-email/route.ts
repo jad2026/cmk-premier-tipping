@@ -55,10 +55,7 @@ export async function GET() {
     siteUrl: "https://clubrugbytipping.com",
   });
 
-  const timestamp = new Date().toISOString();
-  const debugHtml = `<!-- DEPLOYED: ${timestamp} LEAGUE: ${league?.name} ID: ${league?.id} -->` + html;
-
-  return new NextResponse(debugHtml, {
+  return new NextResponse(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store, no-cache, must-revalidate",
