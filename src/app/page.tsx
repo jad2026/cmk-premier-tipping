@@ -286,7 +286,7 @@ export default async function HomePage() {
             </div>
           )}
 
-          <h1 className="font-display text-[92px] leading-[.86] tracking-[-.01em] uppercase max-w-[760px] mb-[22px]">
+          <h1 className="font-display text-[48px] sm:text-[64px] md:text-[92px] leading-[.86] tracking-[-.01em] uppercase max-w-[760px] mb-[22px]">
             {isNpc ? <>Back your<br />province</> : <>Make your<br />call</>}<span style={{ color: "var(--accent)" }}>.</span>
           </h1>
 

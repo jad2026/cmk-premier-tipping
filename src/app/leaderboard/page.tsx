@@ -553,8 +553,8 @@ export default async function LeaderboardPage() {
             </span>
           </div>
           <h1
-            className="font-display uppercase"
-            style={{ fontSize: 60, lineHeight: 0.86, margin: 0 }}
+            className="font-display uppercase text-[36px] sm:text-[48px] md:text-[60px]"
+            style={{ lineHeight: 0.86, margin: 0 }}
           >
             Leaderboard<span style={{ color: "var(--accent)" }}>.</span>
           </h1>

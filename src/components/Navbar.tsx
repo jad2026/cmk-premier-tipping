@@ -144,7 +144,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
           {!user && (
             <Link
               href="/login"
-              className="px-4 py-2 rounded-[10px] text-xs font-extrabold uppercase tracking-[.02em]"
+              className="px-3 py-2 rounded-[10px] text-[11px] sm:text-xs font-extrabold uppercase tracking-[.02em] whitespace-nowrap"
               style={{
                 background: "var(--accent)",
                 color: "var(--accent-text)",
