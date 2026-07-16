@@ -44,7 +44,7 @@ export async function GET() {
     roundLabel: "Round 3",
     sponsorLogos: (logos ?? []) as { name: string; logo_url: string }[],
     prize: prizes?.[0] ? { description: prizes[0].prize_description as string } : null,
-    lastWinner: { name: "Sarah M", score: "6/7 correct", prize: "$50 cafe voucher" },
+    lastWinner: null,
     standings: [
       { rank: 1, name: "Sarah M", total: 18, isRecipient: false },
       { rank: 2, name: "John D", total: 16, isRecipient: true },
