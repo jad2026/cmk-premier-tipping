@@ -342,13 +342,22 @@ export default function LeaderboardContent({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
                 {sponsorLogos.map((logo, i) => (
                   <React.Fragment key={logo.id}>
-                    {i > 0 && <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>x</span>}
-                    <img
-                      src={logo.logo_url}
-                      alt={logo.name}
-                      title={logo.name}
-                      style={{ maxHeight: 48, maxWidth: 120, objectFit: 'contain' as const }}
-                    />
+                    {i > 0 && <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>x</span>}
+                    <div style={{
+                      background: '#fff',
+                      borderRadius: 8,
+                      padding: '8px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <img
+                        src={logo.logo_url}
+                        alt={logo.name}
+                        title={logo.name}
+                        style={{ maxHeight: 44, maxWidth: 140, objectFit: 'contain' as const, display: 'block' }}
+                      />
+                    </div>
                   </React.Fragment>
                 ))}
               </div>
