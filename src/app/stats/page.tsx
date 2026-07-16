@@ -46,6 +46,72 @@ type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   away_team: Team;
 };
 
+type PlayerAgg = {
+  name: string;
+  teamName: string;
+  games: number;
+  tries: number;
+  tackles: number;
+  metres: number;
+  cleanBreaks: number;
+};
+
+async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: rows } = await supabase
+    .from("opta_player_stats")
+    .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats");
+
+  if (!rows || rows.length === 0) return null;
+
+  const { data: mappings } = await supabase
+    .from("opta_team_mapping")
+    .select("opta_team_id, team_id");
+
+  const optaToTeamId = new Map<string, string>();
+  for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
+
+  const { data: teamRows } = await supabase.from("teams").select("id, name");
+  const teamIdToName = new Map<string, string>();
+  for (const t of teamRows ?? []) teamIdToName.set(t.id, t.name);
+
+  const agg = new Map<string, PlayerAgg>();
+
+  for (const row of rows) {
+    const pid = String(row.opta_player_id);
+    const s = (row.stats ?? {}) as Record<string, string>;
+    const existing = agg.get(pid);
+
+    const platformTeamId = optaToTeamId.get(String(row.opta_team_id));
+    const teamName = platformTeamId ? (teamIdToName.get(platformTeamId) ?? "Unknown") : "Unknown";
+    const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
+
+    const tries = parseInt(s.Tries ?? s.tries ?? "0", 10) || 0;
+    const tackles = parseInt(s.Tackles ?? s.tackles ?? s.TacklesMade ?? s.tackles_made ?? "0", 10) || 0;
+    const metres = parseInt(s.MetresRun ?? s.metres_run ?? s.Metres ?? s.metres ?? s.MetresGained ?? "0", 10) || 0;
+    const cleanBreaks = parseInt(s.CleanBreaks ?? s.clean_breaks ?? s.LineBreaks ?? s.line_breaks ?? "0", 10) || 0;
+
+    if (existing) {
+      existing.games++;
+      existing.tries += tries;
+      existing.tackles += tackles;
+      existing.metres += metres;
+      existing.cleanBreaks += cleanBreaks;
+      if (teamName !== "Unknown") existing.teamName = teamName;
+      if (name !== "Unknown") existing.name = name;
+    } else {
+      agg.set(pid, { name, teamName, games: 1, tries, tackles, metres, cleanBreaks });
+    }
+  }
+
+  const all = Array.from(agg.values());
+  return {
+    topTryScorers: [...all].sort((a, b) => b.tries - a.tries).slice(0, 10),
+    topTacklers: [...all].sort((a, b) => b.tackles - a.tackles).slice(0, 10),
+    mostMetres: [...all].sort((a, b) => b.metres - a.metres).slice(0, 10),
+    mostCleanBreaks: [...all].sort((a, b) => b.cleanBreaks - a.cleanBreaks).slice(0, 10),
+  };
+}
+
 export default async function LadderPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
@@ -75,6 +141,11 @@ export default async function LadderPage() {
       .order("number", { ascending: false })
       .limit(1),
   ]);
+
+  const STATS_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
+  const { data: { user } } = await supabase.auth.getUser();
+  const showPlayerLeaders = user?.id === STATS_USER_ID;
+  const playerLeaders = showPlayerLeaders ? await getPlayerLeaders(supabase) : null;
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
@@ -224,73 +295,76 @@ export default async function LadderPage() {
         />
       )}
 
-      {/* ── Player stat cards (NPC only for now) ────────────────────── */}
-      {isNpc && <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
-        <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
-          <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
-          <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
-            Season Leaders
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14 }}>
-          {[
-            { title: "Top Points Scorer", icon: "🏉" },
-            { title: "Top Try Scorer", icon: "🏆" },
-            { title: "Tackles Made", icon: "🛡️" },
-            { title: "Line Breaks", icon: "💨" },
-            { title: "Turnovers", icon: "🔄" },
-            { title: "Penalties Conceded", icon: "🟡" },
-          ].map(({ title, icon }) => (
-            <div
-              key={title}
-              style={{
-                background: "#fff",
-                border: "1px solid #E4E1D8",
-                borderRadius: 16,
-                overflow: "hidden",
-              }}
-            >
+      {/* ── Player stat leaders (gated) ────────────────────────────── */}
+      {showPlayerLeaders && playerLeaders && (
+        <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
+              Season Leaders
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 18 }}>
+            {([
+              { title: "Top Try Scorers", rows: playerLeaders.topTryScorers, statKey: "tries" as const },
+              { title: "Top Tacklers", rows: playerLeaders.topTacklers, statKey: "tackles" as const },
+              { title: "Most Metres Gained", rows: playerLeaders.mostMetres, statKey: "metres" as const },
+              { title: "Most Clean Breaks", rows: playerLeaders.mostCleanBreaks, statKey: "cleanBreaks" as const },
+            ] as const).map(({ title, rows: leaders, statKey }) => (
               <div
+                key={title}
                 style={{
-                  padding: "12px 18px",
-                  background: "rgba(var(--accent-rgb,217,165,33),.08)",
-                  borderBottom: "2px solid var(--accent)",
+                  background: "#fff",
+                  border: "1px solid #E4E1D8",
+                  borderRadius: 16,
+                  overflow: "hidden",
                 }}
               >
-                <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent)" }}>
-                  {title}
-                </span>
-              </div>
-              <div style={{ padding: "20px 18px" }}>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="flex items-center justify-center shrink-0 rounded-full"
-                    style={{
-                      width: 40,
-                      height: 40,
-                      background: "#F5F4EF",
-                      fontSize: 18,
-                    }}
-                  >
-                    {icon}
+                <div
+                  style={{
+                    padding: "12px 18px",
+                    background: "rgba(var(--accent-rgb,217,165,33),.08)",
+                    borderBottom: "2px solid var(--accent)",
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent)" }}>
+                    {title}
                   </span>
-                  <div>
-                    <span
-                      className="font-display"
-                      style={{ fontSize: 28, lineHeight: 1, color: "#C7C2B5" }}
-                    >
-                      —
-                    </span>
-                    <p style={{ fontSize: 12, color: "#8B8676", margin: "4px 0 0" }}>
-                      Available when season starts
-                    </p>
-                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #EFEDE6" }}>
+                        <th style={{ padding: "10px 18px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>#</th>
+                        <th style={{ padding: "10px 8px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Player</th>
+                        <th style={{ padding: "10px 8px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Team</th>
+                        <th style={{ padding: "10px 8px", textAlign: "center", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>GP</th>
+                        <th style={{ padding: "10px 18px", textAlign: "right", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaders.map((p, i) => (
+                        <tr key={i} style={{ borderBottom: i < leaders.length - 1 ? "1px solid #EFEDE6" : "none" }}>
+                          <td style={{ padding: "10px 18px", fontWeight: 700, color: "#11151C" }}>{i + 1}</td>
+                          <td style={{ padding: "10px 8px", fontWeight: 600, color: "#11151C", whiteSpace: "nowrap" }}>{p.name}</td>
+                          <td style={{ padding: "10px 8px", color: "#5A6371", whiteSpace: "nowrap" }}>{p.teamName}</td>
+                          <td style={{ padding: "10px 8px", textAlign: "center", color: "#5A6371" }}>{p.games}</td>
+                          <td className="font-display" style={{ padding: "10px 18px", textAlign: "right", fontSize: 18, color: "#11151C" }}>{p[statKey]}</td>
+                        </tr>
+                      ))}
+                      {leaders.length === 0 && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: "20px 18px", textAlign: "center", color: "#8B8676" }}>No data available yet</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>}
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Standings ────────────────────────────────────────────────── */}
       <section className="mx-auto" style={{ maxWidth: 1100, padding: "24px 32px 0" }}>
