@@ -447,7 +447,8 @@ interface RU6Sub {
   "@_event_id"?: string;
   "player-code"?: string;
   "team-id"?: string;
-  type?: { "@_event_name"?: string };
+  type?: { "@_event_name"?: string } | string;
+  "@_type"?: string;
   "sub-id"?: string;
 }
 
@@ -513,7 +514,11 @@ async function processRU6(
     const subs = toArray(match.subs?.sub);
     for (const sub of subs) {
       try {
-        const eventName = sub.type?.["@_event_name"] ?? null;
+        const eventName =
+          (typeof sub.type === "object" && sub.type?.["@_event_name"]) ||
+          (typeof sub.type === "string" ? sub.type : null) ||
+          sub["@_type"] ||
+          "SUB";
         const { error } = await admin.from("opta_match_events").upsert(
           {
             opta_game_id: optaGameId,
