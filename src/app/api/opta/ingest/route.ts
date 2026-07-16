@@ -687,7 +687,7 @@ async function processRU7(
           { onConflict: "opta_game_id,opta_team_id" }
         );
         if (error) {
-          console.error(`[opta/RU7] Team stat upsert failed (game=${optaGameId}, team_id=${optaTeamId}, raw="${rawTeamId}"):`, error.message);
+          console.error(`[opta/RU7] Team stat upsert failed (game=${optaGameId}, team_id=${optaTeamId}):`, error.message);
           errors++;
         } else {
           processed++;
