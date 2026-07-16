@@ -14,7 +14,8 @@ export async function GET() {
   const { data: league } = await admin
     .from("leagues")
     .select("id, name")
-    .eq("id", "985e1a00-87ad-41f7-a1ae-d73fb3d84813")
+    .eq("is_sponsored", true)
+    .limit(1)
     .single();
 
   if (!league) {
