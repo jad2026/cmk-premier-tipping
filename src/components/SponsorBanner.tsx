@@ -70,7 +70,7 @@ export default function SponsorBanner({ sponsors, variant = "large" }: Props) {
 
   // Large variant: scrolling marquee on dark navy
   const trackStyle: React.CSSProperties = {
-    animation: "sponsor-scroll 20s linear infinite",
+    animation: "sponsor-scroll 6s linear infinite",
     animationPlayState: paused ? "paused" : "running",
   };
 
