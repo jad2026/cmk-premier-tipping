@@ -13,7 +13,7 @@ export default function TeamMarquee({ teams }: { teams: Team[] }) {
   const track = [...teams, ...teams];
 
   const trackStyle: React.CSSProperties = {
-    animation: "sponsor-scroll 14s linear infinite",
+    animation: "sponsor-scroll 6s linear infinite",
     animationPlayState: paused ? "paused" : "running",
   };
 
