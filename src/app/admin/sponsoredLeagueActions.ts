@@ -85,7 +85,6 @@ export async function updateLeagueSponsor(
   data: {
     is_sponsored: boolean;
     sponsor_name: string | null;
-    sponsor_logo_url: string | null;
     sponsor_accent_color: string | null;
   }
 ): Promise<{ error?: string }> {
@@ -95,30 +94,95 @@ export async function updateLeagueSponsor(
   return {};
 }
 
-export async function uploadSponsorLogo(
+export async function getSponsorLogos(leagueId: string) {
+  const admin = serviceClient();
+  const { data, error } = await admin
+    .from("league_sponsor_logos")
+    .select("id, name, logo_url, display_order")
+    .eq("league_id", leagueId)
+    .order("display_order");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as { id: string; name: string; logo_url: string; display_order: number }[];
+}
+
+export async function addSponsorLogo(
   leagueId: string,
+  name: string,
   formData: FormData
-): Promise<{ error?: string; url?: string }> {
+): Promise<{ error?: string; logo?: { id: string; name: string; logo_url: string; display_order: number } }> {
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No file provided" };
 
   const ext = file.name.split(".").pop() ?? "png";
-  const path = `${leagueId}/logo.${ext}`;
+  const path = `${leagueId}/${Date.now()}-${file.name}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const admin = serviceClient();
-  const { error } = await admin.storage
+  const { error: uploadError } = await admin.storage
     .from("sponsor-logos")
     .upload(path, buffer, { upsert: true, contentType: file.type });
 
-  if (error) return { error: error.message };
+  if (uploadError) return { error: uploadError.message };
 
   const { data: { publicUrl } } = admin.storage.from("sponsor-logos").getPublicUrl(path);
-  const url = `${publicUrl}?t=${Date.now()}`;
+  const logoUrl = `${publicUrl}?t=${Date.now()}`;
 
-  await admin.from("leagues").update({ sponsor_logo_url: url }).eq("id", leagueId);
+  // Get next display_order
+  const { data: maxRow } = await admin
+    .from("league_sponsor_logos")
+    .select("display_order")
+    .eq("league_id", leagueId)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .single();
+  const nextOrder = (maxRow?.display_order ?? -1) + 1;
 
-  return { url };
+  const { data: row, error: insertError } = await admin
+    .from("league_sponsor_logos")
+    .insert({ league_id: leagueId, name, logo_url: logoUrl, display_order: nextOrder })
+    .select("id, name, logo_url, display_order")
+    .single();
+
+  if (insertError) return { error: insertError.message };
+  return { logo: row as { id: string; name: string; logo_url: string; display_order: number } };
+}
+
+export async function removeSponsorLogo(logoId: string): Promise<{ error?: string }> {
+  const admin = serviceClient();
+
+  const { data: row } = await admin
+    .from("league_sponsor_logos")
+    .select("logo_url")
+    .eq("id", logoId)
+    .single();
+
+  const { error } = await admin.from("league_sponsor_logos").delete().eq("id", logoId);
+  if (error) return { error: error.message };
+
+  // Best-effort storage cleanup
+  if (row?.logo_url) {
+    try {
+      const url = new URL(row.logo_url);
+      const match = url.pathname.match(/\/sponsor-logos\/(.+)$/);
+      if (match) {
+        await admin.storage.from("sponsor-logos").remove([decodeURIComponent(match[1])]);
+      }
+    } catch { /* ignore cleanup errors */ }
+  }
+
+  return {};
+}
+
+export async function reorderSponsorLogos(
+  logos: { id: string; display_order: number }[]
+): Promise<{ error?: string }> {
+  const admin = serviceClient();
+  await Promise.all(
+    logos.map((l) =>
+      admin.from("league_sponsor_logos").update({ display_order: l.display_order }).eq("id", l.id)
+    )
+  );
+  return {};
 }
 
 export async function upsertPrizes(

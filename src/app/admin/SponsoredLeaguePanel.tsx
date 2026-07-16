@@ -5,7 +5,9 @@ import {
   getSponsoredLeagueData,
   createSponsoredLeague,
   updateLeagueSponsor,
-  uploadSponsorLogo,
+  getSponsorLogos,
+  addSponsorLogo,
+  removeSponsorLogo,
   upsertPrizes,
 } from "./sponsoredLeagueActions";
 
@@ -16,7 +18,6 @@ type LeagueRow = {
   member_count: number;
   is_sponsored?: boolean;
   sponsor_name?: string | null;
-  sponsor_logo_url?: string | null;
   sponsor_accent_color?: string | null;
 };
 
@@ -35,6 +36,13 @@ type PrizeRow = {
   winner_user_id: string | null;
   awarded_at: string | null;
   winner_display_name?: string | null;
+};
+
+type SponsorLogo = {
+  id: string;
+  name: string;
+  logo_url: string;
+  display_order: number;
 };
 
 function CopyButton({ text }: { text: string }) {
@@ -82,8 +90,9 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
   const [sponsorFeedback, setSponsorFeedback] = useState("");
   const [sponsorError, setSponsorError] = useState("");
 
-  // Logo upload
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // Sponsor logos
+  const [logos, setLogos] = useState<SponsorLogo[]>([]);
+  const [newLogoName, setNewLogoName] = useState("");
   const [logoUploading, setLogoUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -111,23 +120,35 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
     if (!selected) {
       setExistingPrizes([]);
       setPrizeDescs({});
+      setLogos([]);
       return;
     }
     setSponsorName(selected.sponsor_name ?? "");
     setSponsorAccentColor(selected.sponsor_accent_color ?? "#D9A521");
-    setLogoUrl(selected.sponsor_logo_url ?? null);
     setSponsorFeedback("");
     setSponsorError("");
     setPrizeFeedback("");
     setPrizeError("");
+    setNewLogoName("");
 
     if (selected.is_sponsored) {
       loadPrizes(selected.id);
+      loadLogos(selected.id);
     } else {
       setExistingPrizes([]);
       setPrizeDescs({});
+      setLogos([]);
     }
   }, [selectedId]);
+
+  async function loadLogos(leagueId: string) {
+    try {
+      const data = await getSponsorLogos(leagueId);
+      setLogos(data);
+    } catch {
+      setLogos([]);
+    }
+  }
 
   async function loadPrizes(leagueId: string) {
     const { createClient } = await import("@supabase/supabase-js");
@@ -189,7 +210,6 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
       const { error } = await updateLeagueSponsor(selected.id, {
         is_sponsored: true,
         sponsor_name: sponsorName.trim() || null,
-        sponsor_logo_url: logoUrl,
         sponsor_accent_color: sponsorAccentColor.trim() || null,
       });
       if (error) { setSponsorError(error); return; }
@@ -198,20 +218,31 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
     });
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAddLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !selected) return;
     if (file.size > 2 * 1024 * 1024) { setSponsorError("Logo must be under 2 MB."); return; }
+    if (!newLogoName.trim()) { setSponsorError("Enter a sponsor name before uploading."); return; }
 
     setLogoUploading(true);
     setSponsorError("");
     const fd = new FormData();
     fd.append("file", file);
-    const { error, url } = await uploadSponsorLogo(selected.id, fd);
+    const { error } = await addSponsorLogo(selected.id, newLogoName.trim(), fd);
     setLogoUploading(false);
 
     if (error) { setSponsorError(error); return; }
-    if (url) setLogoUrl(url);
+    setNewLogoName("");
+    if (fileRef.current) fileRef.current.value = "";
+    loadLogos(selected.id);
+  }
+
+  async function handleRemoveLogo(logoId: string) {
+    if (!selected) return;
+    if (!confirm("Remove this sponsor logo?")) return;
+    const { error } = await removeSponsorLogo(logoId);
+    if (error) { setSponsorError(error); return; }
+    loadLogos(selected.id);
   }
 
   function handleSavePrizes() {
@@ -377,42 +408,6 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
                 />
               </div>
 
-              {/* Logo upload */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                  Sponsor Logo
-                </label>
-                {logoUrl && (
-                  <div className="mb-2 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-block">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logoUrl}
-                      alt="Sponsor logo"
-                      style={{ maxWidth: 200 }}
-                      className="object-contain"
-                    />
-                  </div>
-                )}
-                <div
-                  className="flex items-center gap-4 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand/40 transition-colors"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <div>
-                    <p className="text-xs font-medium text-brand">
-                      {logoUploading ? "Uploading…" : "Click to upload logo"}
-                    </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">PNG, JPG, SVG · max 2 MB</p>
-                  </div>
-                </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                />
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                   Accent Color
@@ -437,10 +432,83 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
               {sponsorError && <p className="text-sm text-red-600">{sponsorError}</p>}
               {sponsorFeedback && <p className="text-sm text-green-700">{sponsorFeedback}</p>}
 
-              <button type="submit" className="btn-primary" disabled={isPending || logoUploading}>
+              <button type="submit" className="btn-primary" disabled={isPending}>
                 {isPending ? "Saving…" : "Save Changes"}
               </button>
             </form>
+
+            {/* Sponsor Logos */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                Sponsor Logos
+              </label>
+
+              {logos.length > 0 && (
+                <div className="flex flex-wrap gap-4 mb-4">
+                  {logos.map((logo) => (
+                    <div
+                      key={logo.id}
+                      className="relative p-3 bg-gray-50 rounded-xl border border-gray-100 text-center"
+                      style={{ width: 150 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLogo(logo.id)}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center hover:bg-red-600 transition-colors"
+                        title="Remove logo"
+                      >
+                        &times;
+                      </button>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={logo.logo_url}
+                        alt={logo.name}
+                        style={{ maxWidth: 120, maxHeight: 60 }}
+                        className="object-contain mx-auto"
+                      />
+                      <p className="text-[11px] font-medium text-gray-600 mt-2 truncate">{logo.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Sponsor Name
+                  </label>
+                  <input
+                    className="input"
+                    maxLength={100}
+                    placeholder="Sponsor name for this logo"
+                    value={newLogoName}
+                    onChange={(e) => setNewLogoName(e.target.value)}
+                  />
+                </div>
+                <div
+                  className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand/40 transition-colors shrink-0"
+                  onClick={() => {
+                    if (!newLogoName.trim()) {
+                      setSponsorError("Enter a sponsor name before uploading.");
+                      return;
+                    }
+                    fileRef.current?.click();
+                  }}
+                >
+                  <p className="text-xs font-medium text-brand">
+                    {logoUploading ? "Uploading…" : "Upload Logo"}
+                  </p>
+                  <p className="text-[11px] text-gray-400">max 2 MB</p>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAddLogo}
+                />
+              </div>
+            </div>
           </>
         )}
       </div>
