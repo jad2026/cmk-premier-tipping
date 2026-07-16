@@ -596,22 +596,26 @@ async function processRU7(
 
   const fixtureId = await lookupFixtureId(admin, optaGameId);
 
+  const homeTeamIdRaw = root?.["@_home_team_id"];
+  const awayTeamIdRaw = root?.["@_away_team_id"];
+  const homeTeamId = homeTeamIdRaw != null ? parseInt(String(homeTeamIdRaw), 10) : NaN;
+  const awayTeamId = awayTeamIdRaw != null ? parseInt(String(awayTeamIdRaw), 10) : NaN;
+
+  if (isNaN(homeTeamId) || isNaN(awayTeamId)) {
+    console.warn(`[opta/RU7] Missing team IDs on RRML root: home="${homeTeamIdRaw}" away="${awayTeamIdRaw}" (game=${optaGameId})`);
+    return { processed: 0, errors: 1 };
+  }
+
   const teamDetail = root?.TeamDetail as { Team?: RU7Team | RU7Team[] } | undefined;
   const teams = toArray(teamDetail?.Team);
 
   let processed = 0;
   let errors = 0;
 
-  for (const team of teams) {
-    const rawTeamId = team["@_team_id"];
-    const optaTeamId = rawTeamId != null ? parseInt(String(rawTeamId), 10) : NaN;
-    const homeOrAway = team["@_home_or_away"] ?? null;
-
-    if (isNaN(optaTeamId)) {
-      console.warn(`[opta/RU7] Invalid team_id: raw="${rawTeamId}" (game=${optaGameId}) — skipping team`);
-      errors++;
-      continue;
-    }
+  for (let i = 0; i < teams.length; i++) {
+    const team = teams[i];
+    const optaTeamId = i === 0 ? homeTeamId : awayTeamId;
+    const homeOrAway = i === 0 ? "home" : "away";
 
     // Player stats
     const players = toArray(team.Player);
