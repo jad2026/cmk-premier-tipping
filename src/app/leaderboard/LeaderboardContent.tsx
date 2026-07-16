@@ -355,7 +355,7 @@ export default function LeaderboardContent({
                         src={logo.logo_url}
                         alt={logo.name}
                         title={logo.name}
-                        style={{ maxHeight: 44, maxWidth: 140, objectFit: 'contain' as const, display: 'block' }}
+                        style={{ maxHeight: 88, maxWidth: 280, objectFit: 'contain' as const, display: 'block' }}
                       />
                     </div>
                   </React.Fragment>
