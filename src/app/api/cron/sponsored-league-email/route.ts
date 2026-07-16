@@ -142,24 +142,26 @@ export async function GET(request: Request) {
       if (prevFixtureIds.length > 0) {
         const { data: prevPicks } = await admin
           .from("picks")
-          .select("user_id, is_correct")
+          .select("user_id, is_correct, margin_bonus")
           .in("fixture_id", prevFixtureIds)
           .in("user_id", memberUserIds);
 
-        const prevScores = new Map<string, number>();
+        const prevScores = new Map<string, { correct: number; bonus: number }>();
         for (const p of prevPicks ?? []) {
-          if (p.is_correct) prevScores.set(p.user_id, (prevScores.get(p.user_id) ?? 0) + 1);
+          const entry = prevScores.get(p.user_id) ?? { correct: 0, bonus: 0 };
+          if (p.is_correct) entry.correct++;
+          entry.bonus += (p.margin_bonus as number) ?? 0;
+          prevScores.set(p.user_id, entry);
         }
 
         if (prevScores.size > 0) {
-          const topEntry = Array.from(prevScores.entries()).sort((a, b) => b[1] - a[1])[0];
-          const [winnerId, winnerCorrect] = topEntry;
-
-          const { data: winnerProfile } = await admin
-            .from("profiles")
-            .select("display_name, first_name")
-            .eq("id", winnerId)
-            .single();
+          const sorted = Array.from(prevScores.entries()).sort(
+            (a, b) => b[1].correct - a[1].correct || b[1].bonus - a[1].bonus
+          );
+          const [topId, topScore] = sorted[0];
+          const tied = sorted.filter(
+            ([, s]) => s.correct === topScore.correct && s.bonus === topScore.bonus
+          );
 
           const { data: prevPrize } = await admin
             .from("league_prizes")
@@ -168,11 +170,35 @@ export async function GET(request: Request) {
             .eq("gameweek_id", previousGw.id)
             .single();
 
-          lastWinner = {
-            name: winnerProfile?.display_name || winnerProfile?.first_name || "Unknown",
-            score: `${winnerCorrect}/${prevFixtureIds.length} correct`,
-            prize: (prevPrize?.prize_description as string) || "Weekly prize",
-          };
+          if (tied.length > 1) {
+            const { data: tiedProfiles } = await admin
+              .from("profiles")
+              .select("id, display_name, first_name")
+              .in("id", tied.map(([id]) => id));
+
+            const names = (tiedProfiles ?? []).map(
+              (p: { id: string; display_name: string | null; first_name: string | null }) =>
+                p.display_name || p.first_name || "Unknown"
+            );
+
+            lastWinner = {
+              name: `${names.join(" and ")} (tied — draw pending)`,
+              score: `${topScore.correct}/${prevFixtureIds.length} correct${topScore.bonus > 0 ? ` + ${topScore.bonus} bonus` : ""}`,
+              prize: (prevPrize?.prize_description as string) || "Weekly prize",
+            };
+          } else {
+            const { data: winnerProfile } = await admin
+              .from("profiles")
+              .select("display_name, first_name")
+              .eq("id", topId)
+              .single();
+
+            lastWinner = {
+              name: winnerProfile?.display_name || winnerProfile?.first_name || "Unknown",
+              score: `${topScore.correct}/${prevFixtureIds.length} correct${topScore.bonus > 0 ? ` + ${topScore.bonus} bonus` : ""}`,
+              prize: (prevPrize?.prize_description as string) || "Weekly prize",
+            };
+          }
         }
       }
     }
