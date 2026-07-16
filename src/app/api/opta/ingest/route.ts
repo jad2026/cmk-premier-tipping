@@ -671,7 +671,6 @@ async function processRU7(
             opta_game_id: optaGameId,
             opta_team_id: optaTeamId,
             fixture_id: fixtureId,
-            home_or_away: homeOrAway,
             stats: teamStats,
           },
           { onConflict: "opta_game_id,opta_team_id" }
