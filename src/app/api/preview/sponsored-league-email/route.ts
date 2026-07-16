@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { buildSponsoredLeagueEmail } from "@/lib/email/sponsoredLeagueEmail";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   const admin = createAdminClient(
@@ -54,7 +55,10 @@ export async function GET() {
     siteUrl: "https://clubrugbytipping.com",
   });
 
-  return new NextResponse(html, {
+  const timestamp = new Date().toISOString();
+  const debugHtml = `<!-- DEPLOYED: ${timestamp} LEAGUE: ${league?.name} ID: ${league?.id} -->` + html;
+
+  return new NextResponse(debugHtml, {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store, no-cache, must-revalidate",
