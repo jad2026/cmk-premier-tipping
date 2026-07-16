@@ -603,8 +603,15 @@ async function processRU7(
   let errors = 0;
 
   for (const team of teams) {
-    const optaTeamId = String(team["@_team_id"] ?? "");
+    const rawTeamId = team["@_team_id"];
+    const optaTeamId = rawTeamId != null ? parseInt(String(rawTeamId), 10) : NaN;
     const homeOrAway = team["@_home_or_away"] ?? null;
+
+    if (isNaN(optaTeamId)) {
+      console.warn(`[opta/RU7] Invalid team_id: raw="${rawTeamId}" (game=${optaGameId}) — skipping team`);
+      errors++;
+      continue;
+    }
 
     // Player stats
     const players = toArray(team.Player);
@@ -642,7 +649,7 @@ async function processRU7(
           { onConflict: "opta_game_id,opta_player_id" }
         );
         if (error) {
-          console.error(`[opta/RU7] Player stat upsert failed (game=${optaGameId}, player=${player["@_id"]}):`, error.message);
+          console.error(`[opta/RU7] Player stat upsert failed (game=${optaGameId}, team_id=${optaTeamId}, player=${player["@_id"]}):`, error.message);
           errors++;
         } else {
           processed++;
@@ -676,7 +683,7 @@ async function processRU7(
           { onConflict: "opta_game_id,opta_team_id" }
         );
         if (error) {
-          console.error(`[opta/RU7] Team stat upsert failed (game=${optaGameId}, team=${optaTeamId}):`, error.message);
+          console.error(`[opta/RU7] Team stat upsert failed (game=${optaGameId}, team_id=${optaTeamId}, raw="${rawTeamId}"):`, error.message);
           errors++;
         } else {
           processed++;
