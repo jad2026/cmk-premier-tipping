@@ -29,7 +29,7 @@ export function buildSponsoredLeagueEmail(p: SponsoredLeagueEmailPayload): { sub
       (logo, i) =>
         `${i > 0 ? '<td style="padding:0 4px;vertical-align:middle;color:rgba(255,255,255,0.2);font-size:10px;">x</td>' : ""}
          <td style="padding:0 6px;vertical-align:middle;">
-           <img src="${logo.logo_url}" alt="${logo.name}" style="display:block;max-height:28px;max-width:80px;" />
+           <img src="${logo.logo_url}" alt="${logo.name}" style="display:block;max-height:24px;max-width:80px;" />
          </td>`
     )
     .join("");
@@ -38,7 +38,7 @@ export function buildSponsoredLeagueEmail(p: SponsoredLeagueEmailPayload): { sub
     p.sponsorLogos.length > 0
       ? `<tr>
           <td style="padding:24px 32px;background:#FFFFFF;text-align:center;">
-            <p style="margin:0 0 14px;font-family:'Archivo',system-ui,sans-serif;font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#8B8676;">Proudly supported by</p>
+            <p style="margin:0 0 14px;font-family:'Archivo',system-ui,sans-serif;font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#999999;">Proudly supported by</p>
             <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>${sponsorLogosCells}</tr></table>
           </td>
         </tr>`
@@ -122,7 +122,7 @@ export function buildSponsoredLeagueEmail(p: SponsoredLeagueEmailPayload): { sub
         <tr>
           <td style="padding:24px 32px 20px;background:#FFFFFF;">
             <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:16px;color:#11151C;line-height:1.6;">
-              Hey <strong>${p.recipientName}</strong> 👋
+              Hey <strong>${p.recipientName}</strong>
             </p>
             <p style="margin:8px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:14px;color:#5A6371;line-height:1.6;">
               Here's your weekly update for <strong style="color:#11151C;">${p.leagueName}</strong>.
