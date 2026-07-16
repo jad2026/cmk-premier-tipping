@@ -218,7 +218,7 @@ async function processRU1(
     (f) => String(f["@_comp_id"]) === optaCompId && f["@_season_id"] === (process.env.OPTA_NPC_SEASON_ID || "2027")
   );
 
-  console.log(`[opta/RU1] ${fixtures.length} total fixtures, ${relevant.length} relevant (comp=${optaCompId}, season=2026)`);
+  console.log(`[opta/RU1] ${fixtures.length} total fixtures, ${relevant.length} relevant (comp=${optaCompId}, season=${process.env.OPTA_NPC_SEASON_ID || "2027"})`);
 
   if (relevant.length === 0) {
     return { processed: 0, skipped: fixtures.length };
@@ -457,12 +457,17 @@ interface RU6Match {
   subs?: { sub?: RU6Sub[] };
 }
 
+function toArray<T>(v: T | T[] | undefined | null): T[] {
+  if (v == null) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 async function processRU6(
   admin: ReturnType<typeof createAdmin>,
   parsed: Record<string, unknown>
 ) {
-  const root = parsed.wapresults as { match?: RU6Match[] } | undefined;
-  const matches = root?.match ?? [];
+  const root = parsed.wapresults as { match?: RU6Match | RU6Match[] } | undefined;
+  const matches = toArray(root?.match);
 
   let processed = 0;
   let errors = 0;
@@ -474,7 +479,7 @@ async function processRU6(
     const fixtureId = await lookupFixtureId(admin, optaGameId);
 
     // Process events
-    const events = match.events?.event ?? [];
+    const events = toArray(match.events?.event);
     for (const ev of events) {
       try {
         const { error } = await admin.from("opta_match_events").upsert(
@@ -505,7 +510,7 @@ async function processRU6(
     }
 
     // Process subs
-    const subs = match.subs?.sub ?? [];
+    const subs = toArray(match.subs?.sub);
     for (const sub of subs) {
       try {
         const eventName = sub.type?.["@_event_name"] ?? null;
@@ -586,8 +591,8 @@ async function processRU7(
 
   const fixtureId = await lookupFixtureId(admin, optaGameId);
 
-  const teamDetail = root?.TeamDetail as { Team?: RU7Team[] } | undefined;
-  const teams = teamDetail?.Team ?? [];
+  const teamDetail = root?.TeamDetail as { Team?: RU7Team | RU7Team[] } | undefined;
+  const teams = toArray(teamDetail?.Team);
 
   let processed = 0;
   let errors = 0;
@@ -597,11 +602,11 @@ async function processRU7(
     const homeOrAway = team["@_home_or_away"] ?? null;
 
     // Player stats
-    const players = team.Player ?? [];
+    const players = toArray(team.Player);
     for (const player of players) {
       try {
         const stats: Record<string, string> = {};
-        const playerStats = player.PlayerStats?.PlayerStat ?? [];
+        const playerStats = toArray(player.PlayerStats?.PlayerStat);
         for (const ps of playerStats) {
           for (const [key, val] of Object.entries(ps)) {
             if (key.startsWith("@_") || val == null) continue;
@@ -647,7 +652,7 @@ async function processRU7(
     // Team stats
     try {
       const teamStats: Record<string, string> = {};
-      const tStats = team.TeamStats?.TeamStat ?? [];
+      const tStats = toArray(team.TeamStats?.TeamStat);
       for (const ts of tStats) {
         for (const [key, val] of Object.entries(ts)) {
           if (!key.startsWith("@_") || key === "@_") continue;
@@ -712,7 +717,7 @@ async function processRU8(
 
   const fixtureId = await lookupFixtureId(admin, optaGameId);
 
-  const messages = (root?.Message ?? []) as RU8Message[];
+  const messages = toArray(root?.Message) as RU8Message[];
   const filtered = messages.filter((m) => m["@_type"] !== "Leader Table" && m["@_id"] != null);
 
   console.log(`[opta/RU8] ${messages.length} total messages, ${filtered.length} after filtering (game=${optaGameId})`);
