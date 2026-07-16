@@ -410,11 +410,13 @@ export default async function LadderPage() {
 
       {/* ── Team & Player stat leaders (gated) ─────────────────────── */}
       {showStats && statsData && (
-        <StatsLeaders
-          teams={statsData.teams}
-          players={statsData.players}
-          teamNames={statsData.teamNames}
-        />
+        <div style={{ background: "#0D1117" }}>
+          <StatsLeaders
+            teams={statsData.teams}
+            players={statsData.players}
+            teamNames={statsData.teamNames}
+          />
+        </div>
       )}
 
       {/* ── Standings ────────────────────────────────────────────────── */}
