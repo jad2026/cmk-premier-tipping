@@ -222,7 +222,7 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
     const file = e.target.files?.[0];
     if (!file || !selected) return;
     if (file.size > 2 * 1024 * 1024) { setSponsorError("Logo must be under 2 MB."); return; }
-    if (!newLogoName.trim()) { setSponsorError("Enter a sponsor name before uploading."); return; }
+    if (!newLogoName.trim()) { setSponsorError("Enter a logo label before uploading."); return; }
 
     setLogoUploading(true);
     setSponsorError("");
@@ -475,12 +475,12 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                 <div className="flex-1">
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                    Sponsor Name
+                    Logo Label
                   </label>
                   <input
                     className="input"
                     maxLength={100}
-                    placeholder="Sponsor name for this logo"
+                    placeholder="e.g. Forsyth Barr"
                     value={newLogoName}
                     onChange={(e) => setNewLogoName(e.target.value)}
                   />
@@ -489,7 +489,7 @@ export default function SponsoredLeaguePanel({ compId }: { compId: string }) {
                   className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand/40 transition-colors shrink-0"
                   onClick={() => {
                     if (!newLogoName.trim()) {
-                      setSponsorError("Enter a sponsor name before uploading.");
+                      setSponsorError("Enter a logo label before uploading.");
                       return;
                     }
                     fileRef.current?.click();
