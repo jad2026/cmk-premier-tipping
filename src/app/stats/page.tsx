@@ -6,6 +6,8 @@ import type { Team, Fixture } from "@/lib/supabase/types";
 import MatchCentre from "./MatchCentre";
 import { buildPlaceholderFixture } from "./matchCentreTypes";
 import { getCachedAllTeams } from "@/lib/cached-queries";
+import PlayerLeaders from "./PlayerLeaders";
+import type { PlayerStat } from "./PlayerLeaders";
 
 export const revalidate = 300;
 
@@ -46,17 +48,37 @@ type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   away_team: Team;
 };
 
-type PlayerAgg = {
-  name: string;
-  teamName: string;
-  games: number;
-  tries: number;
-  tackles: number;
-  metres: number;
-  cleanBreaks: number;
+const STAT_ALIASES: Record<string, string[]> = {
+  tries: ["Tries", "tries"],
+  tackles: ["Tackles", "tackles", "TacklesMade", "tackles_made"],
+  metres: ["MetresRun", "metres_run", "Metres", "metres", "MetresGained"],
+  clean_breaks: ["CleanBreaks", "clean_breaks", "LineBreaks", "line_breaks"],
+  defenders_beaten: ["DefendersBeaten", "defenders_beaten"],
+  dominant_tackles: ["DominantTackles", "dominant_tackles"],
+  tackle_turnover: ["TackleTurnover", "tackle_turnover", "TurnoverWon", "turnover_won"],
+  missed_tackles: ["MissedTackles", "missed_tackles"],
+  kick_penalty_good: ["KickPenaltyGood", "kick_penalty_good", "PenaltyGoals", "penalty_goals"],
+  conversion_goals: ["ConversionGoals", "conversion_goals", "Conversions", "conversions"],
+  kick_metres: ["KickMetres", "kick_metres", "KickingMetres", "kicking_metres"],
+  kicks_from_hand: ["KicksFromHand", "kicks_from_hand"],
+  lineout_success: ["LineoutSuccess", "lineout_success"],
+  lineouts_won: ["LineoutsWon", "lineouts_won"],
+  total_lineouts: ["TotalLineouts", "total_lineouts"],
+  carries_metres: ["CarriesMetres", "carries_metres"],
+  offload: ["Offload", "offload", "Offloads", "offloads"],
+  line_break_assists: ["LineBreakAssists", "line_break_assists"],
 };
 
-async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>) {
+function extractStat(s: Record<string, string>, key: string): number {
+  const aliases = STAT_ALIASES[key];
+  if (!aliases) return parseInt(s[key] ?? "0", 10) || 0;
+  for (const a of aliases) {
+    if (s[a] != null) return parseInt(s[a], 10) || 0;
+  }
+  return 0;
+}
+
+async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>): Promise<{ players: PlayerStat[]; teamNames: string[] } | null> {
   const allRows: { opta_player_id: string; player_name: string | null; first_name: string | null; last_name: string | null; opta_team_id: number | null; stats: Record<string, string> | null }[] = [];
   const PAGE_SIZE = 1000;
   let offset = 0;
@@ -73,11 +95,7 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
     offset += PAGE_SIZE;
   }
 
-  const rows = allRows;
-  if (rows.length === 0) return null;
-
-  console.log(`[stats] Loaded ${rows.length} player stat rows`);
-  console.log(`[stats] Sample stat keys (first 3):`, rows.slice(0, 3).map(r => ({ player: r.player_name, team_id: r.opta_team_id, keys: Object.keys(r.stats ?? {}) })));
+  if (allRows.length === 0) return null;
 
   const { data: mappings } = await supabase
     .from("opta_team_mapping")
@@ -87,7 +105,6 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
-  console.log(`[stats] Team mappings loaded: ${optaToTeamId.size} entries, sample keys:`, Array.from(optaToTeamId.keys()).slice(0, 5));
 
   const { data: teamRows } = await supabase.from("teams").select("id, name") as {
     data: { id: string; name: string }[] | null;
@@ -95,50 +112,35 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
   const teamIdToName = new Map<string, string>();
   for (const t of teamRows ?? []) teamIdToName.set(t.id, t.name);
 
-  const firstStat = rows?.[0];
-  if (firstStat) {
-    console.log('[stats] First stat opta_team_id:', firstStat.opta_team_id, 'type:', typeof firstStat.opta_team_id);
-    console.log('[stats] Map has key?', optaToTeamId.has(String(firstStat.opta_team_id)));
-    console.log('[stats] Map size:', optaToTeamId.size);
-    console.log('[stats] teamIdToName size:', teamIdToName.size);
-  }
+  const statKeys = Object.keys(STAT_ALIASES);
+  const agg = new Map<string, PlayerStat>();
 
-  const agg = new Map<string, PlayerAgg>();
-
-  for (const row of rows) {
+  for (const row of allRows) {
     const pid = String(row.opta_player_id);
     const s = (row.stats ?? {}) as Record<string, string>;
-    const existing = agg.get(pid);
 
     const platformTeamId = optaToTeamId.get(String(row.opta_team_id));
     const teamName = platformTeamId ? (teamIdToName.get(platformTeamId) ?? "Unknown") : "Unknown";
     const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
 
-    const tries = parseInt(s.Tries ?? s.tries ?? "0", 10) || 0;
-    const tackles = parseInt(s.Tackles ?? s.tackles ?? s.TacklesMade ?? s.tackles_made ?? "0", 10) || 0;
-    const metres = parseInt(s.MetresRun ?? s.metres_run ?? s.Metres ?? s.metres ?? s.MetresGained ?? "0", 10) || 0;
-    const cleanBreaks = parseInt(s.CleanBreaks ?? s.clean_breaks ?? s.LineBreaks ?? s.line_breaks ?? "0", 10) || 0;
-
+    const existing = agg.get(pid);
     if (existing) {
       existing.games++;
-      existing.tries += tries;
-      existing.tackles += tackles;
-      existing.metres += metres;
-      existing.cleanBreaks += cleanBreaks;
+      for (const key of statKeys) existing.stats[key] = (existing.stats[key] ?? 0) + extractStat(s, key);
       if (teamName !== "Unknown") existing.teamName = teamName;
       if (name !== "Unknown") existing.name = name;
     } else {
-      agg.set(pid, { name, teamName, games: 1, tries, tackles, metres, cleanBreaks });
+      const stats: Record<string, number> = {};
+      for (const key of statKeys) stats[key] = extractStat(s, key);
+      agg.set(pid, { name, teamName, games: 1, stats });
     }
   }
 
-  const all = Array.from(agg.values());
-  return {
-    topTryScorers: [...all].sort((a, b) => b.tries - a.tries).slice(0, 10),
-    topTacklers: [...all].sort((a, b) => b.tackles - a.tackles).slice(0, 10),
-    mostMetres: [...all].sort((a, b) => b.metres - a.metres).slice(0, 10),
-    mostCleanBreaks: [...all].sort((a, b) => b.cleanBreaks - a.cleanBreaks).slice(0, 10),
-  };
+  const players = Array.from(agg.values());
+  const teamNameSet = new Set(players.map((p) => p.teamName).filter((n) => n !== "Unknown"));
+  const teamNames = Array.from(teamNameSet).sort();
+
+  return { players, teamNames };
 }
 
 export default async function LadderPage() {
@@ -326,73 +328,7 @@ export default async function LadderPage() {
 
       {/* ── Player stat leaders (gated) ────────────────────────────── */}
       {showPlayerLeaders && playerLeaders && (
-        <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
-          <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
-            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
-            <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
-              Season Leaders
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 18 }}>
-            {([
-              { title: "Top Try Scorers", rows: playerLeaders.topTryScorers, statKey: "tries" as const },
-              { title: "Top Tacklers", rows: playerLeaders.topTacklers, statKey: "tackles" as const },
-              { title: "Most Metres Gained", rows: playerLeaders.mostMetres, statKey: "metres" as const },
-              { title: "Most Clean Breaks", rows: playerLeaders.mostCleanBreaks, statKey: "cleanBreaks" as const },
-            ] as const).map(({ title, rows: leaders, statKey }) => (
-              <div
-                key={title}
-                style={{
-                  background: "#fff",
-                  border: "1px solid #E4E1D8",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "12px 18px",
-                    background: "rgba(var(--accent-rgb,217,165,33),.08)",
-                    borderBottom: "2px solid var(--accent)",
-                  }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent)" }}>
-                    {title}
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #EFEDE6" }}>
-                        <th style={{ padding: "10px 18px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>#</th>
-                        <th style={{ padding: "10px 8px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Player</th>
-                        <th style={{ padding: "10px 8px", textAlign: "left", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Team</th>
-                        <th style={{ padding: "10px 8px", textAlign: "center", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>GP</th>
-                        <th style={{ padding: "10px 18px", textAlign: "right", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#9AA1AD" }}>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leaders.map((p, i) => (
-                        <tr key={i} style={{ borderBottom: i < leaders.length - 1 ? "1px solid #EFEDE6" : "none" }}>
-                          <td style={{ padding: "10px 18px", fontWeight: 700, color: "#11151C" }}>{i + 1}</td>
-                          <td style={{ padding: "10px 8px", fontWeight: 600, color: "#11151C", whiteSpace: "nowrap" }}>{p.name}</td>
-                          <td style={{ padding: "10px 8px", color: "#5A6371", whiteSpace: "nowrap" }}>{p.teamName}</td>
-                          <td style={{ padding: "10px 8px", textAlign: "center", color: "#5A6371" }}>{p.games}</td>
-                          <td className="font-display" style={{ padding: "10px 18px", textAlign: "right", fontSize: 18, color: "#11151C" }}>{p[statKey]}</td>
-                        </tr>
-                      ))}
-                      {leaders.length === 0 && (
-                        <tr>
-                          <td colSpan={5} style={{ padding: "20px 18px", textAlign: "center", color: "#8B8676" }}>No data available yet</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <PlayerLeaders players={playerLeaders.players} teamNames={playerLeaders.teamNames} />
       )}
 
       {/* ── Standings ────────────────────────────────────────────────── */}
