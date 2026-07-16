@@ -13,6 +13,7 @@ export type PlayerAgg = {
   teamName: string;
   games: number;
   stats: Record<string, number>;
+  position: string;
 };
 
 type StatDef = { key: string; label: string };
@@ -309,11 +310,9 @@ function DarkSelect({
 function MiniLeaderCard({
   stat,
   rows,
-  type,
 }: {
   stat: StatDef;
-  rows: { rank: number; name: string; value: string }[];
-  type: "team" | "player";
+  rows: { rank: number; name: string; value: string; position?: string }[];
 }) {
   return (
     <div
@@ -365,19 +364,38 @@ function MiniLeaderCard({
             >
               {r.rank}
             </span>
-            <span
+            <div
               style={{
                 flex: 1,
-                fontSize: 13,
-                fontWeight: i === 0 ? 700 : 500,
-                color: i === 0 ? "#fff" : "#bbb",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                minWidth: 0,
               }}
             >
-              {r.name}
-            </span>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: i === 0 ? 700 : 500,
+                  color: i === 0 ? "#fff" : "#bbb",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {r.name}
+              </div>
+              {r.position && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "#556",
+                    textTransform: "uppercase",
+                    letterSpacing: ".04em",
+                  }}
+                >
+                  {r.position}
+                </span>
+              )}
+            </div>
             <span
               className="font-display"
               style={{
@@ -481,7 +499,7 @@ export default function StatsLeaders({
   }, [teams]);
 
   const playerRankings = useMemo(() => {
-    const rankings: Record<string, { name: string; fullName: string; teamName: string; value: number; rank: number }[]> = {};
+    const rankings: Record<string, { name: string; fullName: string; teamName: string; position: string; value: number; rank: number }[]> = {};
     const allKeys = Array.from(new Set([
       ...PLAYER_DEFAULT_STATS.map((s) => s.key),
       ...PLAYER_MORE_STATS.map((s) => s.key),
@@ -495,6 +513,7 @@ export default function StatsLeaders({
         name: formatPlayerName(p.name),
         fullName: p.name,
         teamName: p.teamName,
+        position: p.position,
         value: p.stats[key] ?? 0,
         rank: i + 1,
       }));
@@ -653,7 +672,6 @@ export default function StatsLeaders({
                 <MiniLeaderCard
                   key={stat.key}
                   stat={stat}
-                  type="team"
                   rows={ranked.slice(0, 5).map((r) => ({
                     rank: r.rank,
                     name: r.name,
@@ -733,12 +751,30 @@ export default function StatsLeaders({
             }}
           >
             <div style={{ marginBottom: 16 }}>
-              <h3
-                className="font-display"
-                style={{ fontSize: 20, margin: 0, color: "#fff" }}
-              >
-                {selectedPlayer.name}
-              </h3>
+              <div className="flex items-center gap-3">
+                <h3
+                  className="font-display"
+                  style={{ fontSize: 20, margin: 0, color: "#fff" }}
+                >
+                  {selectedPlayer.name}
+                </h3>
+                {selectedPlayer.position && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#2C9FD4",
+                      background: "rgba(44,159,212,.12)",
+                      padding: "3px 10px",
+                      borderRadius: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: ".06em",
+                    }}
+                  >
+                    {selectedPlayer.position}
+                  </span>
+                )}
+              </div>
               <span style={{ fontSize: 12, color: "#666" }}>
                 {selectedPlayer.teamName} &middot; {selectedPlayer.games} games
               </span>
@@ -782,10 +818,10 @@ export default function StatsLeaders({
                 <MiniLeaderCard
                   key={stat.key}
                   stat={stat}
-                  type="player"
                   rows={ranked.slice(0, 5).map((r, i) => ({
                     rank: i + 1,
                     name: r.name,
+                    position: r.position,
                     value: formatStatValue(stat.key, r.value),
                   }))}
                 />

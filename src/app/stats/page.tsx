@@ -120,8 +120,9 @@ async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>):
       first_name: string | null;
       last_name: string | null;
       opta_team_id: number | null;
+      position: string | null;
       stats: Record<string, string> | null;
-    }>(supabase, "opta_player_stats", "opta_player_id, player_name, first_name, last_name, opta_team_id, stats"),
+    }>(supabase, "opta_player_stats", "opta_player_id, player_name, first_name, last_name, opta_team_id, position, stats"),
     fetchAllRows<{
       opta_team_id: number | null;
       stats: Record<string, string> | null;
@@ -195,12 +196,13 @@ async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>):
   });
 
   // Aggregate player stats
-  const playerAggMap = new Map<string, PlayerAgg>();
+  const playerAggMap = new Map<string, PlayerAgg & { _posCounts: Record<string, number> }>();
   for (const row of playerRows) {
     const pid = String(row.opta_player_id);
     const s = (row.stats ?? {}) as Record<string, string>;
     const teamName = resolveTeamName(row.opta_team_id);
     const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
+    const pos = row.position ?? "";
 
     const existing = playerAggMap.get(pid);
     if (existing) {
@@ -208,14 +210,24 @@ async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>):
       for (const key of statKeys) existing.stats[key] = (existing.stats[key] ?? 0) + extractStat(s, key);
       if (teamName !== "Unknown") existing.teamName = teamName;
       if (name !== "Unknown") existing.name = name;
+      if (pos) existing._posCounts[pos] = (existing._posCounts[pos] ?? 0) + 1;
     } else {
       const stats: Record<string, number> = {};
       for (const key of statKeys) stats[key] = extractStat(s, key);
-      playerAggMap.set(pid, { name, teamName, games: 1, stats });
+      const _posCounts: Record<string, number> = {};
+      if (pos) _posCounts[pos] = 1;
+      playerAggMap.set(pid, { name, teamName, games: 1, stats, position: pos, _posCounts });
     }
   }
 
-  const playersResult = Array.from(playerAggMap.values());
+  const playersResult = Array.from(playerAggMap.values()).map((p) => {
+    let bestPos = "";
+    let bestCount = 0;
+    for (const [pos, count] of Object.entries(p._posCounts)) {
+      if (count > bestCount) { bestPos = pos; bestCount = count; }
+    }
+    return { name: p.name, teamName: p.teamName, games: p.games, stats: p.stats, position: bestPos };
+  });
   const teamNameSet = new Set([
     ...teamsResult.map((t) => t.teamName),
     ...playersResult.map((p) => p.teamName),
