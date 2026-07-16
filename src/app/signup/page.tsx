@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 function useSiteName() {
@@ -43,6 +44,8 @@ const labelStyle: React.CSSProperties = {
 export default function SignupPage() {
   const supabase = createClient();
   const siteName = useSiteName();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -158,7 +161,7 @@ export default function SignupPage() {
     }
 
     setLoading(false);
-    window.location.href = "/thank-you";
+    window.location.href = redirectTo || "/thank-you";
   }
 
   return (
