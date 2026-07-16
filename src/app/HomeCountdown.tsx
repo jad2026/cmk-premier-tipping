@@ -25,23 +25,23 @@ export function HomeCountdown({ deadline }: { deadline: string }) {
   ];
 
   return (
-    <div className="flex gap-2.5 flex-wrap">
+    <div className="flex gap-1.5 sm:gap-2.5">
       {tiles.map((t) => (
         <div
           key={t.label}
-          className="min-w-[84px] px-[18px] py-4 rounded-[13px] text-center"
+          className="min-w-[60px] sm:min-w-[84px] px-2.5 sm:px-[18px] py-2.5 sm:py-4 rounded-[10px] sm:rounded-[13px] text-center"
           style={{
             background: "rgba(255,255,255,.05)",
             border: "1px solid rgba(255,255,255,.1)",
           }}
         >
           <div
-            className="font-display text-[34px] leading-none"
+            className="font-display text-[24px] sm:text-[34px] leading-none"
             style={{ color: t.accent ? "var(--accent)" : "#fff" }}
           >
             {String(t.value).padStart(2, "0")}
           </div>
-          <div className="text-[11px] font-bold tracking-[.14em] uppercase text-[#8C93A0] mt-1.5">
+          <div className="text-[9px] sm:text-[11px] font-bold tracking-[.14em] uppercase text-[#8C93A0] mt-1 sm:mt-1.5">
             {t.label}
           </div>
         </div>
