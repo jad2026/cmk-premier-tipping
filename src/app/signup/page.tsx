@@ -158,7 +158,7 @@ export default function SignupPage() {
     }
 
     setLoading(false);
-    window.location.href = "/tips";
+    window.location.href = "/thank-you";
   }
 
   return (
