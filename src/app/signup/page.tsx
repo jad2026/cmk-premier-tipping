@@ -13,7 +13,7 @@ function useSiteName() {
   }, []);
   return name;
 }
-import { triggerWelcomeEmail, getSignupConfig } from "./actions";
+import { triggerWelcomeEmail, getSignupConfig, joinLeagueByCode } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
 
 type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
@@ -46,11 +46,13 @@ export default function SignupPage() {
   const siteName = useSiteName();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+  const codeParam = searchParams.get("code") ?? "";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [inviteCode, setInviteCode] = useState(codeParam);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -158,6 +160,12 @@ export default function SignupPage() {
       triggerWelcomeEmail(email, firstName.trim(), trimmedTeamName).catch(
         (err) => console.error("[signup] welcome email failed:", err)
       );
+
+      if (inviteCode.trim()) {
+        await joinLeagueByCode(inviteCode.trim()).catch(
+          (err) => console.error("[signup] league join failed:", err)
+        );
+      }
     }
 
     setLoading(false);
@@ -271,6 +279,27 @@ export default function SignupPage() {
                 onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
               />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Invite Code (optional)</label>
+              <input
+                type="text"
+                maxLength={6}
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                placeholder="e.g. YCCV5B"
+                style={{ ...inputStyle, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: ".1em" }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+                autoComplete="off"
+                inputMode="text"
+              />
+              {inviteCode.trim() && (
+                <p style={{ fontSize: 12, color: "#2C9FD4", marginTop: 6, fontWeight: 600 }}>
+                  You&apos;ll be added to this league after signing up
+                </p>
+              )}
             </div>
 
             {showSupportedTeam && compTeams.length > 0 && (

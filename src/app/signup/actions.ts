@@ -23,6 +23,38 @@ export async function getSignupConfig(): Promise<{
   };
 }
 
+export async function joinLeagueByCode(
+  inviteCode: string
+): Promise<{ success?: boolean; leagueName?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: league } = await supabase
+    .from("leagues")
+    .select("id, name")
+    .eq("invite_code", inviteCode.trim().toUpperCase())
+    .single();
+
+  if (!league) return { error: "League not found" };
+
+  const { data: existing } = await supabase
+    .from("league_members")
+    .select("league_id")
+    .eq("league_id", league.id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (existing) return { success: true, leagueName: league.name };
+
+  const { error } = await supabase
+    .from("league_members")
+    .insert({ league_id: league.id, user_id: user.id, joined_at: new Date().toISOString() });
+
+  if (error) return { error: error.message };
+  return { success: true, leagueName: league.name };
+}
+
 export async function triggerWelcomeEmail(
   email: string,
   firstName: string,
