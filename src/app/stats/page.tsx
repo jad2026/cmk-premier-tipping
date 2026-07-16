@@ -95,6 +95,14 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
   const teamIdToName = new Map<string, string>();
   for (const t of teamRows ?? []) teamIdToName.set(t.id, t.name);
 
+  const firstStat = rows?.[0];
+  if (firstStat) {
+    console.log('[stats] First stat opta_team_id:', firstStat.opta_team_id, 'type:', typeof firstStat.opta_team_id);
+    console.log('[stats] Map has key?', optaToTeamId.has(String(firstStat.opta_team_id)));
+    console.log('[stats] Map size:', optaToTeamId.size);
+    console.log('[stats] teamIdToName size:', teamIdToName.size);
+  }
+
   const agg = new Map<string, PlayerAgg>();
 
   for (const row of rows) {
