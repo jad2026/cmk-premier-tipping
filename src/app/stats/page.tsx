@@ -6,8 +6,8 @@ import type { Team, Fixture } from "@/lib/supabase/types";
 import MatchCentre from "./MatchCentre";
 import { buildPlaceholderFixture } from "./matchCentreTypes";
 import { getCachedAllTeams } from "@/lib/cached-queries";
-import PlayerLeaders from "./PlayerLeaders";
-import type { PlayerStat } from "./PlayerLeaders";
+import StatsLeaders from "./StatsLeaders";
+import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
 
 export const revalidate = 300;
 
@@ -67,35 +67,68 @@ const STAT_ALIASES: Record<string, string[]> = {
   carries_metres: ["CarriesMetres", "carries_metres"],
   offload: ["Offload", "offload", "Offloads", "offloads"],
   line_break_assists: ["LineBreakAssists", "line_break_assists"],
+  points: ["Points", "points"],
+  possession_pct: ["PossessionPercentage", "possession_percentage", "Possession", "possession"],
+  territory_pct: ["TerritoryPercentage", "territory_percentage", "Territory", "territory"],
+  penalties_conceded: ["PenaltiesConceded", "penalties_conceded"],
+  turnovers_conceded: ["TurnoversConceded", "turnovers_conceded", "Turnovers", "turnovers"],
+  scrum_success: ["ScrumSuccess", "scrum_success"],
+  handling_errors: ["HandlingErrors", "handling_errors"],
 };
 
 function extractStat(s: Record<string, string>, key: string): number {
   const aliases = STAT_ALIASES[key];
   if (!aliases) return parseInt(s[key] ?? "0", 10) || 0;
   for (const a of aliases) {
-    if (s[a] != null) return parseInt(s[a], 10) || 0;
+    if (s[a] != null) return parseFloat(s[a]) || 0;
   }
   return 0;
 }
 
-async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient>>): Promise<{ players: PlayerStat[]; teamNames: string[] } | null> {
-  const allRows: { opta_player_id: string; player_name: string | null; first_name: string | null; last_name: string | null; opta_team_id: number | null; stats: Record<string, string> | null }[] = [];
+type StatsPageRow = { opta_team_id: number | null; stats: Record<string, string> | null };
+
+async function fetchAllRows<T extends StatsPageRow>(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: string,
+  selectCols: string,
+): Promise<T[]> {
+  const allRows: T[] = [];
   const PAGE_SIZE = 1000;
   let offset = 0;
   while (true) {
     const { data: page } = await supabase
-      .from("opta_player_stats")
-      .select("opta_player_id, player_name, first_name, last_name, opta_team_id, stats")
-      .range(offset, offset + PAGE_SIZE - 1) as {
-        data: typeof allRows | null;
-      };
+      .from(table)
+      .select(selectCols)
+      .range(offset, offset + PAGE_SIZE - 1) as { data: T[] | null };
     if (!page || page.length === 0) break;
     allRows.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
   }
+  return allRows;
+}
 
-  if (allRows.length === 0) return null;
+async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>): Promise<{
+  teams: TeamAgg[];
+  players: PlayerAgg[];
+  teamNames: string[];
+} | null> {
+  const [playerRows, teamStatRows] = await Promise.all([
+    fetchAllRows<{
+      opta_player_id: string;
+      player_name: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      opta_team_id: number | null;
+      stats: Record<string, string> | null;
+    }>(supabase, "opta_player_stats", "opta_player_id, player_name, first_name, last_name, opta_team_id, stats"),
+    fetchAllRows<{
+      opta_team_id: number | null;
+      stats: Record<string, string> | null;
+    }>(supabase, "opta_team_stats", "opta_team_id, stats"),
+  ]);
+
+  if (playerRows.length === 0 && teamStatRows.length === 0) return null;
 
   const { data: mappings } = await supabase
     .from("opta_team_mapping")
@@ -106,24 +139,70 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
 
-  const { data: teamRows } = await supabase.from("teams").select("id, name") as {
+  const { data: dbTeams } = await supabase.from("teams").select("id, name") as {
     data: { id: string; name: string }[] | null;
   };
   const teamIdToName = new Map<string, string>();
-  for (const t of teamRows ?? []) teamIdToName.set(t.id, t.name);
+  for (const t of dbTeams ?? []) teamIdToName.set(t.id, t.name);
+
+  function resolveTeamName(optaId: number | null): string {
+    if (optaId == null) return "Unknown";
+    const pid = optaToTeamId.get(String(optaId));
+    return pid ? (teamIdToName.get(pid) ?? "Unknown") : "Unknown";
+  }
 
   const statKeys = Object.keys(STAT_ALIASES);
-  const agg = new Map<string, PlayerStat>();
 
-  for (const row of allRows) {
+  // Aggregate team stats
+  const teamAgg = new Map<string, TeamAgg & { _sumPcts: Record<string, number>; _pctCount: Record<string, number> }>();
+  for (const row of teamStatRows) {
+    const teamName = resolveTeamName(row.opta_team_id);
+    if (teamName === "Unknown") continue;
+    const s = (row.stats ?? {}) as Record<string, string>;
+    const existing = teamAgg.get(teamName);
+    if (existing) {
+      existing.games++;
+      for (const key of statKeys) {
+        const val = extractStat(s, key);
+        if (key.includes("pct")) {
+          existing._sumPcts[key] = (existing._sumPcts[key] ?? 0) + val;
+          existing._pctCount[key] = (existing._pctCount[key] ?? 0) + (val > 0 ? 1 : 0);
+        } else {
+          existing.stats[key] = (existing.stats[key] ?? 0) + val;
+        }
+      }
+    } else {
+      const stats: Record<string, number> = {};
+      const _sumPcts: Record<string, number> = {};
+      const _pctCount: Record<string, number> = {};
+      for (const key of statKeys) {
+        const val = extractStat(s, key);
+        if (key.includes("pct")) {
+          _sumPcts[key] = val;
+          _pctCount[key] = val > 0 ? 1 : 0;
+        } else {
+          stats[key] = val;
+        }
+      }
+      teamAgg.set(teamName, { teamName, games: 1, stats, _sumPcts, _pctCount });
+    }
+  }
+  const teamsResult: TeamAgg[] = Array.from(teamAgg.values()).map((t) => {
+    for (const key of Object.keys(t._sumPcts)) {
+      t.stats[key] = t._pctCount[key] > 0 ? t._sumPcts[key] / t._pctCount[key] : 0;
+    }
+    return { teamName: t.teamName, games: t.games, stats: t.stats };
+  });
+
+  // Aggregate player stats
+  const playerAggMap = new Map<string, PlayerAgg>();
+  for (const row of playerRows) {
     const pid = String(row.opta_player_id);
     const s = (row.stats ?? {}) as Record<string, string>;
-
-    const platformTeamId = optaToTeamId.get(String(row.opta_team_id));
-    const teamName = platformTeamId ? (teamIdToName.get(platformTeamId) ?? "Unknown") : "Unknown";
+    const teamName = resolveTeamName(row.opta_team_id);
     const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
 
-    const existing = agg.get(pid);
+    const existing = playerAggMap.get(pid);
     if (existing) {
       existing.games++;
       for (const key of statKeys) existing.stats[key] = (existing.stats[key] ?? 0) + extractStat(s, key);
@@ -132,15 +211,18 @@ async function getPlayerLeaders(supabase: Awaited<ReturnType<typeof createClient
     } else {
       const stats: Record<string, number> = {};
       for (const key of statKeys) stats[key] = extractStat(s, key);
-      agg.set(pid, { name, teamName, games: 1, stats });
+      playerAggMap.set(pid, { name, teamName, games: 1, stats });
     }
   }
 
-  const players = Array.from(agg.values());
-  const teamNameSet = new Set(players.map((p) => p.teamName).filter((n) => n !== "Unknown"));
+  const playersResult = Array.from(playerAggMap.values());
+  const teamNameSet = new Set([
+    ...teamsResult.map((t) => t.teamName),
+    ...playersResult.map((p) => p.teamName),
+  ].filter((n) => n !== "Unknown"));
   const teamNames = Array.from(teamNameSet).sort();
 
-  return { players, teamNames };
+  return { teams: teamsResult, players: playersResult, teamNames };
 }
 
 export default async function LadderPage() {
@@ -175,8 +257,8 @@ export default async function LadderPage() {
 
   const STATS_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
   const { data: { user } } = await supabase.auth.getUser();
-  const showPlayerLeaders = user?.id === STATS_USER_ID;
-  const playerLeaders = showPlayerLeaders ? await getPlayerLeaders(supabase) : null;
+  const showStats = user?.id === STATS_USER_ID;
+  const statsData = showStats ? await getStatsData(supabase) : null;
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
@@ -326,9 +408,13 @@ export default async function LadderPage() {
         />
       )}
 
-      {/* ── Player stat leaders (gated) ────────────────────────────── */}
-      {showPlayerLeaders && playerLeaders && (
-        <PlayerLeaders players={playerLeaders.players} teamNames={playerLeaders.teamNames} />
+      {/* ── Team & Player stat leaders (gated) ─────────────────────── */}
+      {showStats && statsData && (
+        <StatsLeaders
+          teams={statsData.teams}
+          players={statsData.players}
+          teamNames={statsData.teamNames}
+        />
       )}
 
       {/* ── Standings ────────────────────────────────────────────────── */}
