@@ -594,15 +594,26 @@ function PlayerCardGrid({
 
 import React from "react";
 
-export default function StatsLeaders({
-  teams,
-  players,
-  teamNames,
-}: {
+export type SeasonData = {
   teams: TeamAgg[];
   players: PlayerAgg[];
   teamNames: string[];
+} | null;
+
+export default function StatsLeaders({
+  season2025,
+  season2026,
+}: {
+  season2025: SeasonData;
+  season2026: SeasonData;
 }) {
+  const [season, setSeason] = useState<"2026" | "2025">("2026");
+
+  const data = season === "2025" ? season2025 : season2026;
+  const teams = data?.teams ?? [];
+  const players = data?.players ?? [];
+  const teamNames = data?.teamNames ?? [];
+
   const [teamFilter, setTeamFilter] = useState("all");
   const [teamVisibleStats, setTeamVisibleStats] = useState<StatDef[]>(TEAM_DEFAULT_STATS);
   const [teamMoreOpen, setTeamMoreOpen] = useState(false);
@@ -717,6 +728,44 @@ export default function StatsLeaders({
 
   return (
     <>
+      {/* SEASON TOGGLE */}
+      <div className="mx-auto flex justify-center" style={{ maxWidth: 1100, padding: "24px 24px 0" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,.1)",
+            background: "rgba(255,255,255,.04)",
+            padding: 3,
+          }}
+        >
+          {(["2026", "2025"] as const).map((yr) => (
+            <button
+              key={yr}
+              onClick={() => {
+                setSeason(yr);
+                setTeamFilter("all");
+                setPlayerTeamFilter("all");
+                setPlayerFilter("all");
+              }}
+              style={{
+                padding: "8px 22px",
+                borderRadius: 9,
+                border: "none",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all .15s",
+                background: season === yr ? "#2C9FD4" : "transparent",
+                color: season === yr ? "#fff" : "#777",
+              }}
+            >
+              {yr} Season
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* TEAM STATS */}
       <section id="team-stats" className="mx-auto" style={{ maxWidth: 1100, padding: "30px 24px 10px" }}>
         <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
