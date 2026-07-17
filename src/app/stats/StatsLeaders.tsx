@@ -306,7 +306,7 @@ function MiniLeaderCard({
   rows,
 }: {
   stat: StatDef;
-  rows: { rank: number; name: string; value: string; position?: string }[];
+  rows: { rank: number; name: string; value: string; position?: string; teamName?: string }[];
 }) {
   return (
     <div
@@ -371,7 +371,7 @@ function MiniLeaderCard({
               >
                 {r.name}
               </div>
-              {r.position && (
+              {(r.position || r.teamName) && (
                 <span
                   style={{
                     fontSize: 10,
@@ -381,7 +381,7 @@ function MiniLeaderCard({
                     letterSpacing: ".04em",
                   }}
                 >
-                  {r.position}
+                  {[r.position, r.teamName].filter(Boolean).join(" · ")}
                 </span>
               )}
             </div>
@@ -529,6 +529,7 @@ function PlayerCardGrid({
                   rank: i + 1,
                   name: r.name,
                   position: r.position,
+                  teamName: r.teamName,
                   value: formatStatValue(stat.key, r.value),
                 }))}
               />
