@@ -472,6 +472,7 @@ export default function StatsLeaders({
   const [teamFilter, setTeamFilter] = useState("all");
   const [teamVisibleStats, setTeamVisibleStats] = useState<StatDef[]>(TEAM_DEFAULT_STATS);
   const [teamMoreOpen, setTeamMoreOpen] = useState(false);
+  const [showAllTeamStats, setShowAllTeamStats] = useState(false);
 
   const [playerTeamFilter, setPlayerTeamFilter] = useState("all");
   const [playerFilter, setPlayerFilter] = useState("all");
@@ -533,6 +534,15 @@ export default function StatsLeaders({
 
   const selectedPlayer =
     playerFilter !== "all" ? players.find((p) => p.name === playerFilter) : null;
+
+  const allTeamStats = useMemo(() => {
+    const seen = new Set<string>();
+    const result: StatDef[] = [];
+    for (const s of [...TEAM_DEFAULT_STATS, ...TEAM_MORE_STATS]) {
+      if (!seen.has(s.key)) { seen.add(s.key); result.push(s); }
+    }
+    return result;
+  }, []);
 
   const teamMoreAvailable = useMemo(
     () =>
@@ -605,7 +615,7 @@ export default function StatsLeaders({
             ))}
           </DarkSelect>
 
-          {!selectedTeam && (
+          {!selectedTeam && !showAllTeamStats && (
             <DropdownPicker
               open={teamMoreOpen}
               onToggle={() => setTeamMoreOpen((o) => !o)}
@@ -613,6 +623,23 @@ export default function StatsLeaders({
               items={teamMoreAvailable}
               onSelect={swapTeamStat}
             />
+          )}
+          {!selectedTeam && (
+            <button
+              onClick={() => setShowAllTeamStats((o) => !o)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.12)",
+                background: "rgba(255,255,255,.06)",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#ccc",
+                cursor: "pointer",
+              }}
+            >
+              {showAllTeamStats ? "Show Less" : "Show All"}
+            </button>
           )}
         </div>
 
@@ -666,7 +693,7 @@ export default function StatsLeaders({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {teamVisibleStats.map((stat) => {
+            {(showAllTeamStats ? allTeamStats : teamVisibleStats).map((stat) => {
               const ranked = teamRankings[stat.key] ?? [];
               return (
                 <MiniLeaderCard
