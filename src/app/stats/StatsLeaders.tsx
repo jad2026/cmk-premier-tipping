@@ -156,6 +156,57 @@ function formatPlayerName(fullName: string): string {
   return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
 }
 
+const POSITION_MAP: Record<string, string> = {
+  "Prop": "Prop",
+  "Hooker": "Hooker",
+  "Lock": "Lock",
+  "Flanker": "Flanker",
+  "Number 8": "No. 8",
+  "Scrum Half": "Halfback",
+  "Outside Half": "First Five",
+  "Centre": "Centre",
+  "Left Wing": "Wing",
+  "Right Wing": "Wing",
+  "Full Back": "Fullback",
+  "Fly Half": "First Five",
+  "Wing": "Wing",
+  "Fullback": "Fullback",
+  "Loosehead Prop": "Prop",
+  "Tighthead Prop": "Prop",
+  "Blindside Flanker": "Flanker",
+  "Openside Flanker": "Flanker",
+};
+
+function formatPosition(raw: string): string {
+  if (!raw) return "";
+  if (POSITION_MAP[raw]) return POSITION_MAP[raw];
+  const lower = raw.toLowerCase();
+  if (lower.startsWith("replacement") || lower.startsWith("reserve")) {
+    const num = parseInt(raw.replace(/\D/g, ""), 10);
+    if (!isNaN(num) && num <= 8) return "Reserve Forward";
+    if (!isNaN(num) && num > 8) return "Reserve Back";
+    return "Reserve";
+  }
+  const fwd = lower.match(/^forward\s*(\d+)/);
+  if (fwd) {
+    const n = parseInt(fwd[1], 10);
+    if (n === 1 || n === 3) return "Prop";
+    if (n === 2) return "Hooker";
+    if (n === 4 || n === 5) return "Lock";
+    if (n === 6 || n === 7) return "Flanker";
+    if (n === 8) return "No. 8";
+  }
+  const back = lower.match(/^back\s*(\d+)/);
+  if (back) {
+    const n = parseInt(back[1], 10);
+    if (n === 1) return "Halfback";
+    if (n === 2) return "First Five";
+    if (n === 3 || n === 6 || n === 7) return "Outside Back";
+    if (n === 4 || n === 5) return "Centre";
+  }
+  return raw;
+}
+
 function formatStatValue(key: string, value: number): string {
   if (key.includes("pct") || key.includes("success")) return `${value.toFixed(1)}%`;
   return String(Math.round(value));
@@ -587,6 +638,10 @@ export default function StatsLeaders({
     return rankings;
   }, [teams, allStatKeys]);
 
+  if (players.length > 0) {
+    console.log("[StatsLeaders] First player:", JSON.stringify(players[0]));
+  }
+
   const playerRankings = useMemo(() => {
     const rankings: Record<string, { name: string; fullName: string; teamName: string; position: string; value: number; rank: number }[]> = {};
     for (const key of allStatKeys) {
@@ -597,7 +652,7 @@ export default function StatsLeaders({
         name: formatPlayerName(p.name),
         fullName: p.name,
         teamName: p.teamName,
-        position: p.position,
+        position: formatPosition(p.position),
         value: p.stats[key] ?? 0,
         rank: i + 1,
       }));
@@ -873,7 +928,7 @@ export default function StatsLeaders({
                       letterSpacing: ".06em",
                     }}
                   >
-                    {selectedPlayer.position}
+                    {formatPosition(selectedPlayer.position)}
                   </span>
                 )}
               </div>
@@ -930,6 +985,7 @@ export default function StatsLeaders({
                     rank: i + 1,
                     name: r.name,
                     position: r.position,
+                    teamName: r.teamName,
                     value: formatStatValue(stat.key, r.value),
                   }))}
                 />
