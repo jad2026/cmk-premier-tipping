@@ -778,6 +778,7 @@ interface RU10Player {
   "@_player_first_name"?: string;
   "@_player_last_name"?: string;
   "@_position"?: string;
+  "@_appearances"?: string;
 }
 
 interface RU10Team {
@@ -839,6 +840,7 @@ async function processRU10(
       if ((!firstName && !lastName) || !optaPlayerId) continue;
 
       try {
+        const appearances = parseInt(p["@_appearances"] ?? "0", 10) || 0;
         const { error } = await admin.from("players").upsert(
           {
             first_name: firstName,
@@ -846,6 +848,8 @@ async function processRU10(
             team_id: platformTeamId,
             is_active: true,
             opta_player_id: optaPlayerId,
+            position,
+            apps: appearances,
           },
           { onConflict: "opta_player_id" }
         );
