@@ -90,7 +90,7 @@ function PlayerCard({
           </span>
           {(player.apps > 0 || player.pts > 0) && (
             <span style={{ fontSize: 11, color: "#8B8676", fontWeight: 600 }}>
-              {player.apps > 0 && `${player.apps} apps`}
+              {player.apps > 0 && `${player.apps} · 2025 season`}
               {player.apps > 0 && player.pts > 0 && " · "}
               {player.pts > 0 && `${player.pts} pts`}
             </span>
