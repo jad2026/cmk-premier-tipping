@@ -73,7 +73,14 @@ const STAT_ALIASES: Record<string, string[]> = {
   penalties_conceded: ["PenaltiesConceded", "penalties_conceded"],
   turnovers_conceded: ["TurnoversConceded", "turnovers_conceded", "Turnovers", "turnovers"],
   scrum_success: ["ScrumSuccess", "scrum_success"],
-  handling_errors: ["HandlingErrors", "handling_errors"],
+  handling_errors: ["HandlingErrors", "handling_errors", "HandlingError", "handling_error"],
+  try_assists: ["TryAssists", "try_assists"],
+  runs: ["Runs", "runs", "Carries", "carries"],
+  tackle_success: ["TackleSuccess", "tackle_success", "TackleSuccessRate", "tackle_success_rate"],
+  turnover_won: ["TurnoverWon", "turnover_won", "TurnoversWon", "turnovers_won"],
+  kicks: ["Kicks", "kicks", "KicksFromHand", "kicks_from_hand"],
+  scrums_won_outright: ["ScrumsWonOutright", "scrums_won_outright", "ScrumWon", "scrum_won"],
+  minutes_played_total: ["MinutesPlayedTotal", "minutes_played_total", "MinutesPlayed", "minutes_played"],
 };
 
 function extractStat(s: Record<string, string>, key: string): number {

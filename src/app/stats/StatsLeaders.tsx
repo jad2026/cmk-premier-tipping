@@ -17,6 +17,7 @@ export type PlayerAgg = {
 };
 
 type StatDef = { key: string; label: string };
+type StatGroup = { label: string; stats: StatDef[] };
 
 const TEAM_DEFAULT_STATS: StatDef[] = [
   { key: "tries", label: "Tries Scored" },
@@ -27,19 +28,58 @@ const TEAM_DEFAULT_STATS: StatDef[] = [
   { key: "territory_pct", label: "Territory %" },
 ];
 
-const TEAM_MORE_STATS: StatDef[] = [
-  { key: "penalties_conceded", label: "Penalties Conceded" },
-  { key: "turnovers_conceded", label: "Turnovers" },
-  { key: "lineout_success", label: "Lineout Success" },
-  { key: "scrum_success", label: "Scrum Success" },
-  { key: "handling_errors", label: "Handling Errors" },
-  { key: "offload", label: "Offloads" },
-  { key: "defenders_beaten", label: "Defenders Beaten" },
-  { key: "dominant_tackles", label: "Dominant Tackles" },
-  { key: "missed_tackles", label: "Missed Tackles" },
-  { key: "kick_metres", label: "Kick Metres" },
-  { key: "carries_metres", label: "Carries" },
-  { key: "points", label: "Points" },
+const TEAM_ALL_GROUPS: StatGroup[] = [
+  {
+    label: "Attack",
+    stats: [
+      { key: "tries", label: "Tries" },
+      { key: "carries_metres", label: "Carries" },
+      { key: "clean_breaks", label: "Clean Breaks" },
+      { key: "defenders_beaten", label: "Defenders Beaten" },
+      { key: "offload", label: "Offloads" },
+      { key: "line_break_assists", label: "Line Break Assists" },
+      { key: "try_assists", label: "Try Assists" },
+      { key: "runs", label: "Runs" },
+    ],
+  },
+  {
+    label: "Defence",
+    stats: [
+      { key: "tackles", label: "Tackles" },
+      { key: "dominant_tackles", label: "Dominant Tackles" },
+      { key: "missed_tackles", label: "Missed Tackles" },
+      { key: "tackle_turnover", label: "Tackle Turnovers" },
+      { key: "turnover_won", label: "Turnovers Won" },
+      { key: "tackle_success", label: "Tackle Success" },
+    ],
+  },
+  {
+    label: "Kicking",
+    stats: [
+      { key: "kicks", label: "Kicks" },
+      { key: "kick_metres", label: "Kick Metres" },
+      { key: "points", label: "Points" },
+      { key: "kick_penalty_good", label: "Penalty Goals" },
+      { key: "conversion_goals", label: "Conversions" },
+    ],
+  },
+  {
+    label: "Set Piece",
+    stats: [
+      { key: "lineouts_won", label: "Lineouts Won" },
+      { key: "lineout_success", label: "Lineout Success" },
+      { key: "total_lineouts", label: "Total Lineouts" },
+      { key: "scrums_won_outright", label: "Scrums Won" },
+    ],
+  },
+  {
+    label: "General",
+    stats: [
+      { key: "penalties_conceded", label: "Penalties Conceded" },
+      { key: "handling_errors", label: "Handling Errors" },
+      { key: "turnovers_conceded", label: "Turnovers Conceded" },
+    ],
+  },
 ];
 
 const PLAYER_DEFAULT_STATS: StatDef[] = [
@@ -51,32 +91,18 @@ const PLAYER_DEFAULT_STATS: StatDef[] = [
   { key: "points", label: "Points" },
 ];
 
-const PLAYER_MORE_STATS: StatDef[] = [
-  { key: "offload", label: "Offloads" },
-  { key: "kick_penalty_good", label: "Penalty Goals" },
-  { key: "conversion_goals", label: "Conversions" },
-  { key: "missed_tackles", label: "Missed Tackles" },
-  { key: "tackle_turnover", label: "Turnovers Won" },
-  { key: "lineouts_won", label: "Lineouts Won" },
-  { key: "kick_metres", label: "Kick Metres" },
-  { key: "dominant_tackles", label: "Dominant Tackles" },
-  { key: "line_break_assists", label: "Line Break Assists" },
-  { key: "carries_metres", label: "Carries" },
-  { key: "handling_errors", label: "Handling Errors" },
-];
-
-const TEAM_PROFILE_GROUPS: { label: string; stats: StatDef[] }[] = [
+const PLAYER_ALL_GROUPS: StatGroup[] = [
   {
     label: "Attack",
     stats: [
       { key: "tries", label: "Tries" },
-      { key: "metres", label: "Metres" },
       { key: "carries_metres", label: "Carries" },
       { key: "clean_breaks", label: "Clean Breaks" },
       { key: "defenders_beaten", label: "Defenders Beaten" },
       { key: "offload", label: "Offloads" },
       { key: "line_break_assists", label: "Line Break Assists" },
-      { key: "points", label: "Points" },
+      { key: "try_assists", label: "Try Assists" },
+      { key: "runs", label: "Runs" },
     ],
   },
   {
@@ -86,86 +112,43 @@ const TEAM_PROFILE_GROUPS: { label: string; stats: StatDef[] }[] = [
       { key: "dominant_tackles", label: "Dominant Tackles" },
       { key: "missed_tackles", label: "Missed Tackles" },
       { key: "tackle_turnover", label: "Tackle Turnovers" },
+      { key: "turnover_won", label: "Turnovers Won" },
     ],
   },
   {
     label: "Kicking",
     stats: [
+      { key: "kicks", label: "Kicks" },
       { key: "kick_metres", label: "Kick Metres" },
+      { key: "points", label: "Points" },
       { key: "kick_penalty_good", label: "Penalty Goals" },
       { key: "conversion_goals", label: "Conversions" },
-      { key: "kicks_from_hand", label: "Kicks From Hand" },
     ],
   },
   {
     label: "Set Piece",
     stats: [
-      { key: "lineout_success", label: "Lineout Success" },
       { key: "lineouts_won", label: "Lineouts Won" },
+      { key: "lineout_success", label: "Lineout Success" },
       { key: "total_lineouts", label: "Total Lineouts" },
-      { key: "scrum_success", label: "Scrum Success" },
+      { key: "scrums_won_outright", label: "Scrums Won" },
     ],
   },
   {
     label: "General",
     stats: [
-      { key: "possession_pct", label: "Possession %" },
-      { key: "territory_pct", label: "Territory %" },
+      { key: "minutes_played_total", label: "Minutes Played" },
       { key: "penalties_conceded", label: "Penalties Conceded" },
-      { key: "turnovers_conceded", label: "Turnovers Conceded" },
       { key: "handling_errors", label: "Handling Errors" },
     ],
   },
 ];
 
-const PLAYER_PROFILE_GROUPS: { label: string; stats: StatDef[] }[] = [
-  {
-    label: "Attack",
-    stats: [
-      { key: "tries", label: "Tries" },
-      { key: "metres", label: "Metres" },
-      { key: "carries_metres", label: "Carries" },
-      { key: "clean_breaks", label: "Clean Breaks" },
-      { key: "defenders_beaten", label: "Defenders Beaten" },
-      { key: "offload", label: "Offloads" },
-      { key: "line_break_assists", label: "Line Break Assists" },
-    ],
-  },
-  {
-    label: "Defence",
-    stats: [
-      { key: "tackles", label: "Tackles" },
-      { key: "dominant_tackles", label: "Dominant Tackles" },
-      { key: "missed_tackles", label: "Missed Tackles" },
-      { key: "tackle_turnover", label: "Tackle Turnovers" },
-    ],
-  },
-  {
-    label: "Kicking",
-    stats: [
-      { key: "kick_metres", label: "Kick Metres" },
-      { key: "kick_penalty_good", label: "Penalty Goals" },
-      { key: "conversion_goals", label: "Conversions" },
-      { key: "kicks_from_hand", label: "Kicks From Hand" },
-    ],
-  },
-  {
-    label: "Set Piece",
-    stats: [
-      { key: "lineouts_won", label: "Lineouts Won" },
-      { key: "lineout_success", label: "Lineout Success" },
-      { key: "total_lineouts", label: "Total Lineouts" },
-    ],
-  },
-  {
-    label: "General",
-    stats: [
-      { key: "points", label: "Points" },
-      { key: "penalties_conceded", label: "Penalties Conceded" },
-      { key: "handling_errors", label: "Handling Errors" },
-    ],
-  },
-];
+const TEAM_SWAP_POOL: StatDef[] = TEAM_ALL_GROUPS.flatMap((g) => g.stats);
+const PLAYER_SWAP_POOL: StatDef[] = PLAYER_ALL_GROUPS.flatMap((g) => g.stats);
+
+const TEAM_PROFILE_GROUPS = TEAM_ALL_GROUPS;
+const PLAYER_PROFILE_GROUPS = PLAYER_ALL_GROUPS;
 
 function formatPlayerName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -307,6 +290,17 @@ function DarkSelect({
   );
 }
 
+const TOGGLE_BTN: React.CSSProperties = {
+  padding: "8px 14px",
+  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(255,255,255,.06)",
+  fontSize: 13,
+  fontWeight: 600,
+  color: "#ccc",
+  cursor: "pointer",
+};
+
 function MiniLeaderCard({
   stat,
   rows,
@@ -364,12 +358,7 @@ function MiniLeaderCard({
             >
               {r.rank}
             </span>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
                   fontSize: 13,
@@ -419,6 +408,27 @@ function MiniLeaderCard({
   );
 }
 
+function CategoryHeader({ label }: { label: string }) {
+  return (
+    <div
+      className="col-span-1 sm:col-span-2 lg:col-span-3"
+      style={{
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: ".12em",
+        textTransform: "uppercase",
+        color: "#556",
+        paddingTop: 14,
+        paddingBottom: 4,
+        borderBottom: "1px solid rgba(255,255,255,.06)",
+        marginBottom: -4,
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
 function ProfileStatRow({
   label,
   value,
@@ -460,6 +470,78 @@ function ProfileStatRow({
   );
 }
 
+function TeamCardGrid({
+  groups,
+  rankings,
+}: {
+  groups: StatGroup[];
+  rankings: Record<string, { name: string; value: number; rank: number }[]>;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {groups.map((group) => (
+        <React.Fragment key={group.label}>
+          <CategoryHeader label={group.label} />
+          {group.stats.map((stat) => {
+            const ranked = rankings[stat.key] ?? [];
+            return (
+              <MiniLeaderCard
+                key={stat.key}
+                stat={stat}
+                rows={ranked.slice(0, 5).map((r) => ({
+                  rank: r.rank,
+                  name: r.name,
+                  value: formatStatValue(stat.key, r.value),
+                }))}
+              />
+            );
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function PlayerCardGrid({
+  groups,
+  rankings,
+  teamFilter,
+}: {
+  groups: StatGroup[];
+  rankings: Record<string, { name: string; fullName: string; teamName: string; position: string; value: number; rank: number }[]>;
+  teamFilter: string;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {groups.map((group) => (
+        <React.Fragment key={group.label}>
+          <CategoryHeader label={group.label} />
+          {group.stats.map((stat) => {
+            let ranked = rankings[stat.key] ?? [];
+            if (teamFilter !== "all") {
+              ranked = ranked.filter((r) => r.teamName === teamFilter);
+            }
+            return (
+              <MiniLeaderCard
+                key={stat.key}
+                stat={stat}
+                rows={ranked.slice(0, 5).map((r, i) => ({
+                  rank: i + 1,
+                  name: r.name,
+                  position: r.position,
+                  value: formatStatValue(stat.key, r.value),
+                }))}
+              />
+            );
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+import React from "react";
+
 export default function StatsLeaders({
   teams,
   players,
@@ -478,15 +560,20 @@ export default function StatsLeaders({
   const [playerFilter, setPlayerFilter] = useState("all");
   const [playerVisibleStats, setPlayerVisibleStats] = useState<StatDef[]>(PLAYER_DEFAULT_STATS);
   const [playerMoreOpen, setPlayerMoreOpen] = useState(false);
+  const [showAllPlayerStats, setShowAllPlayerStats] = useState(false);
+
+  const allStatKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const g of TEAM_ALL_GROUPS) for (const s of g.stats) keys.add(s.key);
+    for (const g of PLAYER_ALL_GROUPS) for (const s of g.stats) keys.add(s.key);
+    for (const s of TEAM_DEFAULT_STATS) keys.add(s.key);
+    for (const s of PLAYER_DEFAULT_STATS) keys.add(s.key);
+    return Array.from(keys);
+  }, []);
 
   const teamRankings = useMemo(() => {
     const rankings: Record<string, { name: string; value: number; rank: number }[]> = {};
-    const allKeys = Array.from(new Set([
-      ...TEAM_DEFAULT_STATS.map((s) => s.key),
-      ...TEAM_MORE_STATS.map((s) => s.key),
-      ...TEAM_PROFILE_GROUPS.flatMap((g) => g.stats.map((s) => s.key)),
-    ]));
-    for (const key of allKeys) {
+    for (const key of allStatKeys) {
       const sorted = [...teams].sort(
         (a, b) => (b.stats[key] ?? 0) - (a.stats[key] ?? 0)
       );
@@ -497,16 +584,11 @@ export default function StatsLeaders({
       }));
     }
     return rankings;
-  }, [teams]);
+  }, [teams, allStatKeys]);
 
   const playerRankings = useMemo(() => {
     const rankings: Record<string, { name: string; fullName: string; teamName: string; position: string; value: number; rank: number }[]> = {};
-    const allKeys = Array.from(new Set([
-      ...PLAYER_DEFAULT_STATS.map((s) => s.key),
-      ...PLAYER_MORE_STATS.map((s) => s.key),
-      ...PLAYER_PROFILE_GROUPS.flatMap((g) => g.stats.map((s) => s.key)),
-    ]));
-    for (const key of allKeys) {
+    for (const key of allStatKeys) {
       const sorted = [...players].sort(
         (a, b) => (b.stats[key] ?? 0) - (a.stats[key] ?? 0)
       );
@@ -520,7 +602,7 @@ export default function StatsLeaders({
       }));
     }
     return rankings;
-  }, [players]);
+  }, [players, allStatKeys]);
 
   const selectedTeam = teamFilter !== "all" ? teams.find((t) => t.teamName === teamFilter) : null;
 
@@ -535,18 +617,9 @@ export default function StatsLeaders({
   const selectedPlayer =
     playerFilter !== "all" ? players.find((p) => p.name === playerFilter) : null;
 
-  const allTeamStats = useMemo(() => {
-    const seen = new Set<string>();
-    const result: StatDef[] = [];
-    for (const s of [...TEAM_DEFAULT_STATS, ...TEAM_MORE_STATS]) {
-      if (!seen.has(s.key)) { seen.add(s.key); result.push(s); }
-    }
-    return result;
-  }, []);
-
   const teamMoreAvailable = useMemo(
     () =>
-      [...TEAM_DEFAULT_STATS, ...TEAM_MORE_STATS].filter(
+      TEAM_SWAP_POOL.filter(
         (s) => !teamVisibleStats.some((v) => v.key === s.key)
       ),
     [teamVisibleStats]
@@ -554,20 +627,20 @@ export default function StatsLeaders({
 
   const playerMoreAvailable = useMemo(
     () =>
-      [...PLAYER_DEFAULT_STATS, ...PLAYER_MORE_STATS].filter(
+      PLAYER_SWAP_POOL.filter(
         (s) => !playerVisibleStats.some((v) => v.key === s.key)
       ),
     [playerVisibleStats]
   );
 
   function swapTeamStat(newKey: string) {
-    const stat = [...TEAM_DEFAULT_STATS, ...TEAM_MORE_STATS].find((s) => s.key === newKey);
+    const stat = TEAM_SWAP_POOL.find((s) => s.key === newKey);
     if (!stat || teamVisibleStats.some((s) => s.key === newKey)) return;
     setTeamVisibleStats((prev) => [...prev.slice(0, -1), stat]);
   }
 
   function swapPlayerStat(newKey: string) {
-    const stat = [...PLAYER_DEFAULT_STATS, ...PLAYER_MORE_STATS].find((s) => s.key === newKey);
+    const stat = PLAYER_SWAP_POOL.find((s) => s.key === newKey);
     if (!stat || playerVisibleStats.some((s) => s.key === newKey)) return;
     setPlayerVisibleStats((prev) => [...prev.slice(0, -1), stat]);
   }
@@ -627,16 +700,7 @@ export default function StatsLeaders({
           {!selectedTeam && (
             <button
               onClick={() => setShowAllTeamStats((o) => !o)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,.12)",
-                background: "rgba(255,255,255,.06)",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#ccc",
-                cursor: "pointer",
-              }}
+              style={TOGGLE_BTN}
             >
               {showAllTeamStats ? "Show Less" : "Show All"}
             </button>
@@ -691,9 +755,11 @@ export default function StatsLeaders({
               </div>
             ))}
           </div>
+        ) : showAllTeamStats ? (
+          <TeamCardGrid groups={TEAM_ALL_GROUPS} rankings={teamRankings} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(showAllTeamStats ? allTeamStats : teamVisibleStats).map((stat) => {
+            {teamVisibleStats.map((stat) => {
               const ranked = teamRankings[stat.key] ?? [];
               return (
                 <MiniLeaderCard
@@ -757,7 +823,7 @@ export default function StatsLeaders({
             </DarkSelect>
           )}
 
-          {!selectedPlayer && (
+          {!selectedPlayer && !showAllPlayerStats && (
             <DropdownPicker
               open={playerMoreOpen}
               onToggle={() => setPlayerMoreOpen((o) => !o)}
@@ -765,6 +831,14 @@ export default function StatsLeaders({
               items={playerMoreAvailable}
               onSelect={swapPlayerStat}
             />
+          )}
+          {!selectedPlayer && (
+            <button
+              onClick={() => setShowAllPlayerStats((o) => !o)}
+              style={TOGGLE_BTN}
+            >
+              {showAllPlayerStats ? "Show Less" : "Show All"}
+            </button>
           )}
         </div>
 
@@ -834,6 +908,12 @@ export default function StatsLeaders({
               </div>
             ))}
           </div>
+        ) : showAllPlayerStats ? (
+          <PlayerCardGrid
+            groups={PLAYER_ALL_GROUPS}
+            rankings={playerRankings}
+            teamFilter={playerTeamFilter}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {playerVisibleStats.map((stat) => {
