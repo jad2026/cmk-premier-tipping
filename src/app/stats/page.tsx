@@ -308,7 +308,8 @@ export default async function LadderPage() {
       .limit(1),
   ]);
 
-  const statsData = await getStatsData(supabase);
+  const { data: { user } } = await supabase.auth.getUser();
+  const statsData = user ? await getStatsData(supabase) : null;
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
