@@ -13,6 +13,7 @@ type Props = {
   fixtures: MatchFixture[];
   round1Label: string | null;
   round1Date: string | null;
+  disablePolling?: boolean;
 };
 
 /* ── Tab type ───────────────────────────────────────────────────── */
@@ -33,7 +34,7 @@ function countEvents(fixture: MatchFixture, type: MatchEventType): number {
 
 /* ── Component ──────────────────────────────────────────────────── */
 
-export default function MatchCentre({ fixtures: initialFixtures, round1Label, round1Date }: Props) {
+export default function MatchCentre({ fixtures: initialFixtures, round1Label, round1Date, disablePolling }: Props) {
   const [fixtures, setFixtures] = useState(initialFixtures);
   const [expanded, setExpanded] = useState(false);
   const [activeFixtureIdx, setActiveFixtureIdx] = useState(0);
@@ -69,10 +70,10 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
   }, [fixtures]);
 
   useEffect(() => {
-    if (allPre) return;
+    if (allPre || disablePolling) return;
     const id = setInterval(pollFixtures, POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [allPre, pollFixtures]);
+  }, [allPre, disablePolling, pollFixtures]);
 
   useEffect(() => {
     if (!contentRef.current) return;

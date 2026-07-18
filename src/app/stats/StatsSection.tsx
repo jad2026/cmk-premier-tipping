@@ -125,6 +125,7 @@ export default function StatsSection({
             fixtures={selectedRoundData.fixtures}
             round1Label={null}
             round1Date={null}
+            disablePolling
           />
         </section>
       )}
