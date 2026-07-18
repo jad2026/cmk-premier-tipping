@@ -306,37 +306,9 @@ function extractStat(s: Record<string, string>, key: string): number {
   return 0;
 }
 
-type StatsPageRow = { opta_team_id: number | null; opta_game_id?: string | null; stats: Record<string, string> | null };
-
-async function fetchAllRows<T extends StatsPageRow>(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  table: string,
-  selectCols: string,
-): Promise<T[]> {
-  const allRows: T[] = [];
-  const PAGE_SIZE = 1000;
-  let offset = 0;
-  while (true) {
-    const { data: page } = await supabase
-      .from(table)
-      .select(selectCols)
-      .range(offset, offset + PAGE_SIZE - 1) as { data: T[] | null };
-    if (!page || page.length === 0) break;
-    allRows.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-  return allRows;
-}
-
-const SEASON_2025_MIN = 946625;
-const SEASON_2025_MAX = 946701;
-
-function isGameId2025(gameId: string | null | undefined): boolean {
-  if (!gameId) return false;
-  const n = parseInt(gameId, 10);
-  return n >= SEASON_2025_MIN && n <= SEASON_2025_MAX;
-}
+const SEASON_2025_MIN = "946625";
+const SEASON_2025_MAX = "946701";
+const SEASON_2026_MIN = "946702";
 
 type SeasonStatsData = {
   teams: TeamAgg[];
@@ -344,36 +316,147 @@ type SeasonStatsData = {
   teamNames: string[];
 };
 
-async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>): Promise<{
+type PlayerRow = {
+  opta_player_id: string;
+  player_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  opta_team_id: number | null;
+  position: string | null;
+  stats: Record<string, string> | null;
+};
+type TeamRow = {
+  opta_team_id: number | null;
+  stats: Record<string, string> | null;
+};
+
+async function fetchSeasonStats(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  minGameId: string,
+  maxGameId: string | null,
+): Promise<{ playerRows: PlayerRow[]; teamRows: TeamRow[] }> {
+  let playerQuery = supabase
+    .from("opta_player_stats" as "fixtures")
+    .select("opta_player_id, player_name, first_name, last_name, opta_team_id, position, stats")
+    .gte("opta_game_id", minGameId);
+  let teamQuery = supabase
+    .from("opta_team_stats" as "fixtures")
+    .select("opta_team_id, stats")
+    .gte("opta_game_id", minGameId);
+
+  if (maxGameId) {
+    playerQuery = playerQuery.lte("opta_game_id", maxGameId);
+    teamQuery = teamQuery.lte("opta_game_id", maxGameId);
+  }
+
+  const [pResult, tResult] = await Promise.all([playerQuery, teamQuery]);
+  return {
+    playerRows: (pResult.data ?? []) as unknown as PlayerRow[],
+    teamRows: (tResult.data ?? []) as unknown as TeamRow[],
+  };
+}
+
+function aggregateSeason(
+  pRows: PlayerRow[],
+  tRows: TeamRow[],
+  resolveTeamName: (optaId: number | null) => string,
+): SeasonStatsData | null {
+  if (pRows.length === 0 && tRows.length === 0) return null;
+
+  const statKeys = Object.keys(STAT_ALIASES);
+  const teamAgg = new Map<string, TeamAgg & { _sumPcts: Record<string, number>; _pctCount: Record<string, number> }>();
+  for (const row of tRows) {
+    const teamName = resolveTeamName(row.opta_team_id);
+    if (teamName === "Unknown") continue;
+    const s = (row.stats ?? {}) as Record<string, string>;
+    const existing = teamAgg.get(teamName);
+    if (existing) {
+      existing.games++;
+      for (const key of statKeys) {
+        const val = extractStat(s, key);
+        if (key.includes("pct")) {
+          existing._sumPcts[key] = (existing._sumPcts[key] ?? 0) + val;
+          existing._pctCount[key] = (existing._pctCount[key] ?? 0) + (val > 0 ? 1 : 0);
+        } else {
+          existing.stats[key] = (existing.stats[key] ?? 0) + val;
+        }
+      }
+    } else {
+      const stats: Record<string, number> = {};
+      const _sumPcts: Record<string, number> = {};
+      const _pctCount: Record<string, number> = {};
+      for (const key of statKeys) {
+        const val = extractStat(s, key);
+        if (key.includes("pct")) {
+          _sumPcts[key] = val;
+          _pctCount[key] = val > 0 ? 1 : 0;
+        } else {
+          stats[key] = val;
+        }
+      }
+      teamAgg.set(teamName, { teamName, games: 1, stats, _sumPcts, _pctCount });
+    }
+  }
+  const teamsResult: TeamAgg[] = Array.from(teamAgg.values()).map((t) => {
+    for (const key of Object.keys(t._sumPcts)) {
+      t.stats[key] = t._pctCount[key] > 0 ? t._sumPcts[key] / t._pctCount[key] : 0;
+    }
+    return { teamName: t.teamName, games: t.games, stats: t.stats };
+  });
+
+  const playerAggMap = new Map<string, PlayerAgg & { _posCounts: Record<string, number> }>();
+  for (const row of pRows) {
+    const pid = String(row.opta_player_id);
+    const s = (row.stats ?? {}) as Record<string, string>;
+    const teamName = resolveTeamName(row.opta_team_id);
+    const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
+    const pos = row.position ?? "";
+
+    const existing = playerAggMap.get(pid);
+    if (existing) {
+      existing.games++;
+      for (const key of statKeys) existing.stats[key] = (existing.stats[key] ?? 0) + extractStat(s, key);
+      if (teamName !== "Unknown") existing.teamName = teamName;
+      if (name !== "Unknown") existing.name = name;
+      if (pos) existing._posCounts[pos] = (existing._posCounts[pos] ?? 0) + 1;
+    } else {
+      const stats: Record<string, number> = {};
+      for (const key of statKeys) stats[key] = extractStat(s, key);
+      const _posCounts: Record<string, number> = {};
+      if (pos) _posCounts[pos] = 1;
+      playerAggMap.set(pid, { name, teamName, games: 1, stats, position: pos, _posCounts });
+    }
+  }
+
+  const playersResult = Array.from(playerAggMap.values()).map((p) => {
+    let bestPos = "";
+    let bestCount = 0;
+    for (const [pos, count] of Object.entries(p._posCounts)) {
+      if (count > bestCount) { bestPos = pos; bestCount = count; }
+    }
+    return { name: p.name, teamName: p.teamName, games: p.games, stats: p.stats, position: bestPos };
+  });
+
+  const teamNameSet = new Set([
+    ...teamsResult.map((t) => t.teamName),
+    ...playersResult.map((p) => p.teamName),
+  ].filter((n) => n !== "Unknown"));
+
+  return { teams: teamsResult, players: playersResult, teamNames: Array.from(teamNameSet).sort() };
+}
+
+async function getStatsData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  include2025: boolean,
+): Promise<{
   season2025: SeasonStatsData | null;
   season2026: SeasonStatsData | null;
 } | null> {
-  const [playerRows, teamStatRows] = await Promise.all([
-    fetchAllRows<{
-      opta_player_id: string;
-      opta_game_id: string | null;
-      player_name: string | null;
-      first_name: string | null;
-      last_name: string | null;
-      opta_team_id: number | null;
-      position: string | null;
-      stats: Record<string, string> | null;
-    }>(supabase, "opta_player_stats", "opta_player_id, opta_game_id, player_name, first_name, last_name, opta_team_id, position, stats"),
-    fetchAllRows<{
-      opta_team_id: number | null;
-      opta_game_id: string | null;
-      stats: Record<string, string> | null;
-    }>(supabase, "opta_team_stats", "opta_team_id, opta_game_id, stats"),
-  ]);
-
-  if (playerRows.length === 0 && teamStatRows.length === 0) return null;
-
   const { data: mappings } = await supabase
     .from("opta_team_mapping")
     .select("opta_team_id, team_id") as {
       data: { opta_team_id: string; team_id: string }[] | null;
     };
-
   const optaToTeamId = new Map<string, string>();
   for (const m of mappings ?? []) optaToTeamId.set(String(m.opta_team_id), m.team_id);
 
@@ -389,107 +472,21 @@ async function getStatsData(supabase: Awaited<ReturnType<typeof createClient>>):
     return pid ? (teamIdToName.get(pid) ?? "Unknown") : "Unknown";
   }
 
-  const statKeys = Object.keys(STAT_ALIASES);
+  const season2026Promise = fetchSeasonStats(supabase, SEASON_2026_MIN, null);
+  const season2025Promise = include2025
+    ? fetchSeasonStats(supabase, SEASON_2025_MIN, SEASON_2025_MAX)
+    : Promise.resolve(null);
 
-  type PlayerRow = typeof playerRows[number];
-  type TeamRow = typeof teamStatRows[number];
+  const [data2026, data2025] = await Promise.all([season2026Promise, season2025Promise]);
 
-  function aggregateSeason(
-    pRows: PlayerRow[],
-    tRows: TeamRow[],
-  ): SeasonStatsData | null {
-    if (pRows.length === 0 && tRows.length === 0) return null;
+  const season2026 = aggregateSeason(data2026.playerRows, data2026.teamRows, resolveTeamName);
+  const season2025 = data2025
+    ? aggregateSeason(data2025.playerRows, data2025.teamRows, resolveTeamName)
+    : null;
 
-    const teamAgg = new Map<string, TeamAgg & { _sumPcts: Record<string, number>; _pctCount: Record<string, number> }>();
-    for (const row of tRows) {
-      const teamName = resolveTeamName(row.opta_team_id);
-      if (teamName === "Unknown") continue;
-      const s = (row.stats ?? {}) as Record<string, string>;
-      const existing = teamAgg.get(teamName);
-      if (existing) {
-        existing.games++;
-        for (const key of statKeys) {
-          const val = extractStat(s, key);
-          if (key.includes("pct")) {
-            existing._sumPcts[key] = (existing._sumPcts[key] ?? 0) + val;
-            existing._pctCount[key] = (existing._pctCount[key] ?? 0) + (val > 0 ? 1 : 0);
-          } else {
-            existing.stats[key] = (existing.stats[key] ?? 0) + val;
-          }
-        }
-      } else {
-        const stats: Record<string, number> = {};
-        const _sumPcts: Record<string, number> = {};
-        const _pctCount: Record<string, number> = {};
-        for (const key of statKeys) {
-          const val = extractStat(s, key);
-          if (key.includes("pct")) {
-            _sumPcts[key] = val;
-            _pctCount[key] = val > 0 ? 1 : 0;
-          } else {
-            stats[key] = val;
-          }
-        }
-        teamAgg.set(teamName, { teamName, games: 1, stats, _sumPcts, _pctCount });
-      }
-    }
-    const teamsResult: TeamAgg[] = Array.from(teamAgg.values()).map((t) => {
-      for (const key of Object.keys(t._sumPcts)) {
-        t.stats[key] = t._pctCount[key] > 0 ? t._sumPcts[key] / t._pctCount[key] : 0;
-      }
-      return { teamName: t.teamName, games: t.games, stats: t.stats };
-    });
+  if (!season2025 && !season2026) return null;
 
-    const playerAggMap = new Map<string, PlayerAgg & { _posCounts: Record<string, number> }>();
-    for (const row of pRows) {
-      const pid = String(row.opta_player_id);
-      const s = (row.stats ?? {}) as Record<string, string>;
-      const teamName = resolveTeamName(row.opta_team_id);
-      const name = row.player_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "Unknown";
-      const pos = row.position ?? "";
-
-      const existing = playerAggMap.get(pid);
-      if (existing) {
-        existing.games++;
-        for (const key of statKeys) existing.stats[key] = (existing.stats[key] ?? 0) + extractStat(s, key);
-        if (teamName !== "Unknown") existing.teamName = teamName;
-        if (name !== "Unknown") existing.name = name;
-        if (pos) existing._posCounts[pos] = (existing._posCounts[pos] ?? 0) + 1;
-      } else {
-        const stats: Record<string, number> = {};
-        for (const key of statKeys) stats[key] = extractStat(s, key);
-        const _posCounts: Record<string, number> = {};
-        if (pos) _posCounts[pos] = 1;
-        playerAggMap.set(pid, { name, teamName, games: 1, stats, position: pos, _posCounts });
-      }
-    }
-
-    const playersResult = Array.from(playerAggMap.values()).map((p) => {
-      let bestPos = "";
-      let bestCount = 0;
-      for (const [pos, count] of Object.entries(p._posCounts)) {
-        if (count > bestCount) { bestPos = pos; bestCount = count; }
-      }
-      return { name: p.name, teamName: p.teamName, games: p.games, stats: p.stats, position: bestPos };
-    });
-
-    const teamNameSet = new Set([
-      ...teamsResult.map((t) => t.teamName),
-      ...playersResult.map((p) => p.teamName),
-    ].filter((n) => n !== "Unknown"));
-
-    return { teams: teamsResult, players: playersResult, teamNames: Array.from(teamNameSet).sort() };
-  }
-
-  const players2025 = playerRows.filter((r) => isGameId2025(r.opta_game_id));
-  const players2026 = playerRows.filter((r) => !isGameId2025(r.opta_game_id));
-  const teams2025 = teamStatRows.filter((r) => isGameId2025(r.opta_game_id));
-  const teams2026 = teamStatRows.filter((r) => !isGameId2025(r.opta_game_id));
-
-  return {
-    season2025: aggregateSeason(players2025, teams2025),
-    season2026: aggregateSeason(players2026, teams2026),
-  };
+  return { season2025, season2026 };
 }
 
 export default async function LadderPage() {
@@ -523,7 +520,8 @@ export default async function LadderPage() {
   ]);
 
   const { data: { user } } = await supabase.auth.getUser();
-  const statsData = user ? await getStatsData(supabase) : null;
+  const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
+  const statsData = user ? await getStatsData(supabase, user.id === GATED_USER_ID) : null;
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
@@ -601,7 +599,6 @@ export default async function LadderPage() {
 
   // Fetch 2025 NPC data for gated users
   const NPC_2025_COMPETITION_ID = "aa056357-840d-41be-b311-afd2298d42ad";
-  const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
   const canToggleSeason = isNpc && user?.id === GATED_USER_ID;
   let rounds2025: RoundData[] = [];
 
