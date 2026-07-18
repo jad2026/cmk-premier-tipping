@@ -38,6 +38,11 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
   const [expanded, setExpanded] = useState(false);
   const [activeFixtureIdx, setActiveFixtureIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("stats");
+
+  useEffect(() => {
+    setFixtures(initialFixtures);
+    setActiveFixtureIdx(0);
+  }, [initialFixtures]);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
 

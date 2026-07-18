@@ -235,6 +235,33 @@ async function buildLiveFixtures(
   });
 }
 
+function buildBasicFixtures(fixtures: RichFixture[], tz: TzLocale): MatchFixture[] {
+  return fixtures.map((f) => {
+    const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
+    const hasResult = f.result_team_id != null || f.is_draw;
+    const hasScores = f.home_score != null && f.away_score != null && (f.home_score! > 0 || f.away_score! > 0);
+    const status: MatchFixture["status"] = hasResult || hasScores
+      ? { type: "fulltime" }
+      : { type: "pre", kickoff: kickoffStr };
+
+    return {
+      id: f.id,
+      homeTeam: { id: f.home_team.id, name: f.home_team.name, short_name: f.home_team.short_name, colour: f.home_team.colour, logo_url: f.home_team.logo_url },
+      awayTeam: { id: f.away_team.id, name: f.away_team.name, short_name: f.away_team.short_name, colour: f.away_team.colour, logo_url: f.away_team.logo_url },
+      homeScore: f.home_score ?? 0,
+      awayScore: f.away_score ?? 0,
+      venue: f.venue,
+      status,
+      homeStats: mapTeamStats(null),
+      awayStats: mapTeamStats(null),
+      homePlayers: [],
+      awayPlayers: [],
+      events: [],
+      commentary: [],
+    };
+  });
+}
+
 const STAT_ALIASES: Record<string, string[]> = {
   tries: ["Tries", "tries"],
   tackles: ["Tackles", "tackles", "TacklesMade", "tackles_made"],
@@ -601,14 +628,13 @@ export default async function LadderPage() {
           fixturesByGw.set(f.gameweek_id, list);
         }
 
-        const roundPromises = gw2025.map(async (gw) => {
+        rounds2025 = gw2025.map((gw) => {
           const gwFixtures = fixturesByGw.get(gw.id) ?? [];
           const fixtures = gwFixtures.length > 0
-            ? await buildLiveFixtures(supabase, gwFixtures, tz)
+            ? buildBasicFixtures(gwFixtures, tz)
             : [];
           return { number: gw.number as number, label: gw.label as string, fixtures };
         });
-        rounds2025 = await Promise.all(roundPromises);
       }
     }
   }
