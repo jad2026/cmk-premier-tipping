@@ -3,12 +3,12 @@ import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CM
 import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
-import MatchCentre from "./MatchCentre";
 import { buildPlaceholderFixture } from "./matchCentreTypes";
 import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
 import { getCachedAllTeams } from "@/lib/cached-queries";
-import StatsLeaders from "./StatsLeaders";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
+import StatsSection from "./StatsSection";
+import type { RoundData } from "./StatsSection";
 
 export const revalidate = 300;
 
@@ -564,6 +564,47 @@ export default async function LadderPage() {
     }
   }
 
+  // Fetch 2025 NPC data for gated users
+  const NPC_2025_COMPETITION_ID = "aa056357-840d-41be-b311-afd2298d42ad";
+  const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
+  const canToggleSeason = isNpc && user?.id === GATED_USER_ID;
+  let rounds2025: RoundData[] = [];
+
+  if (canToggleSeason) {
+    const { data: gw2025 } = await supabase
+      .from("gameweeks")
+      .select("id, number, label")
+      .eq("competition_id", NPC_2025_COMPETITION_ID)
+      .order("number", { ascending: true });
+
+    if (gw2025?.length) {
+      const gwIds = gw2025.map((gw) => gw.id);
+      const { data: allFixtures } = await supabase
+        .from("fixtures")
+        .select("*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)")
+        .in("gameweek_id", gwIds)
+        .order("match_date", { ascending: true });
+
+      if (allFixtures?.length) {
+        const fixturesByGw = new Map<string, RichFixture[]>();
+        for (const f of allFixtures as unknown as RichFixture[]) {
+          const list = fixturesByGw.get(f.gameweek_id) ?? [];
+          list.push(f);
+          fixturesByGw.set(f.gameweek_id, list);
+        }
+
+        const roundPromises = gw2025.map(async (gw) => {
+          const gwFixtures = fixturesByGw.get(gw.id) ?? [];
+          const fixtures = gwFixtures.length > 0
+            ? await buildLiveFixtures(supabase, gwFixtures, tz)
+            : [];
+          return { number: gw.number as number, label: gw.label as string, fixtures };
+        });
+        rounds2025 = await Promise.all(roundPromises);
+      }
+    }
+  }
+
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
     if (names.some((n) => n.includes("women"))) return `${compLabel} Women`;
@@ -620,23 +661,30 @@ export default async function LadderPage() {
         </div>
       </section>
 
-      {/* ── Match Centre (NPC only) ──────────────────────────────── */}
-      {isNpc && matchCentreFixtures.length > 0 && (
-        <MatchCentre
-          fixtures={matchCentreFixtures}
-          round1Label={round1Label}
-          round1Date={round1Date}
+      {/* ── Match Centre + Stats Leaders ──────────────────────────── */}
+      {statsData && (
+        <StatsSection
+          matchCentre2026={isNpc && matchCentreFixtures.length > 0
+            ? { fixtures: matchCentreFixtures, round1Label, round1Date }
+            : null
+          }
+          matchCentre2025={canToggleSeason && rounds2025.length > 0
+            ? { rounds: rounds2025 }
+            : null
+          }
+          statsData={statsData}
+          canToggleSeason={canToggleSeason}
         />
       )}
 
-      {/* ── Team & Player stat leaders ──────────────────────────────── */}
-      {statsData && (
-        <div style={{ background: "#0D1117" }}>
-          <StatsLeaders
-            season2025={statsData.season2025}
-            season2026={statsData.season2026}
-          />
-        </div>
+      {/* Match Centre only (no stats data / not logged in) */}
+      {!statsData && isNpc && matchCentreFixtures.length > 0 && (
+        <StatsSection
+          matchCentre2026={{ fixtures: matchCentreFixtures, round1Label, round1Date }}
+          matchCentre2025={null}
+          statsData={{ season2025: null, season2026: null }}
+          canToggleSeason={false}
+        />
       )}
 
       {/* ── Standings ────────────────────────────────────────────────── */}

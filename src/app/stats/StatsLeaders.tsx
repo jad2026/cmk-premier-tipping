@@ -606,11 +606,17 @@ export type SeasonData = {
 export default function StatsLeaders({
   season2025,
   season2026,
+  season: controlledSeason,
+  onSeasonChange,
 }: {
   season2025: SeasonData;
   season2026: SeasonData;
+  season?: "2026" | "2025";
+  onSeasonChange?: (s: "2026" | "2025") => void;
 }) {
-  const [season, setSeason] = useState<"2026" | "2025">("2026");
+  const [localSeason, setLocalSeason] = useState<"2026" | "2025">("2026");
+  const season = controlledSeason ?? localSeason;
+  const setSeason = onSeasonChange ?? setLocalSeason;
 
   const data = season === "2025" ? season2025 : season2026;
   const teams = data?.teams ?? [];
