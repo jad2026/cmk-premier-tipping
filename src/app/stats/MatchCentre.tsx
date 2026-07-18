@@ -136,9 +136,9 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     Object.values(fixture.awayStats).some((v) => v > 0);
   const isPlaceholder = !hasRealData;
 
-  const STAT_ROWS: { key: keyof MatchStats; label: string }[] = [
-    { key: "possession", label: "Possession %" },
-    { key: "territory", label: "Territory %" },
+  const STAT_ROWS: { key: keyof MatchStats; label: string; suffix?: string }[] = [
+    { key: "possession", label: "Possession", suffix: "%" },
+    { key: "territory", label: "Territory", suffix: "%" },
     { key: "carries", label: "Carries" },
     { key: "metresGained", label: "Metres Gained" },
     { key: "passes", label: "Passes" },
@@ -156,19 +156,20 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     return `KO ${s.kickoff}`;
   }
 
-  function statBar(home: number, away: number) {
+  function statBar(home: number, away: number, suffix?: string) {
     const total = home + away || 1;
     const homePct = (home / total) * 100;
+    const s = suffix ?? "";
     return (
       <div className="flex items-center gap-3 w-full">
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 36, textAlign: "right", fontFeatureSettings: "'tnum'" }}>{home}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 44, textAlign: "right", fontFeatureSettings: "'tnum'" }}>{home}{s}</span>
         <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.08)" }}>
           <div className="flex h-full">
             <div style={{ width: `${homePct}%`, background: "var(--accent)", borderRadius: "999px 0 0 999px", transition: "width .4s ease" }} />
             <div style={{ width: `${100 - homePct}%`, background: "rgba(255,255,255,.15)", borderRadius: "0 999px 999px 0", transition: "width .4s ease" }} />
           </div>
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 36, textAlign: "left", fontFeatureSettings: "'tnum'" }}>{away}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 44, textAlign: "left", fontFeatureSettings: "'tnum'" }}>{away}{s}</span>
       </div>
     );
   }
@@ -438,12 +439,12 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
               {/* TAB 1: Match Stats */}
               {activeTab === "stats" && !isFixtureLoading && (
                 <div className="flex flex-col" style={{ gap: 16 }}>
-                  {STAT_ROWS.map(({ key, label }) => (
+                  {STAT_ROWS.map(({ key, label, suffix }) => (
                     <div key={key}>
                       <p className="text-center" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", margin: "0 0 6px" }}>
                         {label}
                       </p>
-                      {statBar(fixture.homeStats[key], fixture.awayStats[key])}
+                      {statBar(fixture.homeStats[key], fixture.awayStats[key], suffix)}
                     </div>
                   ))}
                 </div>

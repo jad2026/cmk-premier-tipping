@@ -13,6 +13,11 @@ function num(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+function pct(v: unknown): number {
+  const n = num(v);
+  return n > 0 && n <= 1 ? Math.round(n * 100) : Math.round(n);
+}
+
 function mapTeamStats(stats: Record<string, string> | null): MatchStats {
   if (!stats) {
     return {
@@ -22,8 +27,8 @@ function mapTeamStats(stats: Record<string, string> | null): MatchStats {
     };
   }
   return {
-    possession: num(stats.ball_possession ?? stats.possession),
-    territory: num(stats.territory),
+    possession: pct(stats.ball_possession ?? stats.possession),
+    territory: pct(stats.territory),
     carries: num(stats.runs ?? stats.carries),
     metresGained: num(stats.carries_metres ?? stats.metres_gained),
     passes: num(stats.passes),
@@ -93,7 +98,8 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const optaGameId = (fixture as Record<string, unknown>).opta_fixture_id as string | null;
+  const rawOptaId = (fixture as Record<string, unknown>).opta_fixture_id;
+  const optaGameId = rawOptaId != null ? String(rawOptaId) : null;
 
   if (!optaGameId) {
     return NextResponse.json({ error: "No Opta data linked" }, { status: 404 });

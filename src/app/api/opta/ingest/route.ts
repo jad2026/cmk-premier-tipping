@@ -446,6 +446,7 @@ interface RU6Sub {
   "@_secs"?: string;
   "@_event_id"?: string;
   "player-code"?: string;
+  "player-name"?: string;
   "team-id"?: string;
   type?: { "@_event_name"?: string } | string;
   "@_type"?: string;
@@ -528,6 +529,7 @@ async function processRU6(
             minute: sub["@_time"] != null ? parseInt(sub["@_time"], 10) : null,
             second: sub["@_secs"] != null ? parseInt(sub["@_secs"], 10) : null,
             period: sub["@_period"] ?? null,
+            player_name: sub["player-name"] ?? null,
             opta_player_id: sub["player-code"] != null ? String(sub["player-code"]) : null,
             opta_team_id: sub["team-id"] != null ? String(sub["team-id"]) : null,
             sub_id: sub["sub-id"] != null ? String(sub["sub-id"]) : null,
