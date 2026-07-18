@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import TeamBadge from "@/components/TeamBadge";
-import type { MatchStats, MatchStatus, MatchFixture, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
+import type { MatchStats, MatchStatus, MatchFixture, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
 
 const POSITION_GROUPS = ["Front Row", "Second Row", "Back Row", "Halfbacks", "Midfield", "Outside Backs"] as const;
 const POLL_INTERVAL = 30_000;
@@ -16,7 +16,7 @@ type Props = {
 };
 
 /* ── Tab type ───────────────────────────────────────────────────── */
-type Tab = "stats" | "players" | "events";
+type Tab = "stats" | "players" | "events" | "commentary";
 
 const EVENT_ICONS: Record<MatchEventType, string> = {
   try: "🏉", conversion: "🥅", penalty: "🏈", drop_goal: "🏈",
@@ -324,6 +324,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                 { key: "stats" as Tab, label: "Match Stats" },
                 { key: "players" as Tab, label: "Players" },
                 { key: "events" as Tab, label: "Events" },
+                { key: "commentary" as Tab, label: "Commentary" },
               ]).map(({ key, label }) => (
                 <button
                   key={key}
@@ -503,6 +504,45 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: Commentary */}
+              {activeTab === "commentary" && (
+                <div>
+                  {(fixture.commentary ?? []).length === 0 ? (
+                    <div className="text-center" style={{ padding: "32px 0", color: "rgba(255,255,255,.25)" }}>
+                      <span style={{ fontSize: 28, display: "block", marginBottom: 8 }}>💬</span>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>No commentary available</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col" style={{ gap: 0 }}>
+                      {[...(fixture.commentary ?? [])].sort((a, b) => (b.minute ?? 0) - (a.minute ?? 0)).map((entry, i) => (
+                        <div
+                          key={i}
+                          className="flex gap-3"
+                          style={{ padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}
+                        >
+                          <div className="shrink-0 flex flex-col items-center" style={{ width: 36 }}>
+                            <span style={{
+                              fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,.4)",
+                              fontFeatureSettings: "'tnum'",
+                            }}>
+                              {entry.minute != null ? `${entry.minute}'` : "—"}
+                            </span>
+                            {entry.period && (
+                              <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.2)", textTransform: "uppercase", marginTop: 2 }}>
+                                {entry.period}
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: 13, color: "#fff", margin: 0, lineHeight: 1.5, flex: 1 }}>
+                            {entry.text}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

@@ -126,18 +126,21 @@ async function buildLiveFixtures(
   type EventRow = { opta_game_id: string; event_id: string; event_type: string | null; minute: number | null; player_name: string | null; opta_team_id: string | null };
   type PlayerRow = { opta_game_id: string; opta_player_id: string; opta_team_id: number; player_name: string | null; shirt_number: number | null; position_id: number | null; stats: Record<string, string> | null };
   type MappingRow = { opta_team_id: string; team_id: string };
+  type CommentaryRow = { opta_game_id: string; minute: number | null; event_type: string | null; comment: string | null };
 
   const allTeamIds = fixtures.flatMap((f) => [f.home_team.id, f.away_team.id]);
-  const [tsResult, evResult, plResult, mapResult] = await Promise.all([
+  const [tsResult, evResult, plResult, mapResult, comResult] = await Promise.all([
     supabase.from("opta_team_stats" as "fixtures").select("opta_game_id, opta_team_id, stats").in("opta_game_id", optaGameIds),
     supabase.from("opta_match_events" as "fixtures").select("opta_game_id, event_id, event_type, minute, player_name, opta_team_id").in("opta_game_id", optaGameIds).order("minute", { ascending: true }),
     supabase.from("opta_player_stats" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats").in("opta_game_id", optaGameIds),
     supabase.from("opta_team_mapping" as "fixtures").select("opta_team_id, team_id").in("team_id", allTeamIds),
+    supabase.from("opta_commentary" as "fixtures").select("opta_game_id, minute, event_type, comment").in("opta_game_id", optaGameIds).order("minute", { ascending: false }),
   ]);
   const teamStatsRows = (tsResult.data ?? []) as unknown as TeamStatRow[];
   const eventsRows = (evResult.data ?? []) as unknown as EventRow[];
   const playerRows = (plResult.data ?? []) as unknown as PlayerRow[];
   const mappingRows = (mapResult.data ?? []) as unknown as MappingRow[];
+  const commentaryAllRows = (comResult.data ?? []) as unknown as CommentaryRow[];
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappingRows) optaToTeamId.set(String(m.opta_team_id), m.team_id);
@@ -225,6 +228,9 @@ async function buildLiveFixtures(
       homePlayers: buildPlayers(f.home_team.id),
       awayPlayers: buildPlayers(f.away_team.id),
       events,
+      commentary: commentaryAllRows
+        .filter((r) => r.opta_game_id === optaId && r.comment)
+        .map((r) => ({ minute: r.minute, period: null, text: r.comment as string, type: r.event_type })),
     };
   });
 }

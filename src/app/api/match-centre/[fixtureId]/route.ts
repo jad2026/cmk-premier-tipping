@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats } from "@/app/stats/matchCentreTypes";
+import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats, CommentaryEntry } from "@/app/stats/matchCentreTypes";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -116,6 +116,7 @@ export async function GET(
     { data: teamStats },
     { data: matchEvents },
     { data: playerStats },
+    { data: commentaryRows },
   ] = await Promise.all([
     supabase
       .from("opta_team_stats")
@@ -130,6 +131,11 @@ export async function GET(
       .from("opta_player_stats")
       .select("opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats")
       .eq("opta_game_id", optaGameId),
+    supabase
+      .from("opta_commentary")
+      .select("minute, event_type, comment")
+      .eq("opta_game_id", optaGameId)
+      .order("minute", { ascending: false }),
   ]);
 
   let homeStats = mapTeamStats(null);
@@ -218,6 +224,15 @@ export async function GET(
     };
   }
 
+  const commentary: CommentaryEntry[] = (commentaryRows ?? [])
+    .filter((r) => r.comment)
+    .map((r) => ({
+      minute: r.minute ?? null,
+      period: null,
+      text: r.comment as string,
+      type: r.event_type ?? null,
+    }));
+
   const result: MatchFixture = {
     id: fixture.id,
     homeTeam: homeTeam,
@@ -231,6 +246,7 @@ export async function GET(
     homePlayers: buildPlayers(homeTeam.id),
     awayPlayers: buildPlayers(awayTeam.id),
     events,
+    commentary,
   };
 
   return NextResponse.json(result, {

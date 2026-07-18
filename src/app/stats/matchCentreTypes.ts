@@ -41,6 +41,13 @@ export type MatchEvent = {
 
 export type MatchStatus = { type: "pre"; kickoff: string } | { type: "live"; minute: number } | { type: "fulltime" };
 
+export type CommentaryEntry = {
+  minute: number | null;
+  period: string | null;
+  text: string;
+  type: string | null;
+};
+
 export type MatchFixture = {
   id: string;
   homeTeam: Pick<Team, "id" | "name" | "short_name" | "colour" | "logo_url">;
@@ -54,6 +61,7 @@ export type MatchFixture = {
   homePlayers: PlayerMatchStats[];
   awayPlayers: PlayerMatchStats[];
   events: MatchEvent[];
+  commentary: CommentaryEntry[];
 };
 
 /* ── Empty placeholder builders ─────────────────────────────────── */
@@ -106,5 +114,6 @@ export function buildPlaceholderFixture(
     homePlayers: placeholderPlayers(homeTeam.short_name),
     awayPlayers: placeholderPlayers(awayTeam.short_name),
     events: [],
+    commentary: [],
   };
 }
