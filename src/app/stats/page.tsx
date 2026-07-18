@@ -198,8 +198,10 @@ async function buildLiveFixtures(
 
     const matchDate = new Date(f.match_date);
     const now = new Date();
+    const hasResult = f.result_team_id != null || f.is_draw;
+    const hasScores = f.home_score != null && f.away_score != null;
     let status: MatchFixture["status"];
-    if (f.result_team_id != null || f.is_draw) {
+    if (hasResult || (hasScores && (f.home_score! > 0 || f.away_score! > 0))) {
       status = { type: "fulltime" };
     } else if (now >= matchDate && hasOptaData) {
       const maxMinute = Math.max(0, ...events.map((e) => e.minute));

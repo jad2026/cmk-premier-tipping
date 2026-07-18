@@ -195,8 +195,9 @@ export async function GET(
   const now = new Date();
   const kickedOff = now >= matchDate;
 
+  const hasResult = fixture.result_team_id != null || fixture.is_draw;
   let status: MatchFixture["status"];
-  if (hasScores && fixture.result_team_id != null || fixture.is_draw) {
+  if (hasResult || (hasScores && (fixture.home_score! > 0 || fixture.away_score! > 0))) {
     status = { type: "fulltime" };
   } else if (kickedOff && (teamStats?.length ?? 0) > 0) {
     const maxMinute = Math.max(0, ...events.map((e) => e.minute));

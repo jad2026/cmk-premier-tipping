@@ -80,7 +80,13 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
 
   if (!fixture) return null;
 
-  const isPlaceholder = fixture.status.type === "pre";
+  const hasRealData =
+    fixture.events.length > 0 ||
+    fixture.homeScore > 0 ||
+    fixture.awayScore > 0 ||
+    Object.values(fixture.homeStats).some((v) => v > 0) ||
+    Object.values(fixture.awayStats).some((v) => v > 0);
+  const isPlaceholder = !hasRealData;
 
   const STAT_ROWS: { key: keyof MatchStats; label: string }[] = [
     { key: "possession", label: "Possession %" },
