@@ -73,35 +73,85 @@ function fmtDate(iso: string, tz: TzLocale) {
   });
 }
 
-// ── Pick chip ─────────────────────────────────────────────────────────────────
+// ── Aggregate pick bar ───────────────────────────────────────────────────────
 
-function PickChip({ pick, name, hasResult }: { pick: RichPick; name: string; hasResult: boolean }) {
-  const state = !hasResult ? "pending" : pick.is_correct ? "correct" : "wrong";
-  const chipCls =
-    state === "correct"
-      ? "bg-green-50 border-green-200 text-green-800"
-      : state === "wrong"
-      ? "bg-red-50 border-red-100 text-red-700 opacity-80"
-      : "bg-white border-gray-200 text-gray-600";
+function AggregatePickBar({
+  fixture,
+  picks,
+}: {
+  fixture: RichFixture;
+  picks: RichPick[];
+}) {
+  const total = picks.length;
+  if (total === 0) return null;
+
+  const homeCount = picks.filter((p) => p.picked_team_id === fixture.home_team_id).length;
+  const awayCount = picks.filter((p) => p.picked_team_id === fixture.away_team_id).length;
+  const drawCount = total - homeCount - awayCount;
+
+  const homePct = Math.round((homeCount / total) * 100);
+  const awayPct = Math.round((awayCount / total) * 100);
+  const drawPct = drawCount > 0 ? 100 - homePct - awayPct : 0;
+
+  const homeColour = fixture.home_team.colour || "#2C9FD4";
+  const awayColour = fixture.away_team.colour || "#1A1E27";
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full border text-xs font-medium ${chipCls}`}
-      title={`${name} picked ${pick.picked_team.name}${pick.auto_picked ? " (auto)" : ""}`}
-    >
-      <TeamBadge team={pick.picked_team} size="xs" />
-      <span>{name}</span>
-      {hasResult && (
-        <span className={state === "correct" ? "text-green-500 font-bold" : "text-red-400"}>
-          {state === "correct" ? "✓" : "✗"}
+    <div className="px-5 py-3 bg-[#f8f9fb]">
+      {/* Labels */}
+      <div className="flex items-center justify-between mb-2 text-xs font-semibold">
+        <span className="flex items-center gap-1.5">
+          <TeamBadge team={fixture.home_team} size="xs" />
+          <span className="text-gray-700">{fixture.home_team.short_name || fixture.home_team.name}</span>
+          <span className="text-gray-500">{homeCount}</span>
+          <span className="text-gray-400">({homePct}%)</span>
         </span>
-      )}
-      {pick.auto_picked && (
-        <span className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-200/80 text-gray-500 border border-gray-300/60 leading-none">
-          auto
+        {drawCount > 0 && (
+          <span className="text-gray-400">
+            Draw {drawCount} ({drawPct}%)
+          </span>
+        )}
+        <span className="flex items-center gap-1.5">
+          <span className="text-gray-400">({awayPct}%)</span>
+          <span className="text-gray-500">{awayCount}</span>
+          <span className="text-gray-700">{fixture.away_team.short_name || fixture.away_team.name}</span>
+          <TeamBadge team={fixture.away_team} size="xs" />
         </span>
-      )}
-    </span>
+      </div>
+      {/* Bar */}
+      <div className="flex h-3 rounded-full overflow-hidden gap-px">
+        {homePct > 0 && (
+          <div
+            className="rounded-l-full transition-all"
+            style={{
+              width: `${homePct}%`,
+              backgroundColor: homeColour,
+              minWidth: 8,
+            }}
+          />
+        )}
+        {drawPct > 0 && (
+          <div
+            className="transition-all"
+            style={{
+              width: `${drawPct}%`,
+              backgroundColor: "#9CA3AF",
+              minWidth: 8,
+            }}
+          />
+        )}
+        {awayPct > 0 && (
+          <div
+            className="rounded-r-full transition-all"
+            style={{
+              width: `${awayPct}%`,
+              backgroundColor: awayColour,
+              minWidth: 8,
+            }}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -126,21 +176,6 @@ function FixtureCard({
   const resultTeam = fixture.result_team_id ? teamMap.get(fixture.result_team_id) : null;
 
   const visiblePicks = hasResult ? picks : picks.filter((p) => !p.auto_picked);
-
-  const correctPicks = visiblePicks.filter((p) => p.is_correct === true);
-  const wrongPicks   = visiblePicks.filter((p) => p.is_correct === false);
-  const pendingPicks = visiblePicks.filter((p) => p.is_correct === null);
-
-  const sorted = [...visiblePicks].sort((a, b) => {
-    const stateOrder = (p: RichPick) => (!hasResult ? 1 : p.is_correct ? 0 : 2);
-    const diff = stateOrder(a) - stateOrder(b);
-    if (diff !== 0) return diff;
-    const autoDiff = (a.auto_picked ? 1 : 0) - (b.auto_picked ? 1 : 0);
-    if (autoDiff !== 0) return autoDiff;
-    return resolveDisplayName(a.user_id, profileMap).localeCompare(
-      resolveDisplayName(b.user_id, profileMap)
-    );
-  });
 
   return (
     <div className="card overflow-hidden">
@@ -196,39 +231,12 @@ function FixtureCard({
         </div>
       </div>
 
-      {/* Picks breakdown */}
-      {sorted.length > 0 && (
+      {/* Aggregate pick summary */}
+      {visiblePicks.length > 0 ? (
         <div className="border-t border-gray-100">
-          {/* Summary bar */}
-          {hasResult && visiblePicks.length > 0 && (
-            <div className="px-5 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <span className="font-semibold text-green-700">{correctPicks.length}</span> correct
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="font-semibold text-red-500">{wrongPicks.length}</span> wrong
-              </span>
-              {pendingPicks.length > 0 && (
-                <span className="flex items-center gap-1">
-                  <span className="font-semibold text-gray-500">{pendingPicks.length}</span> pending
-                </span>
-              )}
-            </div>
-          )}
-          <div className="px-5 py-3 bg-[#f8f9fb] flex flex-wrap gap-1.5">
-            {sorted.map((pick) => (
-              <PickChip
-                key={pick.id}
-                pick={pick}
-                name={resolveDisplayName(pick.user_id, profileMap)}
-                hasResult={hasResult}
-              />
-            ))}
-          </div>
+          <AggregatePickBar fixture={fixture} picks={visiblePicks} />
         </div>
-      )}
-
-      {sorted.length === 0 && (
+      ) : (
         <div className="px-5 py-3 bg-[#f8f9fb] border-t border-gray-100">
           <p className="text-xs text-gray-400 italic">No picks submitted.</p>
         </div>
