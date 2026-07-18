@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import TeamBadge from "@/components/TeamBadge";
 import type { MatchStats, MatchStatus, MatchFixture, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
 
 const POSITION_GROUPS = ["Front Row", "Second Row", "Back Row", "Halfbacks", "Midfield", "Outside Backs"] as const;
+const POLL_INTERVAL = 30_000;
 
 /* ── Props ──────────────────────────────────────────────────────── */
 
@@ -26,9 +27,14 @@ const EVENT_LABELS: Record<MatchEventType, string> = {
   yellow_card: "Yellow Card", red_card: "Red Card", substitution: "Substitution",
 };
 
+function countEvents(fixture: MatchFixture, type: MatchEventType): number {
+  return fixture.events.filter((e) => e.type === type).length;
+}
+
 /* ── Component ──────────────────────────────────────────────────── */
 
-export default function MatchCentre({ fixtures, round1Label, round1Date }: Props) {
+export default function MatchCentre({ fixtures: initialFixtures, round1Label, round1Date }: Props) {
+  const [fixtures, setFixtures] = useState(initialFixtures);
   const [expanded, setExpanded] = useState(false);
   const [activeFixtureIdx, setActiveFixtureIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("stats");
@@ -36,6 +42,32 @@ export default function MatchCentre({ fixtures, round1Label, round1Date }: Props
   const [contentHeight, setContentHeight] = useState(0);
 
   const fixture = fixtures[activeFixtureIdx] ?? null;
+
+  const hasLiveOrFinished = fixtures.some(
+    (f) => f.status.type === "live" || f.status.type === "fulltime",
+  );
+  const allPre = fixtures.every((f) => f.status.type === "pre");
+
+  const pollFixtures = useCallback(async () => {
+    const updated = await Promise.all(
+      fixtures.map(async (f) => {
+        try {
+          const res = await fetch(`/api/match-centre/${f.id}`);
+          if (!res.ok) return f;
+          return (await res.json()) as MatchFixture;
+        } catch {
+          return f;
+        }
+      }),
+    );
+    setFixtures(updated);
+  }, [fixtures]);
+
+  useEffect(() => {
+    if (allPre) return;
+    const id = setInterval(pollFixtures, POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [allPre, pollFixtures]);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -184,14 +216,14 @@ export default function MatchCentre({ fixtures, round1Label, round1Date }: Props
             {/* Quick stat icons */}
             <div className="flex items-center justify-center gap-6 sm:gap-10" style={{ marginTop: 24, padding: "14px 0", borderTop: "1px solid rgba(255,255,255,.06)" }}>
               {[
-                { label: "Tries", icon: "🏉" },
-                { label: "Conv", icon: "🥅" },
-                { label: "Pens", icon: "🏈" },
-                { label: "Cards", icon: "🟨" },
-              ].map(({ label, icon }) => (
+                { label: "Tries", icon: "🏉", count: countEvents(fixture, "try") },
+                { label: "Conv", icon: "🥅", count: countEvents(fixture, "conversion") },
+                { label: "Pens", icon: "🏈", count: countEvents(fixture, "penalty") },
+                { label: "Cards", icon: "🟨", count: countEvents(fixture, "yellow_card") + countEvents(fixture, "red_card") },
+              ].map(({ label, icon, count }) => (
                 <div key={label} className="flex flex-col items-center" style={{ gap: 4 }}>
                   <span style={{ fontSize: 16 }}>{icon}</span>
-                  <span className="font-display" style={{ fontSize: 18, color: "rgba(255,255,255,.15)", lineHeight: 1 }}>0</span>
+                  <span className="font-display" style={{ fontSize: 18, color: count > 0 ? "#fff" : "rgba(255,255,255,.15)", lineHeight: 1 }}>{count}</span>
                   <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.25)" }}>
                     {label}
                   </span>
@@ -471,11 +503,13 @@ export default function MatchCentre({ fixtures, round1Label, round1Date }: Props
               )}
             </div>
 
-            {/* Coming soon footer */}
+            {/* Footer */}
             <div style={{ padding: "12px 24px", background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
               <p className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
-                Live stats coming {round1Label ?? "Round 1"}
-                {round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}
+                {hasLiveOrFinished
+                  ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
+                  : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
+                }
               </p>
             </div>
           </div>
@@ -485,8 +519,10 @@ export default function MatchCentre({ fixtures, round1Label, round1Date }: Props
         {!expanded && (
           <div style={{ padding: "12px 24px", background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
             <p className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
-              Live stats coming {round1Label ?? "Round 1"}
-              {round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}
+              {hasLiveOrFinished
+                ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
+                : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
+              }
             </p>
           </div>
         )}

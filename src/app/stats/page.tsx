@@ -5,6 +5,7 @@ import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
 import MatchCentre from "./MatchCentre";
 import { buildPlaceholderFixture } from "./matchCentreTypes";
+import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
 import { getCachedAllTeams } from "@/lib/cached-queries";
 import StatsLeaders from "./StatsLeaders";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
@@ -46,7 +47,183 @@ function teamMonogram(name: string): string {
 type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   home_team: Team;
   away_team: Team;
+  opta_fixture_id?: string | null;
 };
+
+function numStat(v: unknown): number {
+  if (v == null) return 0;
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function mapTeamStats(stats: Record<string, string> | null): MatchStats {
+  if (!stats) {
+    return { possession: 0, territory: 0, carries: 0, metresGained: 0, passes: 0, tacklesMade: 0, missedTackles: 0, scrumsWon: 0, lineoutsWon: 0, penaltiesConceded: 0, turnoversWon: 0 };
+  }
+  return {
+    possession: numStat(stats.ball_possession ?? stats.possession),
+    territory: numStat(stats.territory),
+    carries: numStat(stats.runs ?? stats.carries),
+    metresGained: numStat(stats.carries_metres ?? stats.metres_gained),
+    passes: numStat(stats.passes),
+    tacklesMade: numStat(stats.tackles ?? stats.tackles_made),
+    missedTackles: numStat(stats.missed_tackles),
+    scrumsWon: numStat(stats.scrums_won_outright ?? stats.scrums_won),
+    lineoutsWon: numStat(stats.lineouts_won),
+    penaltiesConceded: numStat(stats.penalties_conceded),
+    turnoversWon: numStat(stats.turnovers_conceded ?? stats.turnovers_won),
+  };
+}
+
+const OPTA_EVENT_MAP: Record<string, MatchEventType> = {
+  TRY: "try", "Penalty Try": "try", CONVERSION: "conversion",
+  "PENALTY GOAL": "penalty", "Penalty Goal": "penalty",
+  "DROP GOAL": "drop_goal", "Drop Goal": "drop_goal",
+  "YELLOW CARD": "yellow_card", "Yellow Card": "yellow_card",
+  "RED CARD": "red_card", "Red Card": "red_card",
+  SUB: "substitution", Substitution: "substitution",
+};
+
+function positionGroupFromId(positionId: number | null, shirtNumber: number | null): PlayerMatchStats["positionGroup"] {
+  const pid = positionId ?? 0;
+  if (pid >= 1 && pid <= 3) return "Front Row";
+  if (pid >= 4 && pid <= 5) return "Second Row";
+  if (pid >= 6 && pid <= 8) return "Back Row";
+  if (pid >= 9 && pid <= 10) return "Halfbacks";
+  if (pid >= 12 && pid <= 13) return "Midfield";
+  if (pid === 11 || pid === 14 || pid === 15) return "Outside Backs";
+  const n = shirtNumber ?? 0;
+  if (n >= 1 && n <= 3) return "Front Row";
+  if (n >= 4 && n <= 5) return "Second Row";
+  if (n >= 6 && n <= 8) return "Back Row";
+  if (n === 9 || n === 10) return "Halfbacks";
+  if (n === 12 || n === 13) return "Midfield";
+  if (n === 11 || n === 14 || n === 15) return "Outside Backs";
+  return "Back Row";
+}
+
+async function buildLiveFixtures(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fixtures: RichFixture[],
+  tz: TzLocale,
+): Promise<MatchFixture[]> {
+  const optaGameIds = fixtures
+    .map((f) => f.opta_fixture_id)
+    .filter((id): id is string => !!id);
+
+  if (optaGameIds.length === 0) {
+    return fixtures.map((f) =>
+      buildPlaceholderFixture(
+        f.id, f.home_team, f.away_team, f.venue,
+        new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" }),
+      ),
+    );
+  }
+
+  type TeamStatRow = { opta_game_id: string; opta_team_id: number; stats: Record<string, string> | null };
+  type EventRow = { opta_game_id: string; event_id: string; event_type: string | null; minute: number | null; player_name: string | null; opta_team_id: string | null };
+  type PlayerRow = { opta_game_id: string; opta_player_id: string; opta_team_id: number; player_name: string | null; shirt_number: number | null; position_id: number | null; stats: Record<string, string> | null };
+  type MappingRow = { opta_team_id: string; team_id: string };
+
+  const allTeamIds = fixtures.flatMap((f) => [f.home_team.id, f.away_team.id]);
+  const [tsResult, evResult, plResult, mapResult] = await Promise.all([
+    supabase.from("opta_team_stats" as "fixtures").select("opta_game_id, opta_team_id, stats").in("opta_game_id", optaGameIds),
+    supabase.from("opta_match_events" as "fixtures").select("opta_game_id, event_id, event_type, minute, player_name, opta_team_id").in("opta_game_id", optaGameIds).order("minute", { ascending: true }),
+    supabase.from("opta_player_stats" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats").in("opta_game_id", optaGameIds),
+    supabase.from("opta_team_mapping" as "fixtures").select("opta_team_id, team_id").in("team_id", allTeamIds),
+  ]);
+  const teamStatsRows = (tsResult.data ?? []) as unknown as TeamStatRow[];
+  const eventsRows = (evResult.data ?? []) as unknown as EventRow[];
+  const playerRows = (plResult.data ?? []) as unknown as PlayerRow[];
+  const mappingRows = (mapResult.data ?? []) as unknown as MappingRow[];
+
+  const optaToTeamId = new Map<string, string>();
+  for (const m of mappingRows) optaToTeamId.set(String(m.opta_team_id), m.team_id);
+
+  return fixtures.map((f) => {
+    const optaId = f.opta_fixture_id;
+    const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
+
+    if (!optaId) {
+      return buildPlaceholderFixture(f.id, f.home_team, f.away_team, f.venue, kickoffStr);
+    }
+
+    const gameTeamStats = teamStatsRows.filter((r) => r.opta_game_id === optaId);
+    const gameEvents = eventsRows.filter((r) => r.opta_game_id === optaId);
+    const gamePlayers = playerRows.filter((r) => r.opta_game_id === optaId);
+
+    const hasOptaData = gameTeamStats.length > 0 || gameEvents.length > 0;
+
+    if (!hasOptaData && f.home_score == null && f.away_score == null) {
+      return buildPlaceholderFixture(f.id, f.home_team, f.away_team, f.venue, kickoffStr);
+    }
+
+    let homeStats = mapTeamStats(null);
+    let awayStats = mapTeamStats(null);
+    for (const ts of gameTeamStats) {
+      const tid = optaToTeamId.get(String(ts.opta_team_id));
+      if (tid === f.home_team.id) homeStats = mapTeamStats(ts.stats);
+      else if (tid === f.away_team.id) awayStats = mapTeamStats(ts.stats);
+    }
+
+    const events: MatchEvent[] = [];
+    let homeRunning = 0;
+    let awayRunning = 0;
+    for (const ev of gameEvents) {
+      const eventType = OPTA_EVENT_MAP[ev.event_type ?? ""];
+      if (!eventType) continue;
+      const tid = optaToTeamId.get(String(ev.opta_team_id));
+      if (!tid) continue;
+      if (eventType === "try") { if (tid === f.home_team.id) homeRunning += 5; else awayRunning += 5; }
+      else if (eventType === "conversion") { if (tid === f.home_team.id) homeRunning += 2; else awayRunning += 2; }
+      else if (eventType === "penalty" || eventType === "drop_goal") { if (tid === f.home_team.id) homeRunning += 3; else awayRunning += 3; }
+      events.push({ id: ev.event_id, minute: ev.minute ?? 0, type: eventType, playerName: ev.player_name ?? "Unknown", teamId: tid, scoreAtTime: `${homeRunning} - ${awayRunning}` });
+    }
+
+    const buildPlayers = (teamId: string): PlayerMatchStats[] =>
+      gamePlayers.filter((p) => optaToTeamId.get(String(p.opta_team_id)) === teamId).map((p) => {
+        const s = p.stats ?? {};
+        return {
+          playerId: String(p.opta_player_id),
+          name: p.player_name ?? "Unknown",
+          jerseyNumber: p.shirt_number ?? 0,
+          positionGroup: positionGroupFromId(p.position_id, p.shirt_number),
+          tries: numStat(s.Tries ?? s.tries),
+          carries: numStat(s.Runs ?? s.runs ?? s.Carries ?? s.carries),
+          metres: numStat(s.MetresRun ?? s.metres_run ?? s.Metres ?? s.metres),
+          tackles: numStat(s.Tackles ?? s.tackles ?? s.TacklesMade ?? s.tackles_made),
+          missedTackles: numStat(s.MissedTackles ?? s.missed_tackles),
+        };
+      });
+
+    const matchDate = new Date(f.match_date);
+    const now = new Date();
+    let status: MatchFixture["status"];
+    if (f.result_team_id != null || f.is_draw) {
+      status = { type: "fulltime" };
+    } else if (now >= matchDate && hasOptaData) {
+      const maxMinute = Math.max(0, ...events.map((e) => e.minute));
+      status = { type: "live", minute: maxMinute };
+    } else {
+      status = { type: "pre", kickoff: kickoffStr };
+    }
+
+    return {
+      id: f.id,
+      homeTeam: { id: f.home_team.id, name: f.home_team.name, short_name: f.home_team.short_name, colour: f.home_team.colour, logo_url: f.home_team.logo_url },
+      awayTeam: { id: f.away_team.id, name: f.away_team.name, short_name: f.away_team.short_name, colour: f.away_team.colour, logo_url: f.away_team.logo_url },
+      homeScore: f.home_score ?? 0,
+      awayScore: f.away_score ?? 0,
+      venue: f.venue,
+      status,
+      homeStats,
+      awayStats,
+      homePlayers: buildPlayers(f.home_team.id),
+      awayPlayers: buildPlayers(f.away_team.id),
+      events,
+    };
+  });
+}
 
 const STAT_ALIASES: Record<string, string[]> = {
   tries: ["Tries", "tries"],
@@ -351,7 +528,7 @@ export default async function LadderPage() {
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
   // Fetch Round 1 fixtures for the match centre preview
-  let previewFixtures: RichFixture[] = [];
+  let matchCentreFixtures: MatchFixture[] = [];
   let round1Label: string | null = null;
   let round1Date: string | null = null;
   if (isNpc) {
@@ -378,7 +555,10 @@ export default async function LadderPage() {
         .eq("gameweek_id", firstGw.id)
         .order("match_date", { ascending: true });
 
-      if (r1Fixtures?.length) previewFixtures = r1Fixtures as unknown as RichFixture[];
+      if (r1Fixtures?.length) {
+        const richFixtures = r1Fixtures as unknown as RichFixture[];
+        matchCentreFixtures = await buildLiveFixtures(supabase, richFixtures, tz);
+      }
     }
   }
 
@@ -439,21 +619,9 @@ export default async function LadderPage() {
       </section>
 
       {/* ── Match Centre (NPC only) ──────────────────────────────── */}
-      {isNpc && previewFixtures.length > 0 && (
+      {isNpc && matchCentreFixtures.length > 0 && (
         <MatchCentre
-          fixtures={previewFixtures.map((f) =>
-            buildPlaceholderFixture(
-              f.id,
-              f.home_team,
-              f.away_team,
-              f.venue,
-              new Date(f.match_date).toLocaleTimeString(tz.locale, {
-                timeZone: tz.timezone,
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-            )
-          )}
+          fixtures={matchCentreFixtures}
           round1Label={round1Label}
           round1Date={round1Date}
         />
