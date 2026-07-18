@@ -82,6 +82,8 @@ const OPTA_EVENT_MAP: Record<string, MatchEventType> = {
   "YELLOW CARD": "yellow_card", "Yellow Card": "yellow_card",
   "RED CARD": "red_card", "Red Card": "red_card",
   SUB: "substitution", Substitution: "substitution",
+  CONV: "conversion", PENK: "penalty", YELC: "yellow_card",
+  DROPG: "drop_goal", SUB_ON: "substitution", SUB_OFF: "substitution",
 };
 
 function positionGroupFromId(positionId: number | null, shirtNumber: number | null): PlayerMatchStats["positionGroup"] {
