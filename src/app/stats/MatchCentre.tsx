@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import TeamBadge from "@/components/TeamBadge";
 import type { MatchStats, MatchStatus, MatchFixture, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
 
-const POSITION_GROUPS = ["Front Row", "Second Row", "Back Row", "Halfbacks", "Midfield", "Outside Backs"] as const;
 const POLL_INTERVAL = 30_000;
 
 /* ── Props ──────────────────────────────────────────────────────── */
@@ -481,43 +480,28 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                               </tr>
                             </thead>
                             <tbody>
-                              {POSITION_GROUPS.map((group) => {
-                                const groupPlayers = players.filter((p) => p.positionGroup === group);
-                                if (groupPlayers.length === 0) return null;
-                                return [
-                                  <tr key={`hdr-${group}`}>
-                                    <td colSpan={7} style={{
-                                      padding: "10px 6px 4px", fontSize: 10, fontWeight: 800,
-                                      letterSpacing: ".1em", textTransform: "uppercase",
-                                      color: "var(--accent)", opacity: 0.6,
+                              {[...players].sort((a, b) => a.jerseyNumber - b.jerseyNumber).map((p) => {
+                                const isTryScorer = p.tries > 0;
+                                const isMostTackles = p.tackles === maxTackles && p.tackles > 0;
+                                const isMostMetres = p.metres === maxMetres && p.metres > 0;
+                                return (
+                                  <tr key={p.playerId} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                                    <td style={{ padding: "7px 6px", color: "rgba(255,255,255,.4)", fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{p.jerseyNumber}</td>
+                                    <td style={{
+                                      padding: "7px 6px", fontWeight: 600,
+                                      color: isTryScorer ? "var(--accent)" : "#fff",
+                                      whiteSpace: "nowrap",
                                     }}>
-                                      {group}
+                                      {p.name}
+                                      {isTryScorer && <span style={{ marginLeft: 4, fontSize: 10 }}>🏉</span>}
                                     </td>
-                                  </tr>,
-                                  ...groupPlayers.map((p) => {
-                                    const isTryScorer = p.tries > 0;
-                                    const isMostTackles = p.tackles === maxTackles && p.tackles > 0;
-                                    const isMostMetres = p.metres === maxMetres && p.metres > 0;
-                                    return (
-                                      <tr key={p.playerId} style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                                        <td style={{ padding: "7px 6px", color: "rgba(255,255,255,.4)", fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{p.jerseyNumber}</td>
-                                        <td style={{
-                                          padding: "7px 6px", fontWeight: 600,
-                                          color: isTryScorer ? "var(--accent)" : "#fff",
-                                          whiteSpace: "nowrap",
-                                        }}>
-                                          {p.name}
-                                          {isTryScorer && <span style={{ marginLeft: 4, fontSize: 10 }}>🏉</span>}
-                                        </td>
-                                        <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : "rgba(255,255,255,.5)", fontWeight: isTryScorer ? 800 : 400 }}>{p.tries}</td>
-                                        <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)" }}>{p.carries}</td>
-                                        <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostMetres ? 800 : 400 }}>{p.metres}</td>
-                                        <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostTackles ? 800 : 400 }}>{p.tackles}</td>
-                                        <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.5)" }}>{p.missedTackles}</td>
-                                      </tr>
-                                    );
-                                  }),
-                                ];
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : "rgba(255,255,255,.5)", fontWeight: isTryScorer ? 800 : 400 }}>{p.tries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)" }}>{p.carries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostMetres ? 800 : 400 }}>{p.metres}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostTackles ? 800 : 400 }}>{p.tackles}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.5)" }}>{p.missedTackles}</td>
+                                  </tr>
+                                );
                               })}
                             </tbody>
                           </table>
