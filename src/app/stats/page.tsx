@@ -8,7 +8,6 @@ import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchS
 import { getCachedAllTeams } from "@/lib/cached-queries";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
 import StatsSection from "./StatsSection";
-import type { RoundData } from "./StatsSection";
 
 export const revalidate = 300;
 
@@ -235,32 +234,6 @@ async function buildLiveFixtures(
   });
 }
 
-function buildBasicFixtures(fixtures: RichFixture[], tz: TzLocale): MatchFixture[] {
-  return fixtures.map((f) => {
-    const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
-    const hasResult = f.result_team_id != null || f.is_draw;
-    const hasScores = f.home_score != null && f.away_score != null && (f.home_score! > 0 || f.away_score! > 0);
-    const status: MatchFixture["status"] = hasResult || hasScores
-      ? { type: "fulltime" }
-      : { type: "pre", kickoff: kickoffStr };
-
-    return {
-      id: f.id,
-      homeTeam: { id: f.home_team.id, name: f.home_team.name, short_name: f.home_team.short_name, colour: f.home_team.colour, logo_url: f.home_team.logo_url },
-      awayTeam: { id: f.away_team.id, name: f.away_team.name, short_name: f.away_team.short_name, colour: f.away_team.colour, logo_url: f.away_team.logo_url },
-      homeScore: f.home_score ?? 0,
-      awayScore: f.away_score ?? 0,
-      venue: f.venue,
-      status,
-      homeStats: mapTeamStats(null),
-      awayStats: mapTeamStats(null),
-      homePlayers: [],
-      awayPlayers: [],
-      events: [],
-      commentary: [],
-    };
-  });
-}
 
 const STAT_KEYS = [
   "tries", "tackles", "metres", "clean_breaks", "defenders_beaten",
@@ -480,44 +453,7 @@ export default async function LadderPage() {
     }
   }
 
-  // Fetch 2025 NPC data for gated users
-  const NPC_2025_COMPETITION_ID = "aa056357-840d-41be-b311-afd2298d42ad";
   const canToggleSeason = isNpc && user?.id === GATED_USER_ID;
-  let rounds2025: RoundData[] = [];
-
-  if (canToggleSeason) {
-    const { data: gw2025 } = await supabase
-      .from("gameweeks")
-      .select("id, number, label")
-      .eq("competition_id", NPC_2025_COMPETITION_ID)
-      .order("number", { ascending: true });
-
-    if (gw2025?.length) {
-      const gwIds = gw2025.map((gw) => gw.id);
-      const { data: allFixtures } = await supabase
-        .from("fixtures")
-        .select("*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)")
-        .in("gameweek_id", gwIds)
-        .order("match_date", { ascending: true });
-
-      if (allFixtures?.length) {
-        const fixturesByGw = new Map<string, RichFixture[]>();
-        for (const f of allFixtures as unknown as RichFixture[]) {
-          const list = fixturesByGw.get(f.gameweek_id) ?? [];
-          list.push(f);
-          fixturesByGw.set(f.gameweek_id, list);
-        }
-
-        rounds2025 = gw2025.map((gw) => {
-          const gwFixtures = fixturesByGw.get(gw.id) ?? [];
-          const fixtures = gwFixtures.length > 0
-            ? buildBasicFixtures(gwFixtures, tz)
-            : [];
-          return { number: gw.number as number, label: gw.label as string, fixtures };
-        });
-      }
-    }
-  }
 
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
@@ -582,10 +518,6 @@ export default async function LadderPage() {
             ? { fixtures: matchCentreFixtures, round1Label, round1Date }
             : null
           }
-          matchCentre2025={canToggleSeason && rounds2025.length > 0
-            ? { rounds: rounds2025 }
-            : null
-          }
           statsData={statsData}
           canToggleSeason={canToggleSeason}
         />
@@ -595,7 +527,6 @@ export default async function LadderPage() {
       {!statsData && isNpc && matchCentreFixtures.length > 0 && (
         <StatsSection
           matchCentre2026={{ fixtures: matchCentreFixtures, round1Label, round1Date }}
-          matchCentre2025={null}
           statsData={{ season2025: null, season2026: null }}
           canToggleSeason={false}
         />

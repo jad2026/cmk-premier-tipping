@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MatchCentre from "./MatchCentre";
 import StatsLeaders from "./StatsLeaders";
 import type { MatchFixture } from "./matchCentreTypes";
@@ -18,9 +18,6 @@ type Props = {
     round1Label: string | null;
     round1Date: string | null;
   } | null;
-  matchCentre2025: {
-    rounds: RoundData[];
-  } | null;
   statsData: {
     season2025: SeasonData;
     season2026: SeasonData;
@@ -30,18 +27,42 @@ type Props = {
 
 export default function StatsSection({
   matchCentre2026,
-  matchCentre2025,
   statsData,
   canToggleSeason,
 }: Props) {
   const [season, setSeason] = useState<"2026" | "2025">("2026");
-  const rounds2025 = matchCentre2025?.rounds ?? [];
-  const maxRound = rounds2025.length > 0 ? Math.max(...rounds2025.map((r) => r.number)) : 1;
+  const [rounds2025, setRounds2025] = useState<RoundData[] | null>(null);
+  const [loading2025, setLoading2025] = useState(false);
+  const maxRound = rounds2025 && rounds2025.length > 0 ? Math.max(...rounds2025.map((r) => r.number)) : 1;
   const [selectedRound, setSelectedRound] = useState(maxRound);
 
   const activeSeason = canToggleSeason ? season : "2026";
 
-  const selectedRoundData = rounds2025.find((r) => r.number === selectedRound);
+  const fetch2025 = useCallback(async () => {
+    if (rounds2025 || loading2025) return;
+    setLoading2025(true);
+    try {
+      const res = await fetch("/api/stats/2025-fixtures");
+      if (res.ok) {
+        const data = await res.json();
+        const rounds = data.rounds as RoundData[];
+        setRounds2025(rounds);
+        if (rounds.length > 0) {
+          setSelectedRound(Math.max(...rounds.map((r) => r.number)));
+        }
+      }
+    } finally {
+      setLoading2025(false);
+    }
+  }, [rounds2025, loading2025]);
+
+  useEffect(() => {
+    if (activeSeason === "2025" && !rounds2025 && !loading2025) {
+      fetch2025();
+    }
+  }, [activeSeason, rounds2025, loading2025, fetch2025]);
+
+  const selectedRoundData = rounds2025?.find((r) => r.number === selectedRound);
 
   const showMatchCentre2026 = activeSeason === "2026" && matchCentre2026 && matchCentre2026.fixtures.length > 0;
   const showMatchCentre2025 = activeSeason === "2025" && selectedRoundData && selectedRoundData.fixtures.length > 0;
@@ -55,6 +76,14 @@ export default function StatsSection({
           round1Label={matchCentre2026.round1Label}
           round1Date={matchCentre2026.round1Date}
         />
+      )}
+
+      {activeSeason === "2025" && loading2025 && (
+        <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 0" }}>
+          <div className="text-center" style={{ padding: "40px 0", color: "#5A6371" }}>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Loading 2025 season data...</p>
+          </div>
+        </section>
       )}
 
       {showMatchCentre2025 && (
@@ -84,7 +113,7 @@ export default function StatsSection({
                   backgroundPosition: "right 8px center",
                 }}
               >
-                {rounds2025.map((r) => (
+                {rounds2025!.map((r) => (
                   <option key={r.number} value={r.number}>
                     {r.label}
                   </option>
