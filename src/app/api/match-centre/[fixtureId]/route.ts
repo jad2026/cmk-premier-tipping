@@ -102,22 +102,17 @@ export async function GET(
   const homeTeam = fixture.home_team as { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
   const awayTeam = fixture.away_team as { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
-  const { data: teamMapping } = await supabase
-    .from("opta_team_mapping")
-    .select("opta_team_id, team_id")
-    .in("team_id", [homeTeam.id, awayTeam.id]);
-
-  const optaToTeamId = new Map<string, string>();
-  for (const m of teamMapping ?? []) {
-    optaToTeamId.set(String(m.opta_team_id), m.team_id);
-  }
-
   const [
+    { data: teamMapping },
     { data: teamStats },
     { data: matchEvents },
     { data: playerStats },
     { data: commentaryRows },
   ] = await Promise.all([
+    supabase
+      .from("opta_team_mapping")
+      .select("opta_team_id, team_id")
+      .in("team_id", [homeTeam.id, awayTeam.id]),
     supabase
       .from("opta_team_stats")
       .select("opta_team_id, stats")
@@ -130,13 +125,19 @@ export async function GET(
     supabase
       .from("opta_player_stats")
       .select("opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats")
-      .eq("opta_game_id", optaGameId),
+      .eq("opta_game_id", optaGameId)
+      .limit(46),
     supabase
       .from("opta_commentary")
       .select("minute, event_type, comment")
       .eq("opta_game_id", optaGameId)
       .order("minute", { ascending: false }),
   ]);
+
+  const optaToTeamId = new Map<string, string>();
+  for (const m of teamMapping ?? []) {
+    optaToTeamId.set(String(m.opta_team_id), m.team_id);
+  }
 
   let homeStats = mapTeamStats(null);
   let awayStats = mapTeamStats(null);
@@ -249,7 +250,11 @@ export async function GET(
     commentary,
   };
 
+  const cacheHeader = status.type === "fulltime"
+    ? "public, max-age=86400, s-maxage=86400"
+    : "public, s-maxage=10, stale-while-revalidate=20";
+
   return NextResponse.json(result, {
-    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20" },
+    headers: { "Cache-Control": cacheHeader },
   });
 }
