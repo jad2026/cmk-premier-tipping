@@ -32,6 +32,15 @@ function countEvents(fixture: MatchFixture, type: MatchEventType): number {
   return fixture.events.filter((e) => e.type === type).length;
 }
 
+function hasDetailData(f: MatchFixture): boolean {
+  return (
+    f.events.length > 0 ||
+    f.homePlayers.length > 0 ||
+    Object.values(f.homeStats).some((v) => v > 0) ||
+    Object.values(f.awayStats).some((v) => v > 0)
+  );
+}
+
 /* ── Component ──────────────────────────────────────────────────── */
 
 export default function MatchCentre({ fixtures: initialFixtures, round1Label, round1Date, disablePolling }: Props) {
@@ -39,21 +48,50 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
   const [expanded, setExpanded] = useState(false);
   const [activeFixtureIdx, setActiveFixtureIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("stats");
+  const [fetchCache, setFetchCache] = useState<Record<string, MatchFixture>>({});
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     setFixtures(initialFixtures);
     setActiveFixtureIdx(0);
+    setFetchCache({});
+    setLoadingId(null);
   }, [initialFixtures]);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
 
-  const fixture = fixtures[activeFixtureIdx] ?? null;
+  const baseFixture = fixtures[activeFixtureIdx] ?? null;
+  const fixture = baseFixture
+    ? fetchCache[baseFixture.id] ?? baseFixture
+    : null;
 
   const hasLiveOrFinished = fixtures.some(
     (f) => f.status.type === "live" || f.status.type === "fulltime",
   );
   const allPre = fixtures.every((f) => f.status.type === "pre");
 
+  const fetchFixtureDetail = useCallback(async (fixtureId: string) => {
+    if (fetchCache[fixtureId] || loadingId === fixtureId) return;
+    setLoadingId(fixtureId);
+    try {
+      const res = await fetch(`/api/match-centre/${fixtureId}`);
+      if (res.ok) {
+        const data = (await res.json()) as MatchFixture;
+        setFetchCache((prev) => ({ ...prev, [fixtureId]: data }));
+      }
+    } finally {
+      setLoadingId((prev) => (prev === fixtureId ? null : prev));
+    }
+  }, [fetchCache, loadingId]);
+
+  // On-demand fetch: when expanded and active fixture lacks detail data, fetch it
+  useEffect(() => {
+    if (!expanded || !baseFixture) return;
+    if (hasDetailData(fetchCache[baseFixture.id] ?? baseFixture)) return;
+    fetchFixtureDetail(baseFixture.id);
+  }, [expanded, baseFixture, fetchCache, fetchFixtureDetail]);
+
+  // Polling: only when expanded, not disabled, and not all pre-match
   const pollFixtures = useCallback(async () => {
     const updated = await Promise.all(
       fixtures.map(async (f) => {
@@ -69,11 +107,12 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     setFixtures(updated);
   }, [fixtures]);
 
+  const shouldPoll = expanded && !allPre && !disablePolling;
   useEffect(() => {
-    if (allPre || disablePolling) return;
+    if (!shouldPoll) return;
     const id = setInterval(pollFixtures, POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [allPre, disablePolling, pollFixtures]);
+  }, [shouldPoll, pollFixtures]);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -85,6 +124,9 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
   }, [expanded, activeTab, activeFixtureIdx]);
 
   if (!fixture) return null;
+
+  const isFixtureLoading = loadingId === fixture.id;
+  const fixtureHasDetail = hasDetailData(fixture);
 
   const hasRealData =
     fixture.events.length > 0 ||
@@ -130,6 +172,18 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
       </div>
     );
   }
+
+  const loadingSpinner = (
+    <div className="flex flex-col items-center justify-center" style={{ padding: "48px 0", gap: 12 }}>
+      <div style={{
+        width: 28, height: 28, border: "3px solid rgba(255,255,255,.1)",
+        borderTopColor: "var(--accent)", borderRadius: "50%",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.35)" }}>Loading match data...</span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
@@ -353,7 +407,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
             {/* Tab content */}
             <div style={{ padding: "20px 24px 24px", position: "relative" }}>
               {/* Placeholder overlay */}
-              {isPlaceholder && (
+              {isPlaceholder && !isFixtureLoading && (
                 <div style={{
                   position: "absolute", inset: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center",
                   background: "rgba(11,14,19,.7)", backdropFilter: "blur(2px)",
@@ -378,8 +432,11 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                 </div>
               )}
 
+              {/* Loading spinner */}
+              {isFixtureLoading && !fixtureHasDetail && loadingSpinner}
+
               {/* TAB 1: Match Stats */}
-              {activeTab === "stats" && (
+              {activeTab === "stats" && !isFixtureLoading && (
                 <div className="flex flex-col" style={{ gap: 16 }}>
                   {STAT_ROWS.map(({ key, label }) => (
                     <div key={key}>
@@ -393,7 +450,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
               )}
 
               {/* TAB 2: Players */}
-              {activeTab === "players" && (
+              {activeTab === "players" && !isFixtureLoading && (
                 <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 24 }}>
                   {[
                     { label: fixture.homeTeam.short_name, players: fixture.homePlayers, team: fixture.homeTeam },
@@ -471,7 +528,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
               )}
 
               {/* TAB 3: Events */}
-              {activeTab === "events" && (
+              {activeTab === "events" && !isFixtureLoading && (
                 <div>
                   {fixture.events.length === 0 ? (
                     <div className="text-center" style={{ padding: "32px 0", color: "rgba(255,255,255,.25)" }}>
@@ -516,7 +573,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
               )}
 
               {/* TAB 4: Commentary */}
-              {activeTab === "commentary" && (
+              {activeTab === "commentary" && !isFixtureLoading && (
                 <div>
                   {(fixture.commentary ?? []).length === 0 ? (
                     <div className="text-center" style={{ padding: "32px 0", color: "rgba(255,255,255,.25)" }}>
@@ -582,4 +639,3 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     </section>
   );
 }
-
