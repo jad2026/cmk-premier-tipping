@@ -208,7 +208,10 @@ function formatPosition(raw: string): string {
 }
 
 function formatStatValue(key: string, value: number): string {
-  if (key.includes("pct") || key.includes("success")) return `${value.toFixed(1)}%`;
+  if (key.includes("pct") || key.includes("success")) {
+    const display = value <= 1 ? value * 100 : value;
+    return `${Math.round(display)}%`;
+  }
   return String(Math.round(value));
 }
 
