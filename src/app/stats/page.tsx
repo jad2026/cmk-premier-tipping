@@ -346,19 +346,25 @@ async function getStatsData(
 }
 
 export default async function LadderPage() {
+  const totalStart = Date.now();
   const supabase = await createClient();
+
+  console.time("[stats] competition");
   const compId = await getCurrentCompetitionId();
   const tz = await getCompetitionTimezone(compId);
+  console.timeEnd("[stats] competition");
 
   const CMK_WOMEN_COMPETITION_ID = "952743a7-9e79-4c5b-b15c-7fe07c4ca420";
   const tenantIds = compId === CMK_COMPETITION_ID
     ? [CMK_COMPETITION_ID, CMK_WOMEN_COMPETITION_ID]
     : [compId];
 
+  console.time("[stats] auth");
   const [
     { data: activeComps },
     teams,
     { data: closedGameweeks },
+    { data: { user } },
   ] = await Promise.all([
     supabase
       .from("competitions")
@@ -373,14 +379,19 @@ export default async function LadderPage() {
       .eq("is_open", false)
       .order("number", { ascending: false })
       .limit(1),
+    supabase.auth.getUser(),
   ]);
+  console.timeEnd("[stats] auth");
 
-  const { data: { user } } = await supabase.auth.getUser();
   const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
+
+  console.time("[stats] statsdata");
   const statsData = user ? await getStatsData(supabase, user.id === GATED_USER_ID) : null;
+  console.timeEnd("[stats] statsdata");
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
 
+  console.time("[stats] standings");
   const { data: rows, error } = activeXplorerIds.length > 0
     ? await supabase
         .from("ladder_standings")
@@ -390,6 +401,7 @@ export default async function LadderPage() {
         .in("comp_id", activeXplorerIds)
         .order("position", { ascending: true })
     : { data: [], error: null };
+  console.timeEnd("[stats] standings");
 
   if (error) console.error("ladder_standings query error:", error);
 
@@ -418,7 +430,7 @@ export default async function LadderPage() {
   const compLabel = isNpc ? "Provincial" : "CMK Premier";
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
-  // Fetch Round 1 fixtures for the match centre preview
+  console.time("[stats] matchcentre");
   let matchCentreFixtures: MatchFixture[] = [];
   let round1Label: string | null = null;
   let round1Date: string | null = null;
@@ -453,7 +465,11 @@ export default async function LadderPage() {
     }
   }
 
+  console.timeEnd("[stats] matchcentre");
+
   const canToggleSeason = isNpc && user?.id === GATED_USER_ID;
+
+  console.log(`[stats] total: ${Date.now() - totalStart}ms`);
 
   function compHeading(rows: LadderRow[]): string {
     const names = rows.map((r) => r.team_name.toLowerCase());
