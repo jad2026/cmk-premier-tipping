@@ -49,7 +49,7 @@ const TEAM_ALL_GROUPS: StatGroup[] = [
       { key: "dominant_tackles", label: "Dominant Tackles" },
       { key: "missed_tackles", label: "Missed Tackles" },
       { key: "tackle_turnover", label: "Tackle Turnovers" },
-      { key: "turnover_won", label: "Turnovers Won" },
+      { key: "turnovers_won", label: "Turnovers Won" },
       { key: "tackle_success", label: "Tackle Success" },
     ],
   },
@@ -59,8 +59,8 @@ const TEAM_ALL_GROUPS: StatGroup[] = [
       { key: "kicks", label: "Kicks" },
       { key: "kick_metres", label: "Kick Metres" },
       { key: "points", label: "Points" },
-      { key: "kick_penalty_good", label: "Penalty Goals" },
-      { key: "conversion_goals", label: "Conversions" },
+      { key: "penalty_goals", label: "Penalty Goals" },
+      { key: "conversions", label: "Conversions" },
     ],
   },
   {
@@ -69,7 +69,7 @@ const TEAM_ALL_GROUPS: StatGroup[] = [
       { key: "lineouts_won", label: "Lineouts Won" },
       { key: "lineout_success", label: "Lineout Success" },
       { key: "total_lineouts", label: "Total Lineouts" },
-      { key: "scrums_won_outright", label: "Scrums Won" },
+      { key: "scrums_won", label: "Scrums Won" },
     ],
   },
   {
@@ -77,7 +77,7 @@ const TEAM_ALL_GROUPS: StatGroup[] = [
     stats: [
       { key: "penalties_conceded", label: "Penalties Conceded" },
       { key: "handling_errors", label: "Handling Errors" },
-      { key: "turnovers_conceded", label: "Turnovers Conceded" },
+      { key: "turnovers_won", label: "Turnovers Conceded" },
     ],
   },
 ];
@@ -112,7 +112,7 @@ const PLAYER_ALL_GROUPS: StatGroup[] = [
       { key: "dominant_tackles", label: "Dominant Tackles" },
       { key: "missed_tackles", label: "Missed Tackles" },
       { key: "tackle_turnover", label: "Tackle Turnovers" },
-      { key: "turnover_won", label: "Turnovers Won" },
+      { key: "turnovers_won", label: "Turnovers Won" },
     ],
   },
   {
@@ -121,8 +121,8 @@ const PLAYER_ALL_GROUPS: StatGroup[] = [
       { key: "kicks", label: "Kicks" },
       { key: "kick_metres", label: "Kick Metres" },
       { key: "points", label: "Points" },
-      { key: "kick_penalty_good", label: "Penalty Goals" },
-      { key: "conversion_goals", label: "Conversions" },
+      { key: "penalty_goals", label: "Penalty Goals" },
+      { key: "conversions", label: "Conversions" },
     ],
   },
   {
@@ -131,13 +131,13 @@ const PLAYER_ALL_GROUPS: StatGroup[] = [
       { key: "lineouts_won", label: "Lineouts Won" },
       { key: "lineout_success", label: "Lineout Success" },
       { key: "total_lineouts", label: "Total Lineouts" },
-      { key: "scrums_won_outright", label: "Scrums Won" },
+      { key: "scrums_won", label: "Scrums Won" },
     ],
   },
   {
     label: "General",
     stats: [
-      { key: "minutes_played_total", label: "Minutes Played" },
+      { key: "minutes_played", label: "Minutes Played" },
       { key: "penalties_conceded", label: "Penalties Conceded" },
       { key: "handling_errors", label: "Handling Errors" },
     ],
