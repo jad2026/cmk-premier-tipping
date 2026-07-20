@@ -244,7 +244,7 @@ const STAT_KEYS = [
   "runs", "kicks", "scrums_won", "minutes_played",
 ] as const;
 
-type ViewRow = {
+type PlayerViewRow = {
   opta_player_id: string;
   player_name: string | null;
   opta_team_id: number | null;
@@ -253,19 +253,35 @@ type ViewRow = {
   games: number;
 } & Record<string, number | null>;
 
+type TeamViewRow = {
+  opta_team_id: number | null;
+  season: string;
+  games: number;
+} & Record<string, number | null>;
+
+const TEAM_STAT_KEYS = [
+  "tries", "tackles", "metres", "clean_breaks", "defenders_beaten",
+  "offloads", "points", "penalties_conceded", "turnovers_conceded",
+  "dominant_tackles", "missed_tackles", "tackle_turnovers", "turnovers_won",
+  "runs", "kicks", "kick_metres", "penalty_goals", "conversions",
+  "lineouts_won", "total_lineouts", "scrums_won",
+  "possession_pct", "territory_pct", "lineout_success", "tackle_success",
+] as const;
+
 type SeasonStatsData = {
   teams: TeamAgg[];
   players: PlayerAgg[];
   teamNames: string[];
 };
 
-function buildSeasonFromView(
-  rows: ViewRow[],
+function buildSeasonData(
+  playerRows: PlayerViewRow[],
+  teamRows: TeamViewRow[],
   resolveTeamName: (optaId: number | null) => string,
 ): SeasonStatsData | null {
-  if (rows.length === 0) return null;
+  if (playerRows.length === 0 && teamRows.length === 0) return null;
 
-  const players: PlayerAgg[] = rows.map((r) => {
+  const players: PlayerAgg[] = playerRows.map((r) => {
     const stats: Record<string, number> = {};
     for (const key of STAT_KEYS) stats[key] = Number(r[key]) || 0;
     return {
@@ -277,21 +293,16 @@ function buildSeasonFromView(
     };
   });
 
-  const teamAgg = new Map<string, TeamAgg>();
-  for (const p of players) {
-    if (p.teamName === "Unknown") continue;
-    const existing = teamAgg.get(p.teamName);
-    if (existing) {
-      existing.games = Math.max(existing.games, p.games);
-      for (const key of STAT_KEYS) existing.stats[key] = (existing.stats[key] ?? 0) + p.stats[key];
-    } else {
+  const teams: TeamAgg[] = teamRows
+    .map((r) => {
+      const teamName = resolveTeamName(r.opta_team_id);
+      if (teamName === "Unknown") return null;
       const stats: Record<string, number> = {};
-      for (const key of STAT_KEYS) stats[key] = p.stats[key];
-      teamAgg.set(p.teamName, { teamName: p.teamName, games: p.games, stats });
-    }
-  }
+      for (const key of TEAM_STAT_KEYS) stats[key] = Number(r[key]) || 0;
+      return { teamName, games: Number(r.games) || 0, stats };
+    })
+    .filter((t): t is TeamAgg => t !== null);
 
-  const teams = Array.from(teamAgg.values());
   const teamNameSet = new Set([
     ...teams.map((t) => t.teamName),
     ...players.map((p) => p.teamName),
@@ -328,17 +339,32 @@ async function getStatsData(
   }
 
   const seasons = include2025 ? ["2025", "2026"] : ["2026"];
-  const { data: viewRows } = await supabase
-    .from("player_season_stats" as "fixtures")
-    .select("*")
-    .in("season", seasons) as { data: ViewRow[] | null };
+  const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+    supabase
+      .from("player_season_stats" as "fixtures")
+      .select("*")
+      .in("season", seasons) as unknown as Promise<{ data: PlayerViewRow[] | null }>,
+    supabase
+      .from("team_season_stats" as "fixtures")
+      .select("*")
+      .in("season", seasons) as unknown as Promise<{ data: TeamViewRow[] | null }>,
+  ]);
 
-  const allRows = (viewRows ?? []) as unknown as ViewRow[];
-  const rows2026 = allRows.filter((r) => r.season === "2026");
-  const rows2025 = allRows.filter((r) => r.season === "2025");
+  const allPlayerRows = (playerRows ?? []) as unknown as PlayerViewRow[];
+  const allTeamRows = (teamRows ?? []) as unknown as TeamViewRow[];
 
-  const season2026 = buildSeasonFromView(rows2026, resolveTeamName);
-  const season2025 = include2025 ? buildSeasonFromView(rows2025, resolveTeamName) : null;
+  const season2026 = buildSeasonData(
+    allPlayerRows.filter((r) => r.season === "2026"),
+    allTeamRows.filter((r) => r.season === "2026"),
+    resolveTeamName,
+  );
+  const season2025 = include2025
+    ? buildSeasonData(
+        allPlayerRows.filter((r) => r.season === "2025"),
+        allTeamRows.filter((r) => r.season === "2025"),
+        resolveTeamName,
+      )
+    : null;
 
   if (!season2025 && !season2026) return null;
 

@@ -128,8 +128,6 @@ const PLAYER_ALL_GROUPS: StatGroup[] = [
     label: "Set Piece",
     stats: [
       { key: "lineouts_won", label: "Lineouts Won" },
-      { key: "lineout_success", label: "Lineout Success" },
-      { key: "total_lineouts", label: "Total Lineouts" },
       { key: "scrums_won", label: "Scrums Won" },
     ],
   },
