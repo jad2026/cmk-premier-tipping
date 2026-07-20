@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     .select("id, label, deadline, competition_id")
     .eq("is_open", true)
     .gt("deadline", new Date().toISOString())
+    .lt("deadline", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString())
     .order("deadline", { ascending: true });
 
   if (!gws || gws.length === 0) {
