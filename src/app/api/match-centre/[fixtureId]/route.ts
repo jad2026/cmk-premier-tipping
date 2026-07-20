@@ -189,6 +189,8 @@ export async function GET(
     });
   }
 
+  const hasOptaPlayers = (playerStats ?? []).length > 0;
+
   const buildPlayers = (teamId: string): PlayerMatchStats[] => {
     const rows = (playerStats ?? []).filter(
       (p) => optaToTeamId.get(String(p.opta_team_id)) === teamId,
@@ -208,6 +210,36 @@ export async function GET(
       };
     });
   };
+
+  let squadHome: PlayerMatchStats[] = [];
+  let squadAway: PlayerMatchStats[] = [];
+
+  if (!hasOptaPlayers) {
+    const { data: squadRows } = await supabase
+      .from("players")
+      .select("id, first_name, last_name, jersey_number, position, team_id")
+      .in("team_id", [homeTeam.id, awayTeam.id])
+      .eq("is_active", true)
+      .order("jersey_number", { ascending: true });
+
+    const mapSquad = (teamId: string): PlayerMatchStats[] =>
+      (squadRows ?? [])
+        .filter((p) => p.team_id === teamId)
+        .map((p) => ({
+          playerId: p.id,
+          name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Unknown",
+          jerseyNumber: p.jersey_number ?? 0,
+          positionGroup: positionGroup(null, p.jersey_number as number | null),
+          tries: 0,
+          carries: 0,
+          metres: 0,
+          tackles: 0,
+          missedTackles: 0,
+        }));
+
+    squadHome = mapSquad(homeTeam.id);
+    squadAway = mapSquad(awayTeam.id);
+  }
 
   const hasScores = fixture.home_score != null && fixture.away_score != null;
   const matchDate = new Date(fixture.match_date);
@@ -250,8 +282,8 @@ export async function GET(
     status,
     homeStats,
     awayStats,
-    homePlayers: buildPlayers(homeTeam.id),
-    awayPlayers: buildPlayers(awayTeam.id),
+    homePlayers: hasOptaPlayers ? buildPlayers(homeTeam.id) : squadHome,
+    awayPlayers: hasOptaPlayers ? buildPlayers(awayTeam.id) : squadAway,
     events,
     commentary,
   };
