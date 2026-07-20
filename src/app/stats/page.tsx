@@ -237,9 +237,9 @@ async function buildLiveFixtures(
 
 const STAT_KEYS = [
   "tries", "tackles", "metres", "clean_breaks", "defenders_beaten",
-  "dominant_tackles", "tackle_turnover", "missed_tackles", "penalty_goals",
+  "dominant_tackles", "tackle_turnovers", "missed_tackles", "penalty_goals",
   "conversions", "kick_metres", "kicks_from_hand", "lineouts_won",
-  "carries_metres", "offload", "line_break_assists", "points",
+  "offloads", "line_break_assists", "points",
   "penalties_conceded", "turnovers_won", "handling_errors", "try_assists",
   "runs", "kicks", "scrums_won", "minutes_played",
 ] as const;
