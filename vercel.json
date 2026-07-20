@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/wednesday-reminder",
-      "schedule": "0 19 * * 2"
+      "schedule": "0 19 * * 1"
     },
     {
       "path": "/api/cron/reminder",
