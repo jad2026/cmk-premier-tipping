@@ -52,6 +52,18 @@ export async function GET(request: Request) {
 
     if (!gameweeks || gameweeks.length === 0) continue;
 
+    const gwIds = gameweeks.map((gw) => gw.id);
+    const { count: resultsCount } = await admin
+      .from("fixtures")
+      .select("id", { count: "exact", head: true })
+      .in("gameweek_id", gwIds)
+      .not("home_score", "is", null);
+
+    if (!resultsCount || resultsCount === 0) {
+      console.log(`[sponsored-league-email] Skipping ${league.name} — no completed rounds yet`);
+      continue;
+    }
+
     const upcoming = gameweeks.filter((gw) => gw.deadline >= now);
     const past = gameweeks.filter((gw) => gw.deadline < now);
     const currentGw = upcoming[0] ?? past[past.length - 1];
