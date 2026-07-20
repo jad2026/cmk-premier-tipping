@@ -4,7 +4,6 @@ import { getCompetitionTimezone } from "@/lib/competition";
 import type { MatchFixture, MatchStats } from "@/app/stats/matchCentreTypes";
 
 const NPC_2025_COMPETITION_ID = "aa056357-840d-41be-b311-afd2298d42ad";
-const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
 
 function emptyStats(): MatchStats {
   return {
@@ -18,7 +17,7 @@ export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.id !== GATED_USER_ID) {
+  if (!user) {
     return NextResponse.json({ rounds: [] }, { status: 403 });
   }
 

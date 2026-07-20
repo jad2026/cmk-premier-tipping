@@ -409,10 +409,8 @@ export default async function LadderPage() {
   ]);
   console.timeEnd("[stats] auth");
 
-  const GATED_USER_ID = "9f509fc4-1eff-4670-8b3f-b03d4315ad35";
-
   console.time("[stats] statsdata");
-  const statsData = user ? await getStatsData(supabase, user.id === GATED_USER_ID) : null;
+  const statsData = user ? await getStatsData(supabase, !!user) : null;
   console.timeEnd("[stats] statsdata");
 
   const activeXplorerIds = (activeComps ?? []).map((c: { comp_id: string }) => c.comp_id);
@@ -493,7 +491,7 @@ export default async function LadderPage() {
 
   console.timeEnd("[stats] matchcentre");
 
-  const canToggleSeason = isNpc && user?.id === GATED_USER_ID;
+  const canToggleSeason = isNpc && !!user;
 
   console.log(`[stats] total: ${Date.now() - totalStart}ms`);
 
