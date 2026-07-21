@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
+import { createClient } from "@/lib/supabase/client";
+import { initPushNotifications } from "@/lib/pushNotifications";
 
 export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, user = null, isAdmin = false, competitionId = "" }: { siteName?: string; showSquads?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string }) {
   const pathname = usePathname();
@@ -25,6 +27,15 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
+
+  // Init Capacitor push notifications once per session
+  const pushInitRef = useRef(false);
+  useEffect(() => {
+    if (!user || pushInitRef.current) return;
+    pushInitRef.current = true;
+    const supabase = createClient();
+    initPushNotifications(supabase, user.id).catch(console.error);
+  }, [user]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
