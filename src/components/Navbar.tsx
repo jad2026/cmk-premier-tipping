@@ -33,8 +33,12 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   useEffect(() => {
     if (!user || pushInitRef.current) return;
     pushInitRef.current = true;
-    const supabase = createClient();
-    initPushNotifications(supabase, user.id).catch(console.error);
+    try {
+      const supabase = createClient();
+      initPushNotifications(supabase, user.id).catch(() => {});
+    } catch (err) {
+      console.error("Push init failed:", err);
+    }
   }, [user]);
 
   const isActive = (href: string) =>
