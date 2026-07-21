@@ -1,12 +1,13 @@
-import { PushNotifications } from "@capacitor/push-notifications";
-import { Capacitor } from "@capacitor/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function initPushNotifications(
   supabase: SupabaseClient,
   userId: string,
 ) {
-  if (!Capacitor.isNativePlatform()) return;
+  const { Capacitor } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
+  if (!Capacitor?.isNativePlatform()) return;
+
+  const { PushNotifications } = await import("@capacitor/push-notifications");
 
   const permission = await PushNotifications.requestPermissions();
   if (permission.receive !== "granted") return;
