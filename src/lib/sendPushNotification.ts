@@ -24,12 +24,9 @@ function getApnsJwt(): string {
     throw new Error("Missing APNS_KEY_ID, APNS_TEAM_ID, or APNS_PRIVATE_KEY");
   }
 
-  const token = jwt.sign({}, privateKey.replace(/\\n/g, "\n"), {
+  const token = jwt.sign({ iss: teamId, iat: now }, privateKey.replace(/\\n/g, "\n"), {
     algorithm: "ES256",
     header: { alg: "ES256", kid: keyId },
-    issuer: teamId,
-    issuedAt: now,
-    expiresIn: "50m",
   });
 
   cachedToken = { jwt: token, expires: now + 2400 };
