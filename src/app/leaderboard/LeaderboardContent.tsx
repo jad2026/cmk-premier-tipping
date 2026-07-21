@@ -58,22 +58,21 @@ function PodiumCard({ entry, rank, isFirst }: { entry: LeaderboardRow; rank: num
 
   return (
     <div
-      className="relative overflow-hidden"
+      className="relative overflow-hidden p-3 sm:p-[22px]"
       style={{
         background: isFirst ? "#0D1016" : "#fff",
         border: `1px solid ${isFirst ? "#0D1016" : "#E4E1D8"}`,
         borderRadius: 18,
-        padding: "24px 22px",
         ...(isFirst ? { transform: "translateY(-14px)" } : {}),
       }}
     >
       <div
+        className="text-[28px] sm:text-[46px]"
         style={{
           position: "absolute",
-          top: 16,
-          right: 18,
+          top: 10,
+          right: 10,
           fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-          fontSize: 46,
           lineHeight: 1,
           color: isFirst ? "var(--accent)" : "rgba(17,21,28,.10)",
           opacity: 0.9,
@@ -83,18 +82,16 @@ function PodiumCard({ entry, rank, isFirst }: { entry: LeaderboardRow; rank: num
       </div>
 
       {entry.avatarUrl ? (
-        <div className="mb-4">
-          <Avatar url={entry.avatarUrl} name={entry.displayName} size={54} />
+        <div className="mb-2 sm:mb-4">
+          <span className="sm:hidden"><Avatar url={entry.avatarUrl} name={entry.displayName} size={34} /></span>
+          <span className="hidden sm:block"><Avatar url={entry.avatarUrl} name={entry.displayName} size={54} /></span>
         </div>
       ) : (
         <div
-          className="flex items-center justify-center rounded-full mb-4"
+          className="flex items-center justify-center rounded-full mb-2 sm:mb-4 w-[34px] h-[34px] sm:w-[54px] sm:h-[54px] text-[12px] sm:text-[18px]"
           style={{
-            width: 54,
-            height: 54,
             background: AVATAR_COLORS[colorIdx],
             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-            fontSize: 18,
             color: "#fff",
           }}
         >
@@ -103,24 +100,24 @@ function PodiumCard({ entry, rank, isFirst }: { entry: LeaderboardRow; rank: num
       )}
 
       <div
-        className="font-display uppercase"
-        style={{ fontSize: 21, lineHeight: 1, color: isFirst ? "#fff" : "#11151C" }}
+        className="font-display uppercase truncate text-[13px] sm:text-[21px]"
+        style={{ lineHeight: 1.1, color: isFirst ? "#fff" : "#11151C" }}
       >
         {entry.displayName}
       </div>
 
-      <div style={{ fontSize: 13, color: isFirst ? "#9AA1AD" : "#8B8676", marginTop: 6, fontWeight: 600 }}>
-        {pct(entry.manualCorrect, entry.manualTotal)} accuracy
+      <div className="text-[10px] sm:text-[13px] mt-1 sm:mt-1.5" style={{ color: isFirst ? "#9AA1AD" : "#8B8676", fontWeight: 600 }}>
+        {pct(entry.manualCorrect, entry.manualTotal)} acc
       </div>
 
-      <div className="flex items-baseline gap-2" style={{ marginTop: 18 }}>
+      <div className="flex items-baseline gap-1 mt-2 sm:mt-[18px]">
         <span
-          className="font-display"
-          style={{ fontSize: 38, lineHeight: 1, color: isFirst ? "var(--accent)" : "#11151C" }}
+          className="font-display text-[24px] sm:text-[38px]"
+          style={{ lineHeight: 1, color: isFirst ? "var(--accent)" : "#11151C" }}
         >
           {entry.totalScore}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: isFirst ? "#9AA1AD" : "#8B8676" }}>
+        <span className="text-[10px] sm:text-[13px]" style={{ fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: isFirst ? "#9AA1AD" : "#8B8676" }}>
           pts
         </span>
       </div>
@@ -223,8 +220,8 @@ export default function LeaderboardContent({
     sorted.length >= 3 ? [sorted[1], sorted[0], sorted[2]] : [];
 
   const gridCls = marginPicking
-    ? "grid-cols-[28px_1fr_32px_32px_38px_34px_36px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
-    : "grid-cols-[28px_1fr_28px_38px_34px_36px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]";
+    ? "grid-cols-[22px_1fr_28px_28px_32px_28px_32px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
+    : "grid-cols-[22px_1fr_24px_32px_28px_32px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]";
 
   function copyCode(code: string, leagueId: string) {
     navigator.clipboard.writeText(code);
@@ -368,8 +365,8 @@ export default function LeaderboardContent({
 
       {/* Podium */}
       {podiumEntries.length === 3 && !noRoundsPlayed && (
-        <section className="mx-auto" style={{ maxWidth: 1100, padding: "34px 32px 16px" }}>
-          <div className="grid grid-cols-3 items-end" style={{ gap: 16 }}>
+        <section className="mx-auto px-3 sm:px-8" style={{ maxWidth: 1100, paddingTop: 34, paddingBottom: 16 }}>
+          <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
             {podiumEntries.map((entry, idx) => {
               const isFirst = idx === 1;
               const podiumRank = idx === 0 ? 2 : idx === 1 ? 1 : 3;
@@ -387,7 +384,7 @@ export default function LeaderboardContent({
       )}
 
       {/* Full table */}
-      <section className="mx-auto" style={{ maxWidth: 1100, padding: "18px 32px 40px" }}>
+      <section className="mx-auto px-3 sm:px-8 pt-[18px] pb-10" style={{ maxWidth: 1100 }}>
         {noRoundsPlayed && (
           <div
             className="flex items-center gap-3"
@@ -426,14 +423,12 @@ export default function LeaderboardContent({
             }}
           >
             <div
-              className={`grid gap-x-1 sm:gap-x-2 ${gridCls}`}
+              className={`grid gap-x-1 sm:gap-x-2 ${gridCls} px-3 py-3 sm:px-[22px] sm:py-[15px] text-[10px] sm:text-[11px]`}
               style={{
-                padding: "15px 22px",
                 background: "#0D1016",
                 color: "#9AA1AD",
-                fontSize: 11,
                 fontWeight: 800,
-                letterSpacing: ".1em",
+                letterSpacing: ".08em",
                 textTransform: "uppercase",
                 position: "sticky",
                 top: 0,
@@ -479,57 +474,56 @@ export default function LeaderboardContent({
                 return (
                   <div
                     key={entry.user_id}
-                    className={`grid gap-x-1 sm:gap-x-2 ${gridCls}`}
+                    className={`grid gap-x-1 sm:gap-x-2 ${gridCls} px-3 py-2.5 sm:px-[22px] sm:py-[15px]`}
                     style={{
                       alignItems: "center",
-                      padding: "15px 22px",
                       borderTop: "1px solid #EFEDE6",
                       background: isYou ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
                       borderLeft: isYou ? "3px solid var(--accent)" : "3px solid transparent",
                     }}
                   >
                     <span
-                      className="font-display"
-                      style={{ fontSize: 16, color: displayRank <= 3 ? "var(--accent)" : "#11151C" }}
+                      className="font-display text-[12px] sm:text-[16px]"
+                      style={{ color: displayRank <= 3 ? "var(--accent)" : "#11151C" }}
                     >
                       {displayRank}
                     </span>
 
-                    <span className="flex items-center" style={{ gap: 12 }}>
+                    <span className="flex items-center min-w-0" style={{ gap: 6 }}>
                       {entry.avatarUrl ? (
-                        <Avatar url={entry.avatarUrl} name={entry.displayName} size={34} />
+                        <span className="shrink-0">
+                          <span className="sm:hidden"><Avatar url={entry.avatarUrl} name={entry.displayName} size={24} /></span>
+                          <span className="hidden sm:block"><Avatar url={entry.avatarUrl} name={entry.displayName} size={34} /></span>
+                        </span>
                       ) : (
                         <span
-                          className="flex items-center justify-center rounded-full shrink-0"
+                          className="flex items-center justify-center rounded-full shrink-0 w-6 h-6 sm:w-[34px] sm:h-[34px] text-[9px] sm:text-[12px]"
                           style={{
-                            width: 34,
-                            height: 34,
                             background: isYou ? "var(--accent)" : AVATAR_COLORS[colorIdx],
                             fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-                            fontSize: 12,
                             color: "#fff",
                           }}
                         >
                           {initials(entry.displayName)}
                         </span>
                       )}
-                      <span className="flex flex-col">
-                        <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C" }}>
+                      <span className="flex flex-col min-w-0">
+                        <span className="truncate text-[12px] sm:text-[15px]" style={{ fontWeight: 700, color: "#11151C" }}>
                           {entry.displayName}
                         </span>
                       </span>
                       {showSupportedTeam && entry.supportedTeam && (
-                        <TeamBadge team={entry.supportedTeam} size="xs" />
+                        <span className="hidden sm:inline-flex shrink-0"><TeamBadge team={entry.supportedTeam} size="xs" /></span>
                       )}
                       {isYou && (
                         <span
+                          className="shrink-0"
                           style={{
-                            marginLeft: 4,
-                            padding: "3px 9px",
+                            padding: "2px 6px",
                             borderRadius: 999,
                             background: "var(--accent)",
                             color: "var(--accent-text, #11151C)",
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: 800,
                             letterSpacing: ".08em",
                             textTransform: "uppercase",
@@ -542,30 +536,30 @@ export default function LeaderboardContent({
 
                     {marginPicking ? (
                       <>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
+                        <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", fontWeight: 700, color: entry.correct > 0 ? "#11151C" : "#C7C2B5" }}>
                           {entry.correct}
                         </span>
-                        <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
+                        <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", fontWeight: 700, color: entry.marginBonus > 0 ? "#1F9E5A" : "#C7C2B5" }}>
                           {entry.marginBonus}
                         </span>
                       </>
                     ) : (
-                      <span style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: entry.thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
+                      <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", fontWeight: 700, color: entry.thisRoundCorrect !== null ? "#1F9E5A" : "#C7C2B5" }}>
                         {entry.thisRoundCorrect !== null ? entry.thisRoundCorrect : "—"}
                       </span>
                     )}
 
-                    <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                    <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", color: "#5A6371" }}>
                       {pct(entry.manualCorrect, entry.manualTotal)}
                     </span>
 
-                    <span style={{ textAlign: "center", fontSize: 14, color: entry.manualTotal > 0 ? "#5A6371" : "#C7C2B5" }}>
+                    <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", color: entry.manualTotal > 0 ? "#5A6371" : "#C7C2B5" }}>
                       {entry.manualTotal > 0 ? entry.manualTotal : "—"}
                     </span>
 
                     <span
-                      className="font-display"
-                      style={{ textAlign: "right", fontSize: 18, color: "#11151C" }}
+                      className="font-display text-[14px] sm:text-[18px]"
+                      style={{ textAlign: "right", color: "#11151C" }}
                     >
                       {entry.totalScore}
                     </span>

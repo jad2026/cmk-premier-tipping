@@ -90,7 +90,7 @@ function MobileMarginPicker({
   const TEAM_ROW_H = 34;
 
   return (
-    <div style={{ borderBottom: "1px solid #EFEDE6" }}>
+    <div style={{ borderBottom: "1px solid #EFEDE6", padding: "0 32px" }}>
       {/* Fixed home team label */}
       <div
         style={{
@@ -100,6 +100,7 @@ function MobileMarginPicker({
           justifyContent: "center",
           background: "#FAF9F5",
           borderBottom: "1px solid #EFEDE6",
+          borderRadius: "10px 10px 0 0",
           color: homeColor || "var(--accent)",
           fontSize: 13,
           fontWeight: 800,
@@ -151,7 +152,7 @@ function MobileMarginPicker({
             overflowY: disabled ? "hidden" : "auto",
             scrollSnapType: "y mandatory",
             overscrollBehavior: "contain",
-            touchAction: "pan-y",
+            touchAction: "pan-y pinch-zoom",
             position: "relative",
             zIndex: 1,
           }}
@@ -208,6 +209,7 @@ function MobileMarginPicker({
           justifyContent: "center",
           background: "#FAF9F5",
           borderTop: "1px solid #EFEDE6",
+          borderRadius: "0 0 10px 10px",
           color: awayColor || "var(--accent)",
           fontSize: 13,
           fontWeight: 800,
