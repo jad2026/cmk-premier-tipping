@@ -49,6 +49,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(255,255,255,.08)",
+        paddingTop: "env(safe-area-inset-top)",
       }}
     >
       <div className="max-w-content mx-auto px-4 sm:px-8 flex items-center justify-between h-[74px]">

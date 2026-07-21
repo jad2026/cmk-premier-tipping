@@ -26,6 +26,7 @@ const archivoBlack = Archivo_Black({
 
 export const viewport: Viewport = {
   themeColor: "#0B0E13",
+  viewportFit: "cover",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
