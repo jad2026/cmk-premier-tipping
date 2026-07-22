@@ -27,6 +27,7 @@ function NavIcon({ name }: { name: string }) {
 export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, user = null, isAdmin = false, competitionId = "" }: { siteName?: string; showSquads?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [androidPad, setAndroidPad] = useState(0);
   const menuRef = useRef<HTMLElement>(null);
 
   // Close on outside click or Escape
@@ -43,6 +44,14 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
+
+  // Detect Android Capacitor WebView — env(safe-area-inset-top) doesn't work there
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const isAndroid = /Android/i.test(ua);
+    const isCapacitor = !!(window as /* eslint-disable-line */ any).Capacitor || /CapacitorHttp/i.test(ua);
+    if (isAndroid && isCapacitor) setAndroidPad(36);
+  }, []);
 
   // Init Capacitor push notifications once per session
   const pushInitRef = useRef(false);
@@ -85,7 +94,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(255,255,255,.08)",
-        paddingTop: "env(safe-area-inset-top)",
+        paddingTop: androidPad ? androidPad : "env(safe-area-inset-top)",
       }}
     >
       <div className="max-w-content mx-auto px-4 sm:px-8 flex items-center justify-between h-[74px]">
