@@ -140,9 +140,10 @@ export default async function RootLayout({
                 {siteName}
               </span>
             </div>
-            <span className="text-[12px] text-[#8C93A0]">
-              &copy; 2026 &middot; Club Rugby Tipping
-            </span>
+            <div className="flex items-center gap-3 text-[12px] text-[#8C93A0]">
+              <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+              <span>&copy; 2026</span>
+            </div>
           </div>
         </footer>
       </body>
