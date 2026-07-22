@@ -38,7 +38,16 @@ function getApnsJwt(): string {
 function getFcmServiceAccount(): { client_email: string; private_key: string } {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!raw) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_KEY");
-  return JSON.parse(raw);
+
+  let parsed: { client_email: string; private_key: string };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = JSON.parse(raw.replace(/\n/g, "\\n"));
+  }
+
+  parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
+  return parsed;
 }
 
 async function getFcmAccessToken(): Promise<string> {
@@ -55,7 +64,7 @@ async function getFcmAccessToken(): Promise<string> {
       exp: now + 3600,
       scope: "https://www.googleapis.com/auth/firebase.messaging",
     },
-    sa.private_key.replace(/\\n/g, "\n"),
+    sa.private_key,
     { algorithm: "RS256" },
   );
 
