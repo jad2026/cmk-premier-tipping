@@ -160,15 +160,15 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     const homePct = (home / total) * 100;
     const s = suffix ?? "";
     return (
-      <div className="flex items-center gap-3 w-full">
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 44, textAlign: "right", fontFeatureSettings: "'tnum'" }}>{home}{s}</span>
+      <div className="flex items-center gap-2 sm:gap-3 w-full">
+        <span className="text-xs sm:text-sm shrink-0 text-right" style={{ fontWeight: 700, color: "#fff", width: 36, fontFeatureSettings: "'tnum'" }}>{home}{s}</span>
         <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.08)" }}>
           <div className="flex h-full">
             <div style={{ width: `${homePct}%`, background: "var(--accent)", borderRadius: "999px 0 0 999px", transition: "width .4s ease" }} />
             <div style={{ width: `${100 - homePct}%`, background: "rgba(255,255,255,.15)", borderRadius: "0 999px 999px 0", transition: "width .4s ease" }} />
           </div>
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", width: 44, textAlign: "left", fontFeatureSettings: "'tnum'" }}>{away}{s}</span>
+        <span className="text-xs sm:text-sm shrink-0 text-left" style={{ fontWeight: 700, color: "#fff", width: 36, fontFeatureSettings: "'tnum'" }}>{away}{s}</span>
       </div>
     );
   }
@@ -186,7 +186,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
   );
 
   return (
-    <section className="mx-auto" style={{ maxWidth: 1100, padding: "30px 32px 10px" }}>
+    <section className="mx-auto px-3 sm:px-8" style={{ maxWidth: 1100, paddingTop: 30, paddingBottom: 10 }}>
       <style>{`
         @keyframes accent-glow {
           0%, 100% { box-shadow: 0 0 20px 0 rgba(var(--accent-rgb,217,165,33),.15), inset 0 0 0 1px rgba(var(--accent-rgb,217,165,33),.25); }
@@ -214,7 +214,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
         >
           {/* Header bar */}
-          <div className="flex items-center justify-between" style={{ padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,.08)" }}>
             <div className="flex items-center gap-3">
               <div className="shrink-0" style={{ width: 20, height: 3, borderRadius: 2, background: "var(--accent)" }} />
               <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "#fff" }}>
@@ -244,7 +244,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
           </div>
 
           {/* Match preview */}
-          <div style={{ padding: "28px 24px 20px" }}>
+          <div className="px-4 sm:px-6 pt-5 sm:pt-7 pb-4 sm:pb-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
                 <TeamBadge team={fixture.homeTeam} size="lg" />
@@ -309,7 +309,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
         >
           <div ref={contentRef}>
             {/* Close button */}
-            <div className="flex justify-end" style={{ padding: "0 24px" }}>
+            <div className="flex justify-end px-4 sm:px-6">
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
@@ -325,7 +325,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
 
             {/* Fixture strip (if multiple) */}
             {fixtures.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto" style={{ padding: "12px 24px", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+              <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                 {fixtures.map((f, i) => (
                   <button
                     key={f.id}
@@ -345,67 +345,69 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
             )}
 
             {/* Match header */}
-            <div className="text-center" style={{ padding: "20px 24px 16px" }}>
-              <div className="flex items-center justify-center gap-6">
-                <div className="flex flex-col items-center gap-2">
-                  <TeamBadge team={fixture.homeTeam} size="xl" />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{fixture.homeTeam.name}</span>
+            <div className="text-center px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4">
+              <div className="flex items-center justify-center gap-3 sm:gap-6">
+                <div className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 min-w-0">
+                  <TeamBadge team={fixture.homeTeam} size="lg" />
+                  <span className="text-center text-xs sm:text-sm" style={{ fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{fixture.homeTeam.short_name}</span>
                 </div>
-                <div className="flex flex-col items-center" style={{ gap: 4 }}>
-                  <div className="flex items-center" style={{ gap: 10 }}>
-                    <span className="font-display" style={{ fontSize: 48, color: isPlaceholder ? "rgba(255,255,255,.2)" : "#fff", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                <div className="flex flex-col items-center shrink-0" style={{ gap: 4 }}>
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <span className="font-display text-3xl sm:text-5xl" style={{ color: isPlaceholder ? "rgba(255,255,255,.2)" : "#fff", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
                       {fixture.homeScore}
                     </span>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: "rgba(255,255,255,.15)" }}>–</span>
-                    <span className="font-display" style={{ fontSize: 48, color: isPlaceholder ? "rgba(255,255,255,.2)" : "#fff", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                    <span className="text-sm sm:text-xl" style={{ fontWeight: 800, color: "rgba(255,255,255,.15)" }}>–</span>
+                    <span className="font-display text-3xl sm:text-5xl" style={{ color: isPlaceholder ? "rgba(255,255,255,.2)" : "#fff", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
                       {fixture.awayScore}
                     </span>
                   </div>
                   <span style={{
-                    fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase",
+                    fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase",
                     color: fixture.status.type === "live" ? "#EF4444" : "rgba(255,255,255,.4)",
                   }}>
                     {statusLabel(fixture.status)}
                   </span>
                   {fixture.venue && (
-                    <span style={{ fontSize: 12, color: "rgba(255,255,255,.3)", marginTop: 2 }}>{fixture.venue}</span>
+                    <span className="text-[10px] sm:text-xs" style={{ color: "rgba(255,255,255,.3)", marginTop: 2 }}>{fixture.venue}</span>
                   )}
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <TeamBadge team={fixture.awayTeam} size="xl" />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{fixture.awayTeam.name}</span>
+                <div className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 min-w-0">
+                  <TeamBadge team={fixture.awayTeam} size="lg" />
+                  <span className="text-center text-xs sm:text-sm" style={{ fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{fixture.awayTeam.short_name}</span>
                 </div>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex" style={{ borderBottom: "1px solid rgba(255,255,255,.08)", padding: "0 24px" }}>
+            <div className="flex px-4 sm:px-6" style={{ borderBottom: "1px solid rgba(255,255,255,.08)" }}>
               {([
-                { key: "stats" as Tab, label: "Match Stats" },
-                { key: "players" as Tab, label: "Players" },
-                { key: "events" as Tab, label: "Events" },
-                { key: "commentary" as Tab, label: "Commentary" },
-              ]).map(({ key, label }) => (
+                { key: "stats" as Tab, label: "Stats", labelFull: "Match Stats" },
+                { key: "players" as Tab, label: "Players", labelFull: "Players" },
+                { key: "events" as Tab, label: "Events", labelFull: "Events" },
+                { key: "commentary" as Tab, label: "Live", labelFull: "Commentary" },
+              ]).map(({ key, label, labelFull }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setActiveTab(key)}
+                  className="flex-1 py-3 sm:py-3.5"
                   style={{
-                    flex: 1, padding: "14px 0", cursor: "pointer",
+                    cursor: "pointer",
                     background: "none", border: "none",
                     borderBottom: activeTab === key ? "2px solid var(--accent)" : "2px solid transparent",
                     color: activeTab === key ? "var(--accent)" : "rgba(255,255,255,.4)",
-                    fontSize: 13, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase",
+                    fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase",
                     transition: "color .2s, border-color .2s",
                   }}
                 >
-                  {label}
+                  <span className="text-[10px] sm:hidden">{label}</span>
+                  <span className="hidden sm:inline text-[13px]">{labelFull}</span>
                 </button>
               ))}
             </div>
 
             {/* Tab content */}
-            <div style={{ padding: "20px 24px 24px", position: "relative" }}>
+            <div className="px-4 sm:px-6 py-4 sm:py-5" style={{ position: "relative" }}>
               {/* Placeholder overlay */}
               {isPlaceholder && !isFixtureLoading && (
                 <div style={{
@@ -437,10 +439,10 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
 
               {/* TAB 1: Match Stats */}
               {activeTab === "stats" && !isFixtureLoading && (
-                <div className="flex flex-col" style={{ gap: 16 }}>
+                <div className="flex flex-col gap-3 sm:gap-4">
                   {STAT_ROWS.map(({ key, label, suffix }) => (
                     <div key={key}>
-                      <p className="text-center" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", margin: "0 0 6px" }}>
+                      <p className="text-center text-[10px] sm:text-[11px]" style={{ fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.35)", margin: "0 0 4px" }}>
                         {label}
                       </p>
                       {statBar(fixture.homeStats[key], fixture.awayStats[key], suffix)}
@@ -451,7 +453,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
 
               {/* TAB 2: Players */}
               {activeTab === "players" && !isFixtureLoading && (
-                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 24 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                   {[
                     { label: fixture.homeTeam.short_name, players: fixture.homePlayers, team: fixture.homeTeam },
                     { label: fixture.awayTeam.short_name, players: fixture.awayPlayers, team: fixture.awayTeam },
@@ -467,7 +469,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                           </span>
                         </div>
                         <div className="overflow-x-auto">
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 320 }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, minWidth: 280 }}>
                             <thead>
                               <tr style={{ borderBottom: "1px solid rgba(255,255,255,.08)" }}>
                                 <th style={{ textAlign: "left", padding: "8px 6px", color: "rgba(255,255,255,.3)", fontWeight: 700, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase" }}>#</th>
@@ -598,8 +600,8 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "12px 24px", background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
-              <p className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
+            <div className="px-4 sm:px-6 py-3" style={{ background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
+              <p className="text-center text-xs sm:text-[13px]" style={{ fontWeight: 700, color: "var(--accent)", margin: 0 }}>
                 {hasLiveOrFinished
                   ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
                   : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
@@ -611,8 +613,8 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
 
         {/* Non-expanded footer */}
         {!expanded && (
-          <div style={{ padding: "12px 24px", background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
-            <p className="text-center" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
+          <div className="px-4 sm:px-6 py-3" style={{ background: "rgba(var(--accent-rgb,217,165,33),.08)", borderTop: "1px solid rgba(var(--accent-rgb,217,165,33),.15)" }}>
+            <p className="text-center text-xs sm:text-[13px]" style={{ fontWeight: 700, color: "var(--accent)", margin: 0 }}>
               {hasLiveOrFinished
                 ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
                 : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
