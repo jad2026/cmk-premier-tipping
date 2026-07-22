@@ -15,9 +15,11 @@ export async function initPushNotifications(
 
     await PushNotifications.register();
 
+    const platform = Capacitor.getPlatform() as "ios" | "android" | "web";
+
     PushNotifications.addListener("registration", async (token) => {
       const { error } = await supabase.from("push_tokens").upsert(
-        { user_id: userId, token: token.value, platform: "ios" },
+        { user_id: userId, token: token.value, platform },
         { onConflict: "user_id,token" },
       );
       if (error) console.error("Failed to save push token:", error);
