@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendReminderEmail } from "@/lib/email/reminderEmail";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +172,28 @@ export async function GET(request: Request) {
       );
     } catch (err) {
       console.error(`[wednesday-reminder] Push failed for ${competitionName} ${gw.label}`, err);
+    }
+
+    // Native push (APNs) to users who haven't completed their picks
+    try {
+      const nativeUserIds = incompleteUsers.map((u) => u.id);
+      if (nativeUserIds.length > 0) {
+        const deadlineDate = new Date(gw.deadline);
+        const deadlineStr = deadlineDate.toLocaleDateString("en-NZ", {
+          weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+        });
+        const nativeResult = await sendPushNotification({
+          userIds: nativeUserIds,
+          title: "Tips close soon",
+          body: `${gw.label} tips close ${deadlineStr} — get your picks in!`,
+          data: { url: "/tips" },
+        });
+        console.log(
+          `[wednesday-reminder] Native push for ${competitionName} ${gw.label}: sent=${nativeResult.sent} tokens=${nativeResult.tokens_found}`
+        );
+      }
+    } catch (err) {
+      console.error(`[wednesday-reminder] Native push failed for ${competitionName} ${gw.label}`, err);
     }
 
     results.push({ round: gw.label, competition: competitionName, sent });
