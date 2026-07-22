@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "58389920231",
+    "project_id": "club-rugby-tipping",
+    "storage_bucket": "club-rugby-tipping.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:58389920231:android:2e23e24ace88356f8ee542",
+        "android_client_info": {
+          "package_name": "com.clubrugbytipping.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdd-eelU3jN0AEeQIuJy9dt4CG7ASKWnw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
