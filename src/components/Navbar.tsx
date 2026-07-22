@@ -259,6 +259,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
             <Link
               key={href}
               href={href}
+              onClick={() => setMenuOpen(false)}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
               style={{
                 color: isActive(href) ? "#FFFFFF" : "#99A0AC",
@@ -281,6 +282,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
                 <Link
                   key={href}
                   href={href}
+                  onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
                   style={{
                     color: isActive(href) ? "#FFFFFF" : "#99A0AC",
