@@ -118,7 +118,7 @@ function buildHtml(firstName: string, teamName: string): string {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td align="center">
-                  <a href="mailto:?subject=Join%20Club%20Rugby%20Tipping&amp;body=The%20NPC%20tipping%20comp%20is%20back%20for%202026.%20Free%20to%20play%2C%20pick%20the%20winners%20and%20margins%20each%20round.%20Sign%20up%20at%20clubrugbytipping.com" style="display:inline-block;padding:16px 40px;background:transparent;color:${t.accent};font-family:'Archivo',system-ui,sans-serif;font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none;border-radius:12px;border:2px solid ${t.accent};">
+                  <a href="mailto:?subject=Join%20Club%20Rugby%20Tipping&amp;body=The%20NPC%20tipping%20comp%20is%20back%20for%202026.%20Free%20to%20play%2C%20pick%20the%20winners%20and%20margins%20each%20round.%20Sign%20up%20at%20https%3A%2F%2Fclubrugbytipping.com" style="display:inline-block;padding:16px 40px;background:transparent;color:${t.accent};font-family:'Archivo',system-ui,sans-serif;font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none;border-radius:12px;border:2px solid ${t.accent};">
                     Invite a Friend →
                   </a>
                 </td>
