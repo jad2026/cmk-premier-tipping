@@ -13,7 +13,7 @@ function useSiteName() {
   }, []);
   return name;
 }
-import { triggerWelcomeEmail, getSignupConfig, joinLeagueByCode } from "./actions";
+import { triggerWelcomeEmail, getSignupConfig, joinLeagueByCode, checkTeamNameAvailable } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
 
 type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
@@ -95,13 +95,8 @@ export default function SignupPage() {
 
     const trimmedTeamName = teamName.trim();
 
-    const { data: existing } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("display_name", trimmedTeamName)
-      .limit(1);
-
-    if (existing && existing.length > 0) {
+    const available = await checkTeamNameAvailable(trimmedTeamName);
+    if (!available) {
       setError("That team name is already taken. Please choose another.");
       setLoading(false);
       return;

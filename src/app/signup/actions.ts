@@ -55,6 +55,16 @@ export async function joinLeagueByCode(
   return { success: true, leagueName: league.name };
 }
 
+export async function checkTeamNameAvailable(teamName: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("display_name", teamName.trim())
+    .limit(1);
+  return !data || data.length === 0;
+}
+
 export async function triggerWelcomeEmail(
   email: string,
   firstName: string,
