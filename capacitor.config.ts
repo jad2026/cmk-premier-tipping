@@ -7,6 +7,7 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://clubrugbytipping.com',
     cleartext: false,
+    allowNavigation: ['clubrugbytipping.com', '*.clubrugbytipping.com', '*.supabase.co'],
   },
 };
 

@@ -619,22 +619,22 @@ export default async function LadderPage() {
               </section>
 
               {/* Table */}
-              <section className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px 70px" }}>
+              <section className="mx-auto px-4 sm:px-8" style={{ maxWidth: 1100, paddingBottom: 70 }}>
                 <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden", fontFeatureSettings: "'tnum'" }}>
                   <div className="overflow-x-auto">
                     {/* Header */}
                     <div
+                      className="standings-header px-3 sm:px-5"
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "46px 1fr 42px 42px 42px 42px 58px 58px 58px 56px",
-                        padding: "15px 20px",
+                        paddingTop: 15,
+                        paddingBottom: 15,
                         background: "#0D1016",
                         color: "#9AA1AD",
                         fontSize: 11,
                         fontWeight: 800,
                         letterSpacing: ".08em",
                         textTransform: "uppercase",
-                        minWidth: 560,
                       }}
                     >
                       <span>#</span>
@@ -643,8 +643,8 @@ export default async function LadderPage() {
                       <span style={{ textAlign: "center" }}>W</span>
                       <span style={{ textAlign: "center" }}>D</span>
                       <span style={{ textAlign: "center" }}>L</span>
-                      <span style={{ textAlign: "center" }}>PF</span>
-                      <span style={{ textAlign: "center" }}>PA</span>
+                      <span className="standings-hide-mobile" style={{ textAlign: "center" }}>PF</span>
+                      <span className="standings-hide-mobile" style={{ textAlign: "center" }}>PA</span>
                       <span style={{ textAlign: "center" }}>PD</span>
                       <span style={{ textAlign: "right" }}>Pts</span>
                     </div>
@@ -659,14 +659,14 @@ export default async function LadderPage() {
                       return (
                         <div
                           key={row.team_id}
+                          className="standings-row px-3 sm:px-5"
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "46px 1fr 42px 42px 42px 42px 58px 58px 58px 56px",
                             alignItems: "center",
-                            padding: "15px 20px",
+                            paddingTop: 15,
+                            paddingBottom: 15,
                             borderTop: "1px solid #EFEDE6",
                             borderLeft: `4px solid ${barColor}`,
-                            minWidth: 560,
                           }}
                         >
                           {/* Rank */}
@@ -679,27 +679,29 @@ export default async function LadderPage() {
 
                           {/* Club */}
                           <span className="flex items-center" style={{ gap: 10, minWidth: 0 }}>
-                            {(() => {
-                              const matched = findTeam(row.team_name);
-                              if (matched) {
-                                return <TeamBadge team={matched} size="sm" />;
-                              }
-                              return (
-                                <span
-                                  className="flex items-center justify-center rounded-full shrink-0"
-                                  style={{
-                                    width: 32,
-                                    height: 32,
-                                    background: teamColor,
-                                    fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
-                                    fontSize: 11,
-                                    color: "#fff",
-                                  }}
-                                >
-                                  {teamMonogram(row.team_name)}
-                                </span>
-                              );
-                            })()}
+                            <span className="standings-badge-hide">
+                              {(() => {
+                                const matched = findTeam(row.team_name);
+                                if (matched) {
+                                  return <TeamBadge team={matched} size="sm" />;
+                                }
+                                return (
+                                  <span
+                                    className="flex items-center justify-center rounded-full shrink-0"
+                                    style={{
+                                      width: 32,
+                                      height: 32,
+                                      background: teamColor,
+                                      fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+                                      fontSize: 11,
+                                      color: "#fff",
+                                    }}
+                                  >
+                                    {teamMonogram(row.team_name)}
+                                  </span>
+                                );
+                              })()}
+                            </span>
                             <span className="flex flex-col" style={{ minWidth: 0 }}>
                               <span style={{ fontWeight: 700, fontSize: 15, color: "#11151C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {row.team_name}
@@ -728,12 +730,12 @@ export default async function LadderPage() {
                           </span>
 
                           {/* PF */}
-                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                          <span className="standings-hide-mobile" style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
                             {val(row.points_for)}
                           </span>
 
                           {/* PA */}
-                          <span style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
+                          <span className="standings-hide-mobile" style={{ textAlign: "center", fontSize: 14, color: "#5A6371" }}>
                             {val(row.points_against)}
                           </span>
 
