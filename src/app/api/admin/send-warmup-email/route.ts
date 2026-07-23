@@ -109,6 +109,24 @@ function buildHtml(firstName: string, teamName: string): string {
           </td>
         </tr>
 
+        <!-- Invite -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <p style="margin:0 0 16px;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:${t.textSecondary};line-height:1.6;text-align:center;">
+              Know someone who'd be keen? Share the comp with your mates, family, and workmates — the more tippers, the better the competition.
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center">
+                  <a href="https://clubrugbytipping.com" style="display:inline-block;padding:16px 40px;background:transparent;color:${t.accent};font-family:'Archivo',system-ui,sans-serif;font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;text-decoration:none;border-radius:12px;border:2px solid ${t.accent};">
+                    Invite a Friend →
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
         <!-- Footer -->
         <tr>
           <td style="background:${t.ink};padding:24px 32px;text-align:center;">
