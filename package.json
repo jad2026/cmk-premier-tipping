@@ -16,6 +16,7 @@
     "@capacitor/push-notifications": "^8.1.2",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.45.4",
+    "@vercel/analytics": "^2.0.1",
     "fast-xml-parser": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "next": "14.2.15",

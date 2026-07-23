@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Archivo_Black } from "next/font/google";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
@@ -122,6 +123,7 @@ export default async function RootLayout({
             alt=""
           />
         </noscript>
+        <Analytics />
         <Navbar siteName={siteName} showSquads={showSquads} user={user} isAdmin={isAdmin} competitionId={compId} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
