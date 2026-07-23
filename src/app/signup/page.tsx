@@ -288,7 +288,7 @@ export default function SignupPage() {
                 maxLength={6}
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="e.g. YCCV5B"
+                placeholder="e.g. ABC123"
                 style={{ ...inputStyle, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: ".1em" }}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
