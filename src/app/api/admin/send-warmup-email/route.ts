@@ -177,14 +177,22 @@ export async function POST(request: Request) {
   const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
 
+  const url = new URL(request.url);
+  const offset = parseInt(url.searchParams.get("offset") ?? "0", 10) || 0;
+
+  const eligible = (users ?? [])
+    .filter((u) => enrolledUserIds.has(u.id) && u.email)
+    .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+
+  const recipients = eligible.slice(offset);
+
   const resend = new Resend(apiKey);
   const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
 
   let emailsSent = 0;
   const userIds: string[] = [];
 
-  for (const user of users ?? []) {
-    if (!enrolledUserIds.has(user.id) || !user.email) continue;
+  for (const user of recipients) {
 
     const profile = profiles?.find((p: { id: string }) => p.id === user.id);
     const firstName = profile?.first_name?.trim() || "";
