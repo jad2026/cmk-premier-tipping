@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     try {
       const { error } = await resend.emails.send({
         from,
-        to: user.email,
+        to: user.email!,
         subject: "Round 1 is here — make your picks",
         html: buildHtml(firstName, teamName),
       });
