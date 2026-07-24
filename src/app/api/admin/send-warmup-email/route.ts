@@ -196,7 +196,7 @@ export async function POST(request: Request) {
 
     const profile = profiles?.find((p: { id: string }) => p.id === user.id);
     const firstName = profile?.first_name?.trim() || "";
-    const teamName = profile?.display_name?.trim() || user.email.split("@")[0];
+    const teamName = profile?.display_name?.trim() || (user.email ?? "").split("@")[0];
 
     if (emailsSent > 0) await new Promise((r) => setTimeout(r, 500));
 
