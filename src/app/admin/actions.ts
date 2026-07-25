@@ -647,7 +647,7 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
   const [{ data: { users }, error: usersErr }, { data: profiles }, { data: compGwRows }, { data: compParticipants }] =
     await Promise.all([
       admin.auth.admin.listUsers({ perPage: 1000 }),
-      supabase.from("profiles").select("id, display_name"),
+      admin.from("profiles").select("id, display_name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
       supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
     ]);
