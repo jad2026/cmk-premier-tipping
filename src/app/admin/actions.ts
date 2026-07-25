@@ -643,17 +643,23 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
-  // Wave 1: users, profiles, competition participants, and gameweek IDs in parallel
-  const [{ data: { users }, error: usersErr }, profilesResult, { data: compGwRows }, { data: compParticipants }] =
+  // Wave 1: users, competition participants, and gameweek IDs in parallel
+  const [{ data: { users }, error: usersErr }, { data: compGwRows }, { data: compParticipants }] =
     await Promise.all([
       admin.auth.admin.listUsers({ perPage: 1000 }),
-      admin.from("profiles").select("id, display_name"),
       supabase.from("gameweeks").select("id").eq("competition_id", compId),
       supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
     ]);
 
-  const profiles = profilesResult.data;
-  console.log(`[fetchParticipants] profiles query: count=${profiles?.length ?? 0}, error=${profilesResult.error?.message ?? "none"}`);
+  // Fetch all profiles (Supabase default limit is 1000 rows)
+  const allProfiles: { id: string; display_name: string | null }[] = [];
+  const PAGE_SIZE = 1000;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data } = await admin.from("profiles").select("id, display_name").range(from, from + PAGE_SIZE - 1);
+    if (!data || data.length === 0) break;
+    allProfiles.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
 
   const enrolledUserIds = new Set((compParticipants ?? []).map((p) => p.user_id));
 
@@ -672,11 +678,7 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
 
   if (usersErr) return { data: [], error: usersErr.message };
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
-  const sampleUserIds = (users ?? []).slice(0, 3).map((u) => u.id);
-  const sampleProfileIds = (profiles ?? []).slice(0, 3).map((p) => p.id);
-  const sampleMatches = sampleUserIds.map((id) => ({ id, found: profileMap.has(id), value: profileMap.get(id) }));
-  console.log(`[fetchParticipants] profileMap size=${profileMap.size}, sampleProfileIds=${JSON.stringify(sampleProfileIds)}, sampleUserIds=${JSON.stringify(sampleUserIds)}, matches=${JSON.stringify(sampleMatches)}`);
+  const profileMap = new Map(allProfiles.map((p) => [p.id, p.display_name]));
   const fixtureGwMap = new Map((fixtures ?? []).map((f) => [f.id, f.gameweek_id]));
 
   // Count distinct gameweeks per user
