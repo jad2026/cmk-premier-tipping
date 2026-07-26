@@ -279,6 +279,7 @@ export default async function LeaderboardPage() {
     { data: matchResultsRaw },
     { data: participants },
     compFeatures,
+    participantCountResult,
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
     supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id"),
@@ -287,10 +288,23 @@ export default async function LeaderboardPage() {
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
     supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
     getCachedCompetitionFeatures(compId),
+    supabase.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
   ]);
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
-  const participantIds = new Set((participants ?? []).map((p) => p.user_id));
+  const participantCount = participantCountResult.count ?? 0;
+
+  // Paginate competition_participants beyond the default 1000-row limit
+  const allParticipantIds: string[] = (participants ?? []).map((p) => p.user_id);
+  if (participantCount > allParticipantIds.length) {
+    for (let from = allParticipantIds.length; ; from += 1000) {
+      const { data } = await supabase.from("competition_participants").select("user_id").eq("competition_id", compId).range(from, from + 999);
+      if (!data || data.length === 0) break;
+      allParticipantIds.push(...data.map((p) => p.user_id));
+      if (data.length < 1000) break;
+    }
+  }
+  const participantIds = new Set(allParticipantIds);
 
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
@@ -559,7 +573,7 @@ export default async function LeaderboardPage() {
           </h1>
           <p style={{ fontSize: 16, color: "#AEB4BE", margin: "14px 0 0", maxWidth: 480 }}>
             Every correct tip is worth a point.{" "}
-            {leaderboard.length > 0 && `${leaderboard.length} tipper${leaderboard.length !== 1 ? "s" : ""} in the comp this season.`}
+            {participantCount > 0 && `${participantCount} tipper${participantCount !== 1 ? "s" : ""} in the comp this season.`}
           </p>
         </div>
       </section>
