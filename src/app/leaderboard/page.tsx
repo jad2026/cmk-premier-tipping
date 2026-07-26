@@ -273,7 +273,6 @@ export default async function LeaderboardPage() {
 
   const [
     { data: compGwRows },
-    { data: profiles },
     teams,
     seasonConfig,
     { data: matchResultsRaw },
@@ -282,7 +281,6 @@ export default async function LeaderboardPage() {
     participantCountResult,
   ] = await Promise.all([
     supabase.from("gameweeks").select("id").eq("competition_id", compId),
-    supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id"),
     getCachedTeams(compId),
     getCachedSeasonConfig(compId),
     supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
@@ -290,6 +288,15 @@ export default async function LeaderboardPage() {
     getCachedCompetitionFeatures(compId),
     supabase.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
   ]);
+
+  // Fetch all profiles (Supabase default limit is 1000 rows)
+  const allProfiles: Profile[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id").range(from, from + 999);
+    if (!data || data.length === 0) break;
+    allProfiles.push(...(data as Profile[]));
+    if (data.length < 1000) break;
+  }
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
   const participantCount = participantCountResult.count ?? 0;
@@ -351,13 +358,13 @@ export default async function LeaderboardPage() {
 
   const teamMap = new Map<string, Team>((teams ?? []).map((t) => [t.id, t]));
   const profileMap = new Map<string, string | null>(
-    (profiles ?? []).map((p: Profile) => [p.id, p.display_name])
+    allProfiles.map((p) => [p.id, p.display_name])
   );
   const avatarMap = new Map<string, string | null>(
-    (profiles ?? []).map((p: Profile) => [p.id, p.avatar_url])
+    allProfiles.map((p) => [p.id, p.avatar_url])
   );
   const supportedTeamMap = new Map<string, string | null>(
-    (profiles ?? []).map((p: Profile) => [p.id, p.supported_team_id])
+    allProfiles.map((p) => [p.id, p.supported_team_id])
   );
 
   const gwIdsWithResults = new Set((fixturesWithResults ?? []).map((f) => f.gameweek_id));
