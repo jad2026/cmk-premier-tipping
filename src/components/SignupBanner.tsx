@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const DISMISSED_KEY = "signup-banner-dismissed";
 
 export default function SignupBanner({ siteName }: { siteName: string }) {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -13,6 +15,7 @@ export default function SignupBanner({ siteName }: { siteName: string }) {
   }, []);
 
   if (!visible) return null;
+  if (pathname === "/signup" || pathname === "/login") return null;
 
   function dismiss() {
     sessionStorage.setItem(DISMISSED_KEY, "1");

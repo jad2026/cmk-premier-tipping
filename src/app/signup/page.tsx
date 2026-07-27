@@ -31,6 +31,12 @@ const inputStyle: React.CSSProperties = {
   transition: "border-color .15s, box-shadow .15s",
 };
 
+const inputErrorStyle: React.CSSProperties = {
+  ...inputStyle,
+  borderColor: "#B23A48",
+  boxShadow: "0 0 0 2px rgba(178,58,72,.15)",
+};
+
 const labelStyle: React.CSSProperties = {
   display: "block",
   fontSize: 11,
@@ -53,8 +59,11 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState(codeParam);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const teamNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const [supportedTeamId, setSupportedTeamId] = useState<string | null>(null);
   const [showSupportedTeam, setShowSupportedTeam] = useState(false);
@@ -88,17 +97,34 @@ export default function SignupPage() {
     setAvatarPreview(URL.createObjectURL(file));
   }
 
+  function scrollToError(ref: React.RefObject<HTMLInputElement | null>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    ref.current?.focus();
+  }
+
+  function classifyAuthError(message: string): { field: string; ref: React.RefObject<HTMLInputElement | null>; text: string } {
+    const lower = message.toLowerCase();
+    if (lower.includes("email") || lower.includes("already registered") || lower.includes("already been registered")) {
+      return { field: "email", ref: emailRef, text: message };
+    }
+    if (lower.includes("password") || lower.includes("too short") || lower.includes("at least")) {
+      return { field: "password", ref: passwordRef, text: message };
+    }
+    return { field: "email", ref: emailRef, text: message };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setFieldErrors({});
 
     const trimmedTeamName = teamName.trim();
 
     const available = await checkTeamNameAvailable(trimmedTeamName);
     if (!available) {
-      setError("That team name is already taken. Please choose another.");
+      setFieldErrors({ teamName: "That team name is already taken. Please choose another." });
       setLoading(false);
+      scrollToError(teamNameRef);
       return;
     }
 
@@ -115,8 +141,10 @@ export default function SignupPage() {
     });
 
     if (error) {
+      const classified = classifyAuthError(error.message);
+      setFieldErrors({ [classified.field]: classified.text });
       setLoading(false);
-      setError(error.message);
+      scrollToError(classified.ref);
       return;
     }
 
@@ -254,26 +282,35 @@ export default function SignupPage() {
 
             <div>
               <label style={labelStyle}>Email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              <input ref={emailRef} type="email" required value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => { const { email: _, ...rest } = p; return rest; }); }} placeholder="you@example.com"
+                aria-invalid={!!fieldErrors.email}
+                style={fieldErrors.email ? inputErrorStyle : inputStyle}
+                onFocus={(e) => { if (!fieldErrors.email) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
+                onBlur={(e) => { if (!fieldErrors.email) { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; } }}
               />
+              {fieldErrors.email && <p style={{ fontSize: 12, color: "#B23A48", margin: "6px 0 0", cursor: "default" }}>{fieldErrors.email}</p>}
             </div>
 
             <div>
               <label style={labelStyle}>Password</label>
-              <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters" style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              <input ref={passwordRef} type="password" required minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const { password: _, ...rest } = p; return rest; }); }} placeholder="Min. 6 characters"
+                aria-invalid={!!fieldErrors.password}
+                style={fieldErrors.password ? inputErrorStyle : inputStyle}
+                onFocus={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
+                onBlur={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; } }}
               />
+              {fieldErrors.password && <p style={{ fontSize: 12, color: "#B23A48", margin: "6px 0 0", cursor: "default" }}>{fieldErrors.password}</p>}
             </div>
 
             <div>
               <label style={labelStyle}>Team Name</label>
-              <input type="text" required minLength={2} maxLength={40} value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Your team name on the leaderboard" style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              <input ref={teamNameRef} type="text" required minLength={2} maxLength={40} value={teamName} onChange={(e) => { setTeamName(e.target.value); setFieldErrors((p) => { const { teamName: _, ...rest } = p; return rest; }); }} placeholder="Your team name on the leaderboard"
+                aria-invalid={!!fieldErrors.teamName}
+                style={fieldErrors.teamName ? inputErrorStyle : inputStyle}
+                onFocus={(e) => { if (!fieldErrors.teamName) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
+                onBlur={(e) => { if (!fieldErrors.teamName) { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; } }}
               />
+              {fieldErrors.teamName && <p style={{ fontSize: 12, color: "#B23A48", margin: "6px 0 0", cursor: "default" }}>{fieldErrors.teamName}</p>}
             </div>
 
             <div>
@@ -350,12 +387,6 @@ export default function SignupPage() {
                     No team
                   </button>
                 </div>
-              </div>
-            )}
-
-            {error && (
-              <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
-                <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{error}</p>
               </div>
             )}
 
