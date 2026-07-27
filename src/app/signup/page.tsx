@@ -97,12 +97,12 @@ export default function SignupPage() {
     setAvatarPreview(URL.createObjectURL(file));
   }
 
-  function scrollToError(ref: React.RefObject<HTMLInputElement | null>) {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    ref.current?.focus();
+  function scrollToError(ref: React.RefObject<HTMLInputElement | null> | null) {
+    ref?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    ref?.current?.focus();
   }
 
-  function classifyAuthError(message: string): { field: string; ref: React.RefObject<HTMLInputElement | null>; text: string } {
+  function classifyAuthError(message: string): { field: string; ref: React.RefObject<HTMLInputElement | null> | null; text: string } {
     const lower = message.toLowerCase();
     if (lower.includes("email") || lower.includes("already registered") || lower.includes("already been registered")) {
       return { field: "email", ref: emailRef, text: message };
