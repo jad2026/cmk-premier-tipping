@@ -110,7 +110,7 @@ export default function SignupPage() {
     if (lower.includes("password") || lower.includes("too short") || lower.includes("at least")) {
       return { field: "password", ref: passwordRef, text: message };
     }
-    return { field: "email", ref: emailRef, text: message };
+    return { field: "_form", ref: null, text: message };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -387,6 +387,12 @@ export default function SignupPage() {
                     No team
                   </button>
                 </div>
+              </div>
+            )}
+
+            {fieldErrors._form && (
+              <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
+                <p style={{ fontSize: 14, color: "#B23A48", margin: 0, cursor: "default" }}>{fieldErrors._form}</p>
               </div>
             )}
 
