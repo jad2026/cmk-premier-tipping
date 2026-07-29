@@ -169,8 +169,6 @@ export async function POST(request: Request) {
     const firstName = profile?.first_name?.trim() || "";
     const teamName = profile?.display_name?.trim() || (user.email ?? "").split("@")[0];
 
-    if (emailsSent > 0) await new Promise((r) => setTimeout(r, 500));
-
     try {
       const { error } = await resend.emails.send({
         from,
