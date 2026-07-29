@@ -19,4 +19,18 @@ export default withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
+  runtimeCaching: [
+    {
+      urlPattern: /\/api\/match-centre\/.*/,
+      handler: "NetworkOnly",
+    },
+    {
+      urlPattern: /^https?.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "offlineCache",
+        expiration: { maxEntries: 200 },
+      },
+    },
+  ],
 })(nextConfig);

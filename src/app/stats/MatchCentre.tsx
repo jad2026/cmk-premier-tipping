@@ -80,6 +80,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
       const res = await fetch(`/api/match-centre/${fixtureId}?_t=${Date.now()}`);
       if (res.ok) {
         const data = (await res.json()) as MatchFixture;
+        console.log('[MatchCentre] API response for fixture:', fixtureId, 'score:', data.homeScore, '-', data.awayScore);
         setFetchCache((prev) => ({ ...prev, [fixtureId]: data }));
       }
     } finally {
@@ -101,7 +102,9 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
         try {
           const res = await fetch(`/api/match-centre/${f.id}?_t=${Date.now()}`);
           if (!res.ok) return f;
-          return (await res.json()) as MatchFixture;
+          const data = (await res.json()) as MatchFixture;
+          console.log('[MatchCentre] Poll response for fixture:', f.id, 'score:', data.homeScore, '-', data.awayScore);
+          return data;
         } catch {
           return f;
         }
