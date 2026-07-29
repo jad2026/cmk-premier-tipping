@@ -9,7 +9,7 @@ import { getCachedAllTeams } from "@/lib/cached-queries";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
 import StatsSection from "./StatsSection";
 
-export const revalidate = 0;
+export const revalidate = 300;
 
 type LadderRow = {
   comp_id: string;
