@@ -104,132 +104,24 @@ function positionGroupFromId(positionId: number | null, shirtNumber: number | nu
 }
 
 async function buildLiveFixtures(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  _supabase: Awaited<ReturnType<typeof createClient>>,
   fixtures: RichFixture[],
   tz: TzLocale,
 ): Promise<MatchFixture[]> {
-  const optaGameIds = fixtures
-    .map((f) => f.opta_fixture_id)
-    .filter((id): id is string => !!id);
-
-  if (optaGameIds.length === 0) {
-    return fixtures.map((f) =>
-      buildPlaceholderFixture(
-        f.id, f.home_team, f.away_team, f.venue,
-        new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" }),
-      ),
-    );
-  }
-
-  type TeamStatRow = { opta_game_id: string; opta_team_id: number; stats: Record<string, string> | null };
-  type EventRow = { opta_game_id: string; event_id: string; event_type: string | null; minute: number | null; player_name: string | null; opta_team_id: string | null };
-  type PlayerRow = { opta_game_id: string; opta_player_id: string; opta_team_id: number; player_name: string | null; shirt_number: number | null; position_id: number | null; stats: Record<string, string> | null };
-  type MappingRow = { opta_team_id: string; team_id: string };
-  type CommentaryRow = { opta_game_id: string; minute: number | null; event_type: string | null; comment: string | null };
-  type LineupRow = { opta_game_id: string; opta_player_id: number | null; opta_team_id: number; player_name: string; shirt_number: number | null; position: string | null; is_captain: boolean; is_substitute: boolean };
-
-  const allTeamIds = fixtures.flatMap((f) => [f.home_team.id, f.away_team.id]);
-  const [tsResult, evResult, plResult, mapResult, comResult, luResult] = await Promise.all([
-    supabase.from("opta_team_stats" as "fixtures").select("opta_game_id, opta_team_id, stats").in("opta_game_id", optaGameIds),
-    supabase.from("opta_match_events" as "fixtures").select("opta_game_id, event_id, event_type, minute, player_name, opta_team_id").in("opta_game_id", optaGameIds).order("minute", { ascending: true }),
-    supabase.from("opta_player_stats" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats").in("opta_game_id", optaGameIds),
-    supabase.from("opta_team_mapping" as "fixtures").select("opta_team_id, team_id").in("team_id", allTeamIds),
-    supabase.from("opta_commentary" as "fixtures").select("opta_game_id, minute, event_type, comment").in("opta_game_id", optaGameIds).order("minute", { ascending: false }),
-    supabase.from("opta_lineups" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position, is_captain, is_substitute").in("opta_game_id", optaGameIds).order("shirt_number", { ascending: true }),
-  ]);
-  const teamStatsRows = (tsResult.data ?? []) as unknown as TeamStatRow[];
-  const eventsRows = (evResult.data ?? []) as unknown as EventRow[];
-  const playerRows = (plResult.data ?? []) as unknown as PlayerRow[];
-  const mappingRows = (mapResult.data ?? []) as unknown as MappingRow[];
-  const commentaryAllRows = (comResult.data ?? []) as unknown as CommentaryRow[];
-  const lineupRows = (luResult.data ?? []) as unknown as LineupRow[];
-
-  const optaToTeamId = new Map<string, string>();
-  for (const m of mappingRows) optaToTeamId.set(String(m.opta_team_id), m.team_id);
+  const emptyStats = mapTeamStats(null);
 
   const result = fixtures.map((f) => {
-    const optaId = f.opta_fixture_id;
     const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
-
-    if (!optaId) {
-      return buildPlaceholderFixture(f.id, f.home_team, f.away_team, f.venue, kickoffStr);
-    }
-
-    const gameTeamStats = teamStatsRows.filter((r) => r.opta_game_id === optaId);
-    const gameEvents = eventsRows.filter((r) => r.opta_game_id === optaId);
-    const gamePlayers = playerRows.filter((r) => r.opta_game_id === optaId);
-    const gameLineups = lineupRows.filter((r) => r.opta_game_id === optaId);
-
-    const hasOptaData = gameTeamStats.length > 0 || gameEvents.length > 0;
-    const hasLineups = gameLineups.length > 0;
-
-    if (!hasOptaData && !hasLineups && f.home_score == null && f.away_score == null) {
-      return buildPlaceholderFixture(f.id, f.home_team, f.away_team, f.venue, kickoffStr);
-    }
-
-    let homeStats = mapTeamStats(null);
-    let awayStats = mapTeamStats(null);
-    for (const ts of gameTeamStats) {
-      const tid = optaToTeamId.get(String(ts.opta_team_id));
-      if (tid === f.home_team.id) homeStats = mapTeamStats(ts.stats);
-      else if (tid === f.away_team.id) awayStats = mapTeamStats(ts.stats);
-    }
-
-    const events: MatchEvent[] = [];
-    let homeRunning = 0;
-    let awayRunning = 0;
-    for (const ev of gameEvents) {
-      const eventType = OPTA_EVENT_MAP[ev.event_type ?? ""];
-      if (!eventType) continue;
-      const tid = optaToTeamId.get(String(ev.opta_team_id));
-      if (!tid) continue;
-      if (eventType === "try") { if (tid === f.home_team.id) homeRunning += 5; else awayRunning += 5; }
-      else if (eventType === "conversion") { if (tid === f.home_team.id) homeRunning += 2; else awayRunning += 2; }
-      else if (eventType === "penalty" || eventType === "drop_goal") { if (tid === f.home_team.id) homeRunning += 3; else awayRunning += 3; }
-      events.push({ id: ev.event_id, minute: ev.minute ?? 0, type: eventType, playerName: ev.player_name ?? "Unknown", teamId: tid, scoreAtTime: `${homeRunning} - ${awayRunning}` });
-    }
-
-    const buildPlayers = (teamId: string): PlayerMatchStats[] =>
-      gamePlayers.filter((p) => optaToTeamId.get(String(p.opta_team_id)) === teamId).map((p) => {
-        const s = p.stats ?? {};
-        return {
-          playerId: String(p.opta_player_id),
-          name: p.player_name ?? "Unknown",
-          jerseyNumber: p.shirt_number ?? 0,
-          positionGroup: positionGroupFromId(p.position_id, p.shirt_number),
-          tries: numStat(s.Tries ?? s.tries),
-          carries: numStat(s.Runs ?? s.runs ?? s.Carries ?? s.carries),
-          metres: numStat(s.MetresRun ?? s.metres_run ?? s.Metres ?? s.metres),
-          tackles: numStat(s.Tackles ?? s.tackles ?? s.TacklesMade ?? s.tackles_made),
-          missedTackles: numStat(s.MissedTackles ?? s.missed_tackles),
-        };
-      });
-
-    const buildFromLineups = (teamId: string): PlayerMatchStats[] => {
-      const teamOptaIds = mappingRows
-        .filter((m) => m.team_id === teamId)
-        .map((m) => String(m.opta_team_id));
-      return gameLineups
-        .filter((p) => teamOptaIds.includes(String(p.opta_team_id)))
-        .map((p) => ({
-          playerId: String(p.opta_player_id ?? ""),
-          name: p.player_name ?? "Unknown",
-          jerseyNumber: p.shirt_number ?? 0,
-          positionGroup: positionGroupFromId(null, p.shirt_number),
-          tries: 0, carries: 0, metres: 0, tackles: 0, missedTackles: 0,
-        }));
-    };
-
     const matchDate = new Date(f.match_date);
     const now = new Date();
     const hasResult = f.result_team_id != null || f.is_draw;
     const hasScores = f.home_score != null && f.away_score != null;
+
     let status: MatchFixture["status"];
     if (hasResult || (hasScores && (f.home_score! > 0 || f.away_score! > 0))) {
       status = { type: "fulltime" };
-    } else if (now >= matchDate && hasOptaData) {
-      const maxMinute = Math.max(0, ...events.map((e) => e.minute));
-      status = { type: "live", minute: maxMinute };
+    } else if (now >= matchDate && hasScores) {
+      status = { type: "live", minute: 0 };
     } else {
       status = { type: "pre", kickoff: kickoffStr };
     }
@@ -242,14 +134,12 @@ async function buildLiveFixtures(
       awayScore: f.away_score ?? 0,
       venue: f.venue,
       status,
-      homeStats,
-      awayStats,
-      homePlayers: gamePlayers.length > 0 ? buildPlayers(f.home_team.id) : buildFromLineups(f.home_team.id),
-      awayPlayers: gamePlayers.length > 0 ? buildPlayers(f.away_team.id) : buildFromLineups(f.away_team.id),
-      events,
-      commentary: commentaryAllRows
-        .filter((r) => r.opta_game_id === optaId && r.comment)
-        .map((r) => ({ minute: r.minute, period: null, text: r.comment as string, type: r.event_type })),
+      homeStats: emptyStats,
+      awayStats: emptyStats,
+      homePlayers: [],
+      awayPlayers: [],
+      events: [],
+      commentary: [],
     };
   });
 
