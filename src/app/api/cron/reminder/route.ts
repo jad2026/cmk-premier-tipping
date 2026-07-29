@@ -61,7 +61,14 @@ export async function GET(request: Request) {
   console.log("[reminder] Found gameweeks:", JSON.stringify(gws));
 
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
-  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  let users: any[] = [];
+  let page = 1;
+  while (true) {
+    const { data: { users: batch } } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    users.push(...batch);
+    if (batch.length < 1000) break;
+    page++;
+  }
 
   let totalSent = 0;
   const results: { round: string; competition: string; sent: number }[] = [];
