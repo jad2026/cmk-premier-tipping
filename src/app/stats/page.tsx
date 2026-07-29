@@ -126,20 +126,23 @@ async function buildLiveFixtures(
   type PlayerRow = { opta_game_id: string; opta_player_id: string; opta_team_id: number; player_name: string | null; shirt_number: number | null; position_id: number | null; stats: Record<string, string> | null };
   type MappingRow = { opta_team_id: string; team_id: string };
   type CommentaryRow = { opta_game_id: string; minute: number | null; event_type: string | null; comment: string | null };
+  type LineupRow = { opta_game_id: string; opta_player_id: number | null; opta_team_id: number; player_name: string; shirt_number: number | null; position: string | null; is_captain: boolean; is_substitute: boolean };
 
   const allTeamIds = fixtures.flatMap((f) => [f.home_team.id, f.away_team.id]);
-  const [tsResult, evResult, plResult, mapResult, comResult] = await Promise.all([
+  const [tsResult, evResult, plResult, mapResult, comResult, luResult] = await Promise.all([
     supabase.from("opta_team_stats" as "fixtures").select("opta_game_id, opta_team_id, stats").in("opta_game_id", optaGameIds),
     supabase.from("opta_match_events" as "fixtures").select("opta_game_id, event_id, event_type, minute, player_name, opta_team_id").in("opta_game_id", optaGameIds).order("minute", { ascending: true }),
     supabase.from("opta_player_stats" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position_id, stats").in("opta_game_id", optaGameIds),
     supabase.from("opta_team_mapping" as "fixtures").select("opta_team_id, team_id").in("team_id", allTeamIds),
     supabase.from("opta_commentary" as "fixtures").select("opta_game_id, minute, event_type, comment").in("opta_game_id", optaGameIds).order("minute", { ascending: false }),
+    supabase.from("opta_lineups" as "fixtures").select("opta_game_id, opta_player_id, opta_team_id, player_name, shirt_number, position, is_captain, is_substitute").in("opta_game_id", optaGameIds).order("shirt_number", { ascending: true }),
   ]);
   const teamStatsRows = (tsResult.data ?? []) as unknown as TeamStatRow[];
   const eventsRows = (evResult.data ?? []) as unknown as EventRow[];
   const playerRows = (plResult.data ?? []) as unknown as PlayerRow[];
   const mappingRows = (mapResult.data ?? []) as unknown as MappingRow[];
   const commentaryAllRows = (comResult.data ?? []) as unknown as CommentaryRow[];
+  const lineupRows = (luResult.data ?? []) as unknown as LineupRow[];
 
   const optaToTeamId = new Map<string, string>();
   for (const m of mappingRows) optaToTeamId.set(String(m.opta_team_id), m.team_id);
@@ -155,10 +158,12 @@ async function buildLiveFixtures(
     const gameTeamStats = teamStatsRows.filter((r) => r.opta_game_id === optaId);
     const gameEvents = eventsRows.filter((r) => r.opta_game_id === optaId);
     const gamePlayers = playerRows.filter((r) => r.opta_game_id === optaId);
+    const gameLineups = lineupRows.filter((r) => r.opta_game_id === optaId);
 
     const hasOptaData = gameTeamStats.length > 0 || gameEvents.length > 0;
+    const hasLineups = gameLineups.length > 0;
 
-    if (!hasOptaData && f.home_score == null && f.away_score == null) {
+    if (!hasOptaData && !hasLineups && f.home_score == null && f.away_score == null) {
       return buildPlaceholderFixture(f.id, f.home_team, f.away_team, f.venue, kickoffStr);
     }
 
@@ -200,6 +205,21 @@ async function buildLiveFixtures(
         };
       });
 
+    const buildFromLineups = (teamId: string): PlayerMatchStats[] => {
+      const teamOptaIds = mappingRows
+        .filter((m) => m.team_id === teamId)
+        .map((m) => String(m.opta_team_id));
+      return gameLineups
+        .filter((p) => teamOptaIds.includes(String(p.opta_team_id)))
+        .map((p) => ({
+          playerId: String(p.opta_player_id ?? ""),
+          name: p.player_name ?? "Unknown",
+          jerseyNumber: p.shirt_number ?? 0,
+          positionGroup: positionGroupFromId(null, p.shirt_number),
+          tries: 0, carries: 0, metres: 0, tackles: 0, missedTackles: 0,
+        }));
+    };
+
     const matchDate = new Date(f.match_date);
     const now = new Date();
     const hasResult = f.result_team_id != null || f.is_draw;
@@ -224,8 +244,8 @@ async function buildLiveFixtures(
       status,
       homeStats,
       awayStats,
-      homePlayers: buildPlayers(f.home_team.id),
-      awayPlayers: buildPlayers(f.away_team.id),
+      homePlayers: gamePlayers.length > 0 ? buildPlayers(f.home_team.id) : buildFromLineups(f.home_team.id),
+      awayPlayers: gamePlayers.length > 0 ? buildPlayers(f.away_team.id) : buildFromLineups(f.away_team.id),
       events,
       commentary: commentaryAllRows
         .filter((r) => r.opta_game_id === optaId && r.comment)

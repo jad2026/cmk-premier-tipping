@@ -31,10 +31,14 @@ function countEvents(fixture: MatchFixture, type: MatchEventType): number {
   return fixture.events.filter((e) => e.type === type).length;
 }
 
+function hasRealPlayers(players: PlayerMatchStats[]): boolean {
+  return players.length > 0 && players.some((p) => !/^Player \d+$/.test(p.name));
+}
+
 function hasDetailData(f: MatchFixture): boolean {
   return (
     f.events.length > 0 ||
-    f.homePlayers.length > 0 ||
+    hasRealPlayers(f.homePlayers) ||
     Object.values(f.homeStats).some((v) => v > 0) ||
     Object.values(f.awayStats).some((v) => v > 0)
   );
@@ -131,6 +135,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     fixture.events.length > 0 ||
     fixture.homeScore > 0 ||
     fixture.awayScore > 0 ||
+    hasRealPlayers(fixture.homePlayers) ||
     Object.values(fixture.homeStats).some((v) => v > 0) ||
     Object.values(fixture.awayStats).some((v) => v > 0);
   const isPlaceholder = !hasRealData;
