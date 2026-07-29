@@ -77,7 +77,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     if (fetchCache[fixtureId] || loadingId === fixtureId) return;
     setLoadingId(fixtureId);
     try {
-      const res = await fetch(`/api/match-centre/${fixtureId}`);
+      const res = await fetch(`/api/match-centre/${fixtureId}?_t=${Date.now()}`);
       if (res.ok) {
         const data = (await res.json()) as MatchFixture;
         setFetchCache((prev) => ({ ...prev, [fixtureId]: data }));
@@ -99,7 +99,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
     const updated = await Promise.all(
       fixtures.map(async (f) => {
         try {
-          const res = await fetch(`/api/match-centre/${f.id}`);
+          const res = await fetch(`/api/match-centre/${f.id}?_t=${Date.now()}`);
           if (!res.ok) return f;
           return (await res.json()) as MatchFixture;
         } catch {
