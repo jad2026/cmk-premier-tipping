@@ -58,6 +58,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ skipped: "No open gameweeks" });
   }
 
+  console.log("[reminder] Found gameweeks:", JSON.stringify(gws));
+
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
   const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
 
@@ -92,6 +94,8 @@ export async function GET(request: Request) {
       admin.from("teams").select("id, name"),
       admin.from("sponsors").select("*").eq("competition_id", compId).eq("is_active", true).or("display_location.eq.email,display_location.eq.all").order("order_position").limit(5),
     ]);
+
+    console.log("[reminder] compConfig for", compId, ":", JSON.stringify(compConfig));
 
     if (compConfig?.reminders_enabled === false) {
       console.log(`[reminder] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
