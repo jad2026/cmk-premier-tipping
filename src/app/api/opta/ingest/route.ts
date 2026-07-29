@@ -83,13 +83,14 @@ export async function POST(request: Request) {
   const admin = createAdmin();
 
   // --- Determine feed type ---
-  let feedType: "RU1" | "RU5" | "RU6" | "RU7" | "RU8" | "RU10" | "unknown" = "unknown";
+  let feedType: "RU1" | "RU5" | "RU6" | "RU7" | "RU8" | "RU10" | "RU13" | "unknown" = "unknown";
   if (rawXml.includes("<fixtures")) feedType = "RU1";
   else if (rawXml.includes("<livescores")) feedType = "RU5";
   else if (rawXml.includes("<wapresults")) feedType = "RU6";
   else if (rawXml.includes("<RRML")) feedType = "RU7";
   else if (rawXml.includes("<RugbyCommentary")) feedType = "RU8";
   else if (rawXml.includes("<RU10_Profile")) feedType = "RU10";
+  else if (rawXml.includes("<RU13LINEUP")) feedType = "RU13";
 
   // --- Capture raw XML first ---
   const { error: rawError } = await admin.from("opta_raw_feed").insert({
@@ -137,6 +138,10 @@ export async function POST(request: Request) {
     }
     if (feedType === "RU10") {
       const result = await processRU10(admin, parsed, optaCompId);
+      return NextResponse.json({ feedType, ...result });
+    }
+    if (feedType === "RU13") {
+      const result = await processRU13(admin, parsed);
       return NextResponse.json({ feedType, ...result });
     }
 
@@ -873,4 +878,91 @@ async function processRU10(
 
   console.log(`[opta/RU10] Imported ${processed} players across ${teamsProcessed} teams`);
   return { processed, errors, teams: teamsProcessed };
+}
+
+// ---------------------------------------------------------------------------
+// RU13 — Team Line-Ups (RU13LINEUP)
+// ---------------------------------------------------------------------------
+
+interface RU13Player {
+  "@_id"?: string;
+  "@_player_name"?: string;
+  "@_position"?: string;
+  "@_position_id"?: string;
+  "@_captain"?: string;
+}
+
+interface RU13Team {
+  "@_home_or_away"?: string;
+  "@_team_id"?: string;
+  "@_team_name"?: string;
+  Player?: RU13Player[];
+}
+
+async function processRU13(
+  admin: ReturnType<typeof createAdmin>,
+  parsed: Record<string, unknown>
+) {
+  const root = parsed.RU13LINEUP as Record<string, unknown> | undefined;
+  const optaGameId = String(root?.["@_id"] ?? "");
+  if (!optaGameId) {
+    console.warn("[opta/RU13] No game ID found in RU13LINEUP root");
+    return { processed: 0, errors: 1 };
+  }
+
+  const fixtureId = await lookupFixtureId(admin, optaGameId);
+
+  const teamDetail = root?.TeamDetail as { Team?: RU13Team | RU13Team[] } | undefined;
+  const teams = toArray(teamDetail?.Team);
+
+  let processed = 0;
+  let errors = 0;
+
+  for (const team of teams) {
+    const optaTeamId = parseInt(String(team["@_team_id"] ?? "0"), 10);
+    if (!optaTeamId) { errors++; continue; }
+
+    const players = toArray(team.Player);
+    for (const player of players) {
+      try {
+        const positionId = player["@_position_id"] != null
+          ? parseInt(player["@_position_id"], 10)
+          : null;
+        const isSubstitute = positionId != null && positionId >= 16;
+
+        const nameParts = (player["@_player_name"] ?? "").split(/\s+/);
+        const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : nameParts[0] ?? "";
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+
+        const { error } = await admin.from("opta_lineups").upsert(
+          {
+            opta_game_id: optaGameId,
+            opta_team_id: optaTeamId,
+            opta_player_id: player["@_id"] != null ? parseInt(String(player["@_id"]), 10) : null,
+            fixture_id: fixtureId,
+            player_name: player["@_player_name"] ?? "Unknown",
+            first_name: firstName,
+            last_name: lastName,
+            shirt_number: positionId,
+            position: player["@_position"] ?? null,
+            is_captain: player["@_captain"] === "Yes",
+            is_substitute: isSubstitute,
+          },
+          { onConflict: "opta_game_id,opta_team_id,opta_player_id" }
+        );
+        if (error) {
+          console.error(`[opta/RU13] Lineup upsert failed (game=${optaGameId}, team=${optaTeamId}, player=${player["@_id"]}):`, error.message);
+          errors++;
+        } else {
+          processed++;
+        }
+      } catch (err) {
+        console.error("[opta/RU13] Player error:", err);
+        errors++;
+      }
+    }
+  }
+
+  console.log(`[opta/RU13] Done: processed=${processed}, errors=${errors}`);
+  return { processed, errors };
 }
