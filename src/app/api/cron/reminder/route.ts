@@ -1,3 +1,4 @@
+// v2 — force redeploy
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendReminderEmail } from "@/lib/email/reminderEmail";
