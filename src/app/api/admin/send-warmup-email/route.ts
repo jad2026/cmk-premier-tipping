@@ -60,37 +60,8 @@ function buildHtml(firstName: string, teamName: string): string {
               G'day <strong>${firstName || teamName}</strong> 👋
             </p>
             <p style="margin:0 0 20px;font-family:'Archivo',system-ui,sans-serif;font-size:15px;color:${t.textSecondary};line-height:1.6;">
-              The 2026 NPC season kicks off this Thursday — fixtures are locked in for Round 1. Get your picks in early so you're not rushing at deadline.
+              Round 1 tips close tomorrow at 7:10pm — don't miss out.
             </p>
-          </td>
-        </tr>
-
-        <!-- What's new -->
-        <tr>
-          <td style="padding:0 32px 24px;">
-            <table cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
-              <tr>
-                <td style="width:4px;height:16px;background:${t.accent};border-radius:2px;"></td>
-                <td style="padding-left:10px;font-family:'Archivo Black',sans-serif;font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:${t.textPrimary};">New This Season</td>
-              </tr>
-            </table>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${t.border};border-radius:12px;overflow:hidden;">
-              <tr>
-                <td style="padding:16px 20px;border-bottom:1px solid ${t.border};font-family:'Archivo',system-ui,sans-serif;font-size:14px;color:${t.textPrimary};line-height:1.6;">
-                  <strong style="color:${t.accent};">📊</strong>&nbsp;&nbsp;Live match stats powered by Opta
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 20px;border-bottom:1px solid ${t.border};font-family:'Archivo',system-ui,sans-serif;font-size:14px;color:${t.textPrimary};line-height:1.6;">
-                  <strong style="color:${t.accent};">👥</strong>&nbsp;&nbsp;Full team squads for every match
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 20px;font-family:'Archivo',system-ui,sans-serif;font-size:14px;color:${t.textPrimary};line-height:1.6;">
-                  <strong style="color:${t.accent};">⚡</strong>&nbsp;&nbsp;Match Centre with real-time updates
-                </td>
-              </tr>
-            </table>
           </td>
         </tr>
 
@@ -204,7 +175,7 @@ export async function POST(request: Request) {
       const { error } = await resend.emails.send({
         from,
         to: user.email!,
-        subject: "Round 1 is here — make your picks",
+        subject: "Last chance — Round 1 tips close tomorrow",
         html: buildHtml(firstName, teamName),
       });
       if (error) {
