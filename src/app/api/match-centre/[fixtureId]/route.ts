@@ -320,11 +320,7 @@ export async function GET(
     commentary,
   };
 
-  const cacheHeader = status.type === "fulltime"
-    ? "public, max-age=86400, s-maxage=86400"
-    : "public, s-maxage=10, stale-while-revalidate=20";
-
   return NextResponse.json(result, {
-    headers: { "Cache-Control": cacheHeader },
+    headers: { "Cache-Control": "private, no-cache, no-store, must-revalidate" },
   });
 }
