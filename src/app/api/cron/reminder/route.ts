@@ -97,10 +97,11 @@ export async function GET(request: Request) {
 
     console.log("[reminder] compConfig for", compId, ":", JSON.stringify(compConfig));
 
-    if (compConfig?.reminders_enabled === false) {
-      console.log(`[reminder] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
-      continue;
-    }
+    // TEMP: reminders_enabled check disabled — Vercel caching stale Supabase response
+    // if (compConfig?.reminders_enabled === false) {
+    //   console.log(`[reminder] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
+    //   continue;
+    // }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
