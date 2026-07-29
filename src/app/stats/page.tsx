@@ -147,7 +147,7 @@ async function buildLiveFixtures(
   const optaToTeamId = new Map<string, string>();
   for (const m of mappingRows) optaToTeamId.set(String(m.opta_team_id), m.team_id);
 
-  return fixtures.map((f) => {
+  const result = fixtures.map((f) => {
     const optaId = f.opta_fixture_id;
     const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
 
@@ -252,6 +252,9 @@ async function buildLiveFixtures(
         .map((r) => ({ minute: r.minute, period: null, text: r.comment as string, type: r.event_type })),
     };
   });
+
+  console.log('[stats] buildLiveFixtures result:', JSON.stringify(result.map(f => ({ id: f.id, homeScore: f.homeScore, awayScore: f.awayScore }))));
+  return result;
 }
 
 
