@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats, CommentaryEntry } from "@/app/stats/matchCentreTypes";
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
