@@ -39,6 +39,7 @@ type LeaderboardEntry = {
   total: number;
   manualCorrect: number;
   manualTotal: number;
+  manualResulted: number;
   marginsCorrect: number;
   marginBonus: number;
   totalScore: number;
@@ -347,9 +348,15 @@ export default async function LeaderboardPage() {
 
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
-  const { data: allPicksRaw } = compFixtureIds.length > 0
-    ? await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds)
-    : { data: [] as { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] };
+  const allPicksRaw: { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
+  if (compFixtureIds.length > 0) {
+    for (let from = 0; ; from += 1000) {
+      const { data } = await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).range(from, from + 999);
+      if (!data || data.length === 0) break;
+      allPicksRaw.push(...data);
+      if (data.length < 1000) break;
+    }
+  }
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -387,12 +394,20 @@ export default async function LeaderboardPage() {
     weekFixtures = (fixturesRaw ?? []) as RichFixture[];
 
     if (weekFixtures.length > 0) {
-      const { data: picksRaw } = await supabase
-        .from("picks")
-        .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
-        .in("fixture_id", weekFixtures.map((f) => f.id));
+      const weekFixtureIds = weekFixtures.map((f) => f.id);
+      const allWeekPicks: RichPick[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await supabase
+          .from("picks")
+          .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+          .in("fixture_id", weekFixtureIds)
+          .range(from, from + 999);
+        if (!data || data.length === 0) break;
+        allWeekPicks.push(...(data as unknown as RichPick[]));
+        if (data.length < 1000) break;
+      }
 
-      for (const pick of (picksRaw ?? []) as unknown as RichPick[]) {
+      for (const pick of allWeekPicks) {
         if (!participantIds.has(pick.user_id)) continue;
         const list = weekPicksByFixture.get(pick.fixture_id) ?? [];
         list.push(pick);
@@ -401,12 +416,12 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; marginsCorrect: number; marginBonus: number; totalPoints: number }>(
-    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 }])
+  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; manualResulted: number; marginsCorrect: number; marginBonus: number; totalPoints: number }>(
+    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, manualResulted: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 }])
   );
   for (const pick of allPicksRaw ?? []) {
     if (!participantIds.has(pick.user_id)) continue;
-    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 };
+    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, manualResulted: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 };
     e.total += 1;
     if (pick.is_correct) e.correct += 1;
     if (pick.margin_correct) e.marginsCorrect += 1;
@@ -414,6 +429,7 @@ export default async function LeaderboardPage() {
     e.totalPoints += pick.points ?? 0;
     if (!pick.auto_picked) {
       e.manualTotal += 1;
+      if (pick.is_correct !== null) e.manualResulted += 1;
       if (pick.is_correct) e.manualCorrect += 1;
     }
     lbMap.set(pick.user_id, e);
@@ -538,12 +554,19 @@ export default async function LeaderboardPage() {
 
     const allFixtureIds = richFixtures.map((f) => f.id);
     if (allFixtureIds.length > 0) {
-      const { data: summaryPicksRaw } = await supabase
-        .from("picks")
-        .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
-        .in("fixture_id", allFixtureIds);
+      const allSummaryPicks: RichPick[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await supabase
+          .from("picks")
+          .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
+          .in("fixture_id", allFixtureIds)
+          .range(from, from + 999);
+        if (!data || data.length === 0) break;
+        allSummaryPicks.push(...(data as unknown as RichPick[]));
+        if (data.length < 1000) break;
+      }
 
-      for (const pick of (summaryPicksRaw ?? []) as unknown as RichPick[]) {
+      for (const pick of allSummaryPicks) {
         if (!participantIds.has(pick.user_id)) continue;
         const list = summaryPicksByFixture.get(pick.fixture_id) ?? [];
         list.push(pick);

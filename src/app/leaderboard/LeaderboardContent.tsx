@@ -18,6 +18,7 @@ export type LeaderboardRow = {
   total: number;
   manualCorrect: number;
   manualTotal: number;
+  manualResulted: number;
   marginsCorrect: number;
   marginBonus: number;
   totalScore: number;
@@ -107,7 +108,7 @@ function PodiumCard({ entry, rank, isFirst }: { entry: LeaderboardRow; rank: num
       </div>
 
       <div className="text-[10px] sm:text-[13px] mt-1 sm:mt-1.5" style={{ color: isFirst ? "#9AA1AD" : "#8B8676", fontWeight: 600 }}>
-        {pct(entry.manualCorrect, entry.manualTotal)} acc
+        {pct(entry.manualCorrect, entry.manualResulted)} acc
       </div>
 
       <div className="flex items-baseline gap-1 mt-2 sm:mt-[18px]">
@@ -550,7 +551,7 @@ export default function LeaderboardContent({
                     )}
 
                     <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", color: "#5A6371" }}>
-                      {pct(entry.manualCorrect, entry.manualTotal)}
+                      {pct(entry.manualCorrect, entry.manualResulted)}
                     </span>
 
                     <span className="text-[11px] sm:text-[14px]" style={{ textAlign: "center", color: entry.manualTotal > 0 ? "#5A6371" : "#C7C2B5" }}>
