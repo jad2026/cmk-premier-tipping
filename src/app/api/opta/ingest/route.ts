@@ -707,6 +707,13 @@ async function processRU7(
   }
 
   console.log(`[opta/RU7] Done: processed=${processed}, errors=${errors}`);
+
+  try {
+    await admin.rpc('refresh_season_stats');
+  } catch (err) {
+    console.error("[opta/RU7] Failed to refresh season stats matviews:", err);
+  }
+
   return { processed, errors };
 }
 
