@@ -505,11 +505,11 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                                       {p.name}
                                       {isTryScorer && <span style={{ marginLeft: 4, fontSize: 10 }}>🏉</span>}
                                     </td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : "rgba(255,255,255,.5)", fontWeight: isTryScorer ? 800 : 400 }}>{p.tries}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)" }}>{p.carries}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostMetres ? 800 : 400 }}>{p.metres}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: "rgba(255,255,255,.5)", fontWeight: isMostTackles ? 800 : 400 }}>{p.tackles}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.5)" }}>{p.missedTackles}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : p.tries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isTryScorer ? 800 : 400 }}>{p.tries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.carries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)" }}>{p.carries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.metres > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostMetres ? 800 : 400 }}>{p.metres}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.tackles > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostTackles ? 800 : 400 }}>{p.tackles}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.25)" }}>{p.missedTackles}</td>
                                   </tr>
                                 );
                               })}
