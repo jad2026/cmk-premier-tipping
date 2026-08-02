@@ -37,6 +37,8 @@ export async function GET(request: Request) {
     .eq("results_email_sent", false)
     .order("number");
 
+  console.log("[results-email] candidateGws:", JSON.stringify(candidateGws));
+
   if (!candidateGws || candidateGws.length === 0) {
     return NextResponse.json({ skipped: "No pending gameweeks" });
   }
@@ -57,6 +59,8 @@ export async function GET(request: Request) {
       .eq("gameweek_id", gw.id)
       .is("result_team_id", null)
       .eq("is_draw", false);
+
+    console.log("[results-email]", gw.label, "totalCount:", totalCount, "pendingCount:", pendingCount);
 
     if (pendingCount === 0) {
       completedGws.push(gw);
