@@ -5,7 +5,11 @@
 	"server": {
 		"url": "https://clubrugbytipping.com",
 		"cleartext": false,
-		"allowNavigation": ["clubrugbytipping.com", "*.clubrugbytipping.com", "*.supabase.co"]
+		"allowNavigation": [
+			"clubrugbytipping.com",
+			"*.clubrugbytipping.com",
+			"*.supabase.co"
+		]
 	},
 	"packageClassList": [
 		"PushNotificationsPlugin"
