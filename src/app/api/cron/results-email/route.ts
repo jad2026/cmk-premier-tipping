@@ -20,6 +20,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const offset = parseInt(new URL(request.url).searchParams.get("offset") ?? "0", 10);
+  console.log("[results-email] offset:", offset);
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ skipped: "RESEND_API_KEY not set" });
   }
@@ -204,7 +207,8 @@ export async function GET(request: Request) {
     );
 
     let sent = 0;
-    for (const userId of Array.from(enrolledUserIds)) {
+    const userList = Array.from(enrolledUserIds).slice(offset);
+    for (const userId of userList) {
       const user = (users ?? []).find((u) => u.id === userId);
       const email = user?.email;
       if (!email) continue;
