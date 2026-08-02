@@ -366,7 +366,7 @@ export default async function LadderPage() {
 
   const isNpc = compId === NPC_COMPETITION_ID;
   const compLabel = isNpc ? "Provincial" : "CMK Premier";
-  const latestRound = closedGameweeks?.[0]?.number ?? null;
+  const latestRoundFromGw = closedGameweeks?.[0]?.number ?? null;
 
   console.time("[stats] matchcentre");
   type RoundData = { number: number; label: string; fixtures: MatchFixture[] };
@@ -405,6 +405,9 @@ export default async function LadderPage() {
         });
       }
 
+      // Only keep rounds that have fixtures
+      allRounds2026 = allRounds2026.filter((r) => r.fixtures.length > 0);
+
       // Default to the most recent round that has completed fixtures (has scores)
       for (const round of allRounds2026) {
         const hasCompleted = round.fixtures.some(
@@ -413,13 +416,23 @@ export default async function LadderPage() {
         if (hasCompleted) defaultRound2026 = round.number;
       }
       // If no completed round found, default to first round
-      if (defaultRound2026 === 1 && allRounds2026.length > 0) {
+      if (!allRounds2026.some((r) => r.number === defaultRound2026) && allRounds2026.length > 0) {
         defaultRound2026 = allRounds2026[0].number;
       }
     }
   }
 
   console.timeEnd("[stats] matchcentre");
+
+  // Use the most recent round with actual results for the header,
+  // falling back to closed gameweeks for non-NPC competitions
+  const latestCompletedRound = allRounds2026.reduce<number | null>((acc, round) => {
+    const hasCompleted = round.fixtures.some(
+      (f) => f.status.type === "fulltime" || f.status.type === "live"
+    );
+    return hasCompleted ? round.number : acc;
+  }, null);
+  const latestRound = isNpc ? latestCompletedRound : latestRoundFromGw;
 
   const canToggleSeason = isNpc && !!user;
 
