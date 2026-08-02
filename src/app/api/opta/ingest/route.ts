@@ -820,7 +820,7 @@ async function processRU10(
   }
 
   const competition = root.competition as RU10Competition | undefined;
-  const seasonId = process.env.OPTA_NPC_SEASON_ID ?? "2026";
+  const seasonId = process.env.OPTA_NPC_SEASON_ID ?? "2027";
   if (competition?.["@_season_id"] && competition["@_season_id"] !== seasonId) {
     console.log(`[opta/RU10] Skipping — season_id ${competition["@_season_id"]} does not match ${seasonId}`);
     return { processed: 0, skipped: true, reason: "season_id mismatch" };

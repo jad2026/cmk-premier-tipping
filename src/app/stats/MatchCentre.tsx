@@ -10,8 +10,8 @@ const POLL_INTERVAL = 30_000;
 
 type Props = {
   fixtures: MatchFixture[];
-  round1Label: string | null;
-  round1Date: string | null;
+  roundLabel: string | null;
+  roundDate: string | null;
   disablePolling?: boolean;
 };
 
@@ -46,7 +46,7 @@ function hasDetailData(f: MatchFixture): boolean {
 
 /* ── Component ──────────────────────────────────────────────────── */
 
-export default function MatchCentre({ fixtures: initialFixtures, round1Label, round1Date, disablePolling }: Props) {
+export default function MatchCentre({ fixtures: initialFixtures, roundLabel, roundDate, disablePolling }: Props) {
   const [fixtures, setFixtures] = useState(initialFixtures);
   const [expanded, setExpanded] = useState(false);
   const [activeFixtureIdx, setActiveFixtureIdx] = useState(0);
@@ -430,11 +430,11 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                       border: "1px solid rgba(var(--accent-rgb,217,165,33),.25)",
                     }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)", margin: 0 }}>
-                        Live stats available from {round1Label ?? "Round 1"}
+                        Live stats available from {roundLabel ?? "Round 1"}
                       </p>
-                      {round1Date && (
+                      {roundDate && (
                         <p style={{ fontSize: 12, color: "rgba(var(--accent-rgb,217,165,33),.6)", margin: "4px 0 0" }}>
-                          {round1Date}
+                          {roundDate}
                         </p>
                       )}
                     </div>
@@ -505,11 +505,11 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
                                       {p.name}
                                       {isTryScorer && <span style={{ marginLeft: 4, fontSize: 10 }}>🏉</span>}
                                     </td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : p.tries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isTryScorer ? 800 : 400 }}>{p.tries}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.carries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)" }}>{p.carries}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.metres > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostMetres ? 800 : 400 }}>{p.metres}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.tackles > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostTackles ? 800 : 400 }}>{p.tackles}</td>
-                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.25)" }}>{p.missedTackles}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: isTryScorer ? "var(--accent)" : p.tries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isTryScorer ? 800 : p.tries > 0 ? 600 : 400 }}>{p.tries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.carries > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: p.carries > 0 ? 600 : 400 }}>{p.carries}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.metres > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostMetres ? 800 : p.metres > 0 ? 600 : 400 }}>{p.metres}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.tackles > 0 ? "#F2F0EA" : "rgba(255,255,255,.25)", fontWeight: isMostTackles ? 800 : p.tackles > 0 ? 600 : 400 }}>{p.tackles}</td>
+                                    <td style={{ textAlign: "center", padding: "7px 4px", color: p.missedTackles > 0 ? "#EF4444" : "rgba(255,255,255,.25)", fontWeight: p.missedTackles > 0 ? 600 : 400 }}>{p.missedTackles}</td>
                                   </tr>
                                 );
                               })}
@@ -612,7 +612,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
               <p className="text-center text-xs sm:text-[13px]" style={{ fontWeight: 700, color: "var(--accent)", margin: 0 }}>
                 {hasLiveOrFinished
                   ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
-                  : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
+                  : <>Live stats coming {roundLabel ?? "Round 1"}{roundDate && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {roundDate}</span>}</>
                 }
               </p>
             </div>
@@ -625,7 +625,7 @@ export default function MatchCentre({ fixtures: initialFixtures, round1Label, ro
             <p className="text-center text-xs sm:text-[13px]" style={{ fontWeight: 700, color: "var(--accent)", margin: 0 }}>
               {hasLiveOrFinished
                 ? fixture.status.type === "live" ? "Updating every 30 seconds" : "Full Time"
-                : <>Live stats coming {round1Label ?? "Round 1"}{round1Date && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {round1Date}</span>}</>
+                : <>Live stats coming {roundLabel ?? "Round 1"}{roundDate && <span style={{ fontWeight: 500, color: "rgba(var(--accent-rgb,217,165,33),.6)" }}> · {roundDate}</span>}</>
               }
             </p>
           </div>

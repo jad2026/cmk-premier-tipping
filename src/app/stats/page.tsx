@@ -3,7 +3,6 @@ import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CM
 import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
-import { buildPlaceholderFixture } from "./matchCentreTypes";
 import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
 import { getCachedAllTeams } from "@/lib/cached-queries";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
@@ -370,36 +369,52 @@ export default async function LadderPage() {
   const latestRound = closedGameweeks?.[0]?.number ?? null;
 
   console.time("[stats] matchcentre");
-  let matchCentreFixtures: MatchFixture[] = [];
-  let round1Label: string | null = null;
-  let round1Date: string | null = null;
+  type RoundData = { number: number; label: string; fixtures: MatchFixture[] };
+  let allRounds2026: RoundData[] = [];
+  let defaultRound2026 = 1;
+
   if (isNpc) {
-    const { data: firstGw } = await supabase
+    const { data: allGameweeks } = await supabase
       .from("gameweeks")
-      .select("id, label, deadline")
+      .select("id, number, label, deadline")
       .eq("competition_id", compId)
-      .order("number", { ascending: true })
-      .limit(1)
-      .single();
+      .order("number", { ascending: true });
 
-    if (firstGw) {
-      round1Label = firstGw.label;
-      round1Date = new Date(firstGw.deadline).toLocaleDateString(tz.locale, {
-        timeZone: tz.timezone,
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      });
-
-      const { data: r1Fixtures } = await supabase
+    if (allGameweeks?.length) {
+      const gwIds = allGameweeks.map((gw) => gw.id);
+      const { data: allFixtures } = await supabase
         .from("fixtures")
         .select("*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)")
-        .eq("gameweek_id", firstGw.id)
+        .in("gameweek_id", gwIds)
         .order("match_date", { ascending: true });
 
-      if (r1Fixtures?.length) {
-        const richFixtures = r1Fixtures as unknown as RichFixture[];
-        matchCentreFixtures = await buildLiveFixtures(supabase, richFixtures, tz);
+      const fixturesByGw = new Map<string, RichFixture[]>();
+      for (const f of ((allFixtures ?? []) as unknown as RichFixture[])) {
+        const list = fixturesByGw.get(f.gameweek_id) ?? [];
+        list.push(f);
+        fixturesByGw.set(f.gameweek_id, list);
+      }
+
+      for (const gw of allGameweeks) {
+        const gwFixtures = fixturesByGw.get(gw.id) ?? [];
+        const matchFixtures = await buildLiveFixtures(supabase, gwFixtures, tz);
+        allRounds2026.push({
+          number: gw.number as number,
+          label: gw.label as string,
+          fixtures: matchFixtures,
+        });
+      }
+
+      // Default to the most recent round that has completed fixtures (has scores)
+      for (const round of allRounds2026) {
+        const hasCompleted = round.fixtures.some(
+          (f) => f.status.type === "fulltime" || f.status.type === "live"
+        );
+        if (hasCompleted) defaultRound2026 = round.number;
+      }
+      // If no completed round found, default to first round
+      if (defaultRound2026 === 1 && allRounds2026.length > 0) {
+        defaultRound2026 = allRounds2026[0].number;
       }
     }
   }
@@ -469,19 +484,18 @@ export default async function LadderPage() {
       {/* ── Match Centre + Stats Leaders ──────────────────────────── */}
       {statsData && (
         <StatsSection
-          matchCentre2026={isNpc && matchCentreFixtures.length > 0
-            ? { fixtures: matchCentreFixtures, round1Label, round1Date }
-            : null
-          }
+          rounds2026={allRounds2026}
+          defaultRound2026={defaultRound2026}
           statsData={statsData}
           canToggleSeason={canToggleSeason}
         />
       )}
 
       {/* Match Centre only (no stats data / not logged in) */}
-      {!statsData && isNpc && matchCentreFixtures.length > 0 && (
+      {!statsData && isNpc && allRounds2026.length > 0 && (
         <StatsSection
-          matchCentre2026={{ fixtures: matchCentreFixtures, round1Label, round1Date }}
+          rounds2026={allRounds2026}
+          defaultRound2026={defaultRound2026}
           statsData={{ season2025: null, season2026: null }}
           canToggleSeason={false}
         />
