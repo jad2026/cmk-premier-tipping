@@ -252,6 +252,7 @@ export async function GET(request: Request) {
 
       const profile = profiles?.find((p: { id: string }) => p.id === userId);
       const userRoundPicks = picksByUser.get(userId) ?? [];
+      if (userRoundPicks.length === 0) continue;
       const correctThisRound = userRoundPicks.filter((p) => p.is_correct).length;
 
       const picksWithMargin = userRoundPicks.filter((p) => p.predicted_margin != null);
