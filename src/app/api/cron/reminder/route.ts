@@ -24,6 +24,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const offset = parseInt(new URL(request.url).searchParams.get("offset") ?? "0", 10);
+  console.log("[reminder] offset:", offset);
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ skipped: "RESEND_API_KEY not set" });
   }
@@ -145,7 +148,16 @@ export async function GET(request: Request) {
     );
 
     let sent = 0;
-    for (const user of incompleteUsers) {
+    const userSlice = incompleteUsers.slice(offset);
+    let timedOut = false;
+    for (const user of userSlice) {
+      if (Date.now() - now > 45_000) {
+        const continueUrl = `${baseUrl}/api/cron/reminder?offset=${offset + totalSent}`;
+        fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
+        console.log(`[reminder] Timed out, continuing at offset ${offset + totalSent}`);
+        timedOut = true;
+        break;
+      }
       const email = user.email;
       if (!email) continue;
 
@@ -153,8 +165,6 @@ export async function GET(request: Request) {
       const firstName = profile?.first_name?.trim() || "";
       const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
       const picksCount = pickCountByUser.get(user.id) ?? 0;
-
-      if (totalSent > 0) await new Promise((r) => setTimeout(r, 500));
 
       await sendReminderEmail({
         to: email,
@@ -175,6 +185,10 @@ export async function GET(request: Request) {
       sent++;
       totalSent++;
       console.log(`[reminder] Sent 24h reminder to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
+    }
+
+    if (timedOut) {
+      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + totalSent });
     }
 
     // Also fire push notifications to this competition's subscribers.

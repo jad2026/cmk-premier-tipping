@@ -22,6 +22,7 @@ export async function GET(request: Request) {
 
   const offset = parseInt(new URL(request.url).searchParams.get("offset") ?? "0", 10);
   console.log("[results-email] offset:", offset);
+  const startTime = Date.now();
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ skipped: "RESEND_API_KEY not set" });
@@ -35,6 +36,13 @@ export async function GET(request: Request) {
       global: { fetch: (url: any, init: any) => fetch(url, { ...init, cache: 'no-store' }) },
     }
   );
+
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const host = request.headers.get("host");
+  const baseUrl =
+    (host ? `${proto}://${host}` : undefined) ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 
   // Find gameweeks that haven't had results emailed yet
   const { data: candidateGws } = await admin
@@ -208,7 +216,15 @@ export async function GET(request: Request) {
 
     let sent = 0;
     const userList = Array.from(enrolledUserIds).slice(offset);
+    let timedOut = false;
     for (const userId of userList) {
+      if (Date.now() - startTime > 45_000) {
+        const continueUrl = `${baseUrl}/api/cron/results-email?offset=${offset + totalSent}`;
+        fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
+        console.log(`[results-email] Timed out, continuing at offset ${offset + totalSent}`);
+        timedOut = true;
+        break;
+      }
       const user = (users ?? []).find((u) => u.id === userId);
       const email = user?.email;
       if (!email) continue;
@@ -255,6 +271,10 @@ export async function GET(request: Request) {
       console.log(
         `[results-email] Sent to ${email} for ${competitionName} ${gw.label} (${correctThisRound}/${totalFixtures})`
       );
+    }
+
+    if (timedOut) {
+      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + totalSent });
     }
 
     // Mark gameweek as emailed

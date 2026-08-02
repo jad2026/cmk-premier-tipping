@@ -21,6 +21,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const offset = parseInt(new URL(request.url).searchParams.get("offset") ?? "0", 10);
+  console.log("[wednesday-reminder] offset:", offset);
+  const startTime = Date.now();
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ skipped: "RESEND_API_KEY not set" });
   }
@@ -57,7 +61,14 @@ export async function GET(request: Request) {
   }
 
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
-  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  let users: any[] = [];
+  let page = 1;
+  while (true) {
+    const { data: { users: batch } } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    users.push(...batch);
+    if (batch.length < 1000) break;
+    page++;
+  }
 
   let totalSent = 0;
   const results: { round: string; competition: string; sent: number }[] = [];
@@ -118,7 +129,16 @@ export async function GET(request: Request) {
     );
 
     let sent = 0;
-    for (const user of incompleteUsers) {
+    const userSlice = incompleteUsers.slice(offset);
+    let timedOut = false;
+    for (const user of userSlice) {
+      if (Date.now() - startTime > 45_000) {
+        const continueUrl = `${baseUrl}/api/cron/wednesday-reminder?offset=${offset + totalSent}`;
+        fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
+        console.log(`[wednesday-reminder] Timed out, continuing at offset ${offset + totalSent}`);
+        timedOut = true;
+        break;
+      }
       const email = user.email;
       if (!email) continue;
 
@@ -126,8 +146,6 @@ export async function GET(request: Request) {
       const firstName = profile?.first_name?.trim() || "";
       const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
       const picksCount = pickCountByUser.get(user.id) ?? 0;
-
-      if (totalSent > 0) await new Promise((r) => setTimeout(r, 500));
 
       await sendReminderEmail({
         to: email,
@@ -148,6 +166,10 @@ export async function GET(request: Request) {
       sent++;
       totalSent++;
       console.log(`[wednesday-reminder] Sent to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
+    }
+
+    if (timedOut) {
+      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + totalSent });
     }
 
     // Also fire push notifications to this competition's subscribers.
