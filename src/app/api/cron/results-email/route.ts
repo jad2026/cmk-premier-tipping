@@ -69,7 +69,14 @@ export async function GET(request: Request) {
 
   const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
   const { data: teams } = await admin.from("teams").select("id, name");
-  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  let users: any[] = [];
+  let page = 1;
+  while (true) {
+    const { data: { users: batch } } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    users.push(...batch);
+    if (batch.length < 1000) break;
+    page++;
+  }
   const teamName = (id: string) => teams?.find((t) => t.id === id)?.name ?? "?";
 
   let totalSent = 0;
@@ -103,10 +110,11 @@ export async function GET(request: Request) {
         .limit(5),
     ]);
 
-    if (compConfig?.reminders_enabled === false) {
-      console.log(`[results-email] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
-      continue;
-    }
+    // TEMP: reminders_enabled check disabled — Vercel caching issue
+    // if (compConfig?.reminders_enabled === false) {
+    //   console.log(`[results-email] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
+    //   continue;
+    // }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
@@ -212,8 +220,6 @@ export async function GET(request: Request) {
           autoPicked: p.auto_picked === true,
         };
       });
-
-      if (totalSent > 0) await new Promise((r) => setTimeout(r, 500));
 
       await sendResultsEmail({
         to: email,
