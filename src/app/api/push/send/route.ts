@@ -43,7 +43,10 @@ export async function POST(request: Request) {
   const admin = createAdminClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { fetch: (url: any, init: any) => fetch(url, { ...init, cache: 'no-store' }) },
+    }
   );
 
   const { data: subscriptions, error } = await admin

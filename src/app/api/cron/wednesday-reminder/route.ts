@@ -28,7 +28,10 @@ export async function GET(request: Request) {
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { fetch: (url: any, init: any) => fetch(url, { ...init, cache: 'no-store' }) },
+    }
   );
 
   // Base URL for the internal /api/push/send call — prefer the incoming request's
