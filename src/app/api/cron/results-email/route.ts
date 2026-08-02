@@ -85,7 +85,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ skipped: "No fully completed gameweeks pending email" });
   }
 
-  const { data: profiles } = await admin.from("profiles").select("id, display_name, first_name");
+  let profiles: any[] = [];
+  {
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data } = await admin.from("profiles").select("id, display_name, first_name").range(from, from + batchSize - 1);
+      profiles.push(...(data ?? []));
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
+    }
+  }
   const { data: teams } = await admin.from("teams").select("id, name");
   let users: any[] = [];
   let page = 1;
@@ -112,7 +122,18 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
       admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled").eq("id", compId).single(),
-      admin.from("competition_participants").select("user_id").eq("competition_id", compId),
+      (async () => {
+        let all: { user_id: string }[] = [];
+        let from = 0;
+        const batchSize = 1000;
+        while (true) {
+          const { data } = await admin.from("competition_participants").select("user_id").eq("competition_id", compId).range(from, from + batchSize - 1);
+          all.push(...(data ?? []));
+          if (!data || data.length < batchSize) break;
+          from += batchSize;
+        }
+        return { data: all };
+      })(),
       admin
         .from("fixtures")
         .select("id, home_team_id, away_team_id, result_team_id, is_draw")
