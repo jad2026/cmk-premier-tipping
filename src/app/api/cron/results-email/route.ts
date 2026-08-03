@@ -219,14 +219,14 @@ export async function GET(request: Request) {
     const allCompFixtureIds = (allCompFixtureRows ?? []).map((f: { id: string }) => f.id);
 
     // Get all competition picks for leaderboard (paginated)
-    let allCompPicks: { user_id: string; is_correct: boolean | null }[] = [];
+    let allCompPicks: { user_id: string; points: number | null }[] = [];
     if (allCompFixtureIds.length > 0) {
       let from = 0;
       const batchSize = 1000;
       while (true) {
         const { data } = await admin
           .from("picks")
-          .select("user_id, is_correct")
+          .select("user_id, points")
           .in("fixture_id", allCompFixtureIds)
           .order("user_id")
           .range(from, from + batchSize - 1);
@@ -236,27 +236,29 @@ export async function GET(request: Request) {
       }
     }
 
-    // Build overall leaderboard for enrolled users
+    // Build overall leaderboard for enrolled users (sum points to match site)
     const overallMap = new Map<string, number>();
     for (const uid of Array.from(enrolledUserIds)) {
       overallMap.set(uid, 0);
     }
     for (const p of allCompPicks ?? []) {
       if (!enrolledUserIds.has(p.user_id)) continue;
-      if (p.is_correct) overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + 1);
+      overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + (p.points ?? 0));
     }
 
-    // Sort for ranking
+    // Competition ranking: rank = players with strictly higher score + 1
     const sortedUsers = Array.from(overallMap.entries())
       .sort((a, b) => b[1] - a[1]);
     const rankMap = new Map<string, number>();
-    let rank = 0;
-    let prevScore = -1;
-    for (const [uid, score] of sortedUsers) {
-      if (score !== prevScore) { rank++; prevScore = score; }
-      rankMap.set(uid, rank);
+    for (let i = 0; i < sortedUsers.length; i++) {
+      const [uid, score] = sortedUsers[i];
+      if (i === 0 || score < sortedUsers[i - 1][1]) {
+        rankMap.set(uid, i + 1);
+      } else {
+        rankMap.set(uid, rankMap.get(sortedUsers[i - 1][0])!);
+      }
     }
-    const totalPlayers = sortedUsers.length;
+    const totalPlayers = enrolledUserIds.size;
 
     // Group round picks by user
     const picksByUser = new Map<string, typeof roundPicks>();
@@ -274,14 +276,17 @@ export async function GET(request: Request) {
     let sent = 0;
     const userList = Array.from(enrolledUserIds).slice(offset);
     let timedOut = false;
+    let iterated = 0;
     for (const userId of userList) {
       if (Date.now() - startTime > 45_000) {
-        const continueUrl = `${baseUrl}/api/cron/results-email?offset=${offset + totalSent}`;
+        const nextOffset = offset + iterated;
+        const continueUrl = `${baseUrl}/api/cron/results-email?offset=${nextOffset}`;
         fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
-        console.log(`[results-email] Timed out, continuing at offset ${offset + totalSent}`);
+        console.log(`[results-email] Timed out, continuing at offset ${nextOffset}`);
         timedOut = true;
         break;
       }
+      iterated++;
       const user = (users ?? []).find((u) => u.id === userId);
       const email = user?.email;
       if (!email) continue;
@@ -315,7 +320,7 @@ export async function GET(request: Request) {
         total: totalFixtures,
         leaderboardPosition: rankMap.get(userId) ?? totalPlayers,
         totalPlayers,
-        seasonCorrect: overallMap.get(userId) ?? 0,
+        seasonPoints: overallMap.get(userId) ?? 0,
         sponsors: sponsors ?? [],
         ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName,
@@ -332,7 +337,7 @@ export async function GET(request: Request) {
     }
 
     if (timedOut) {
-      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + totalSent });
+      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + iterated });
     }
 
     // Mark gameweek as emailed

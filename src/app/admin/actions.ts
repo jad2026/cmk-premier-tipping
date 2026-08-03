@@ -331,12 +331,12 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
       allCompFixtureIds = (rows ?? []).map((f: { id: string }) => f.id);
     }
 
-    let allCompPicks: { user_id: string; is_correct: boolean | null }[] = [];
+    let allCompPicks: { user_id: string; points: number | null }[] = [];
     if (allCompFixtureIds.length > 0) {
       let from = 0;
       const batchSize = 1000;
       while (true) {
-        const { data } = await admin.from("picks").select("user_id, is_correct")
+        const { data } = await admin.from("picks").select("user_id, points")
           .in("fixture_id", allCompFixtureIds)
           .order("user_id")
           .range(from, from + batchSize - 1);
@@ -346,23 +346,26 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
       }
     }
 
-    // Build leaderboard for enrolled users
+    // Build leaderboard for enrolled users (sum points to match site)
     const overallMap = new Map<string, number>();
     for (const uid of Array.from(enrolledUserIds)) overallMap.set(uid, 0);
     for (const p of allCompPicks) {
       if (!enrolledUserIds.has(p.user_id)) continue;
-      if (p.is_correct) overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + 1);
+      overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + (p.points ?? 0));
     }
 
+    // Competition ranking: rank = players with strictly higher score + 1
     const sortedUsers = Array.from(overallMap.entries()).sort((a, b) => b[1] - a[1]);
     const rankMap = new Map<string, number>();
-    let rank = 0;
-    let prevScore = -1;
-    for (const [uid, score] of sortedUsers) {
-      if (score !== prevScore) { rank++; prevScore = score; }
-      rankMap.set(uid, rank);
+    for (let i = 0; i < sortedUsers.length; i++) {
+      const [uid, score] = sortedUsers[i];
+      if (i === 0 || score < sortedUsers[i - 1][1]) {
+        rankMap.set(uid, i + 1);
+      } else {
+        rankMap.set(uid, rankMap.get(sortedUsers[i - 1][0])!);
+      }
     }
-    const totalPlayers = sortedUsers.length;
+    const totalPlayers = enrolledUserIds.size;
 
     // Group round picks by user
     const picksByUser = new Map<string, typeof roundPicks>();
@@ -411,7 +414,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
         total: totalFixtures,
         leaderboardPosition: rankMap.get(userId) ?? totalPlayers,
         totalPlayers,
-        seasonCorrect: overallMap.get(userId) ?? 0,
+        seasonPoints: overallMap.get(userId) ?? 0,
         sponsors: sponsors ?? [],
         ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName,

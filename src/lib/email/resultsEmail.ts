@@ -26,7 +26,7 @@ export type ResultsEmailPayload = {
   total: number;
   leaderboardPosition: number;
   totalPlayers: number;
-  seasonCorrect: number;
+  seasonPoints: number;
   sponsors?: Sponsor[];
   marginCorrect?: number;
   marginTotal?: number;
@@ -60,7 +60,7 @@ function getTheme(accent?: string, accentText?: string) {
 // ── HTML template ──────────────────────────────────────────────────────────────
 
 function buildHtml(p: ResultsEmailPayload): string {
-  const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonCorrect, sponsors = [] } = p;
+  const { roundLabel, fixtures, picks, correct, total, leaderboardPosition, totalPlayers, seasonPoints, sponsors = [] } = p;
   const t = getTheme(p.accentColor, p.accentTextColor);
   const competitionName = p.competitionName || "Club Rugby Tipping";
 
@@ -145,8 +145,8 @@ function buildHtml(p: ResultsEmailPayload): string {
                 <td style="width:1px;background:${t.border};"></td>
                 <td style="text-align:center;padding:0 8px;">
                   <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${t.textMuted};">Season total</p>
-                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;font-weight:400;color:${t.textPrimary};">${seasonCorrect}</p>
-                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">correct picks</p>
+                  <p style="margin:6px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;font-weight:400;color:${t.textPrimary};">${seasonPoints}</p>
+                  <p style="margin:2px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:13px;color:${t.textSecondary};">points</p>
                 </td>
                 <td style="width:1px;background:${t.border};"></td>
                 <td style="text-align:center;padding:0 8px;">
