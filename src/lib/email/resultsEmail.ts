@@ -34,6 +34,7 @@ export type ResultsEmailPayload = {
   siteUrl?: string;
   accentColor?: string;
   accentTextColor?: string;
+  noticeText?: string;
 };
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
@@ -131,6 +132,14 @@ function buildHtml(p: ResultsEmailPayload): string {
             <h1 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:${t.textOnDark};">${roundLabel} Results<span style="color:${t.accent};">.</span></h1>
           </td>
         </tr>
+
+        ${p.noticeText ? `
+        <!-- Notice banner -->
+        <tr>
+          <td style="background:${t.canvas};padding:14px 32px;">
+            <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;font-weight:500;color:${t.textMuted};line-height:1.5;">${p.noticeText}</p>
+          </td>
+        </tr>` : ""}
 
         <!-- Score summary -->
         <tr>

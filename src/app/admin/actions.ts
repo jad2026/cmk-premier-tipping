@@ -234,7 +234,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
   for (const gwId of gameweekIds) {
     const { data: gw } = await admin
       .from("gameweeks")
-      .select("label, competition_id")
+      .select("label, number, competition_id")
       .eq("id", gwId)
       .single();
     if (!gw) { errors.push(`Gameweek ${gwId} not found`); continue; }
@@ -415,6 +415,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
         siteUrl,
         accentColor,
         accentTextColor,
+        ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
 
       totalSent++;

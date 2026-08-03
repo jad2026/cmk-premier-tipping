@@ -321,6 +321,7 @@ export async function GET(request: Request) {
         siteUrl,
         accentColor,
         accentTextColor,
+        ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
 
       sent++;
