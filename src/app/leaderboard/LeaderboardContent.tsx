@@ -7,6 +7,7 @@ import Avatar from "@/components/Avatar";
 import TeamBadge from "@/components/TeamBadge";
 import LeaderboardTable from "./LeaderboardTable";
 import { createLeague, joinLeague, leaveLeague } from "../leagues/actions";
+import { rankByScore } from "@/lib/ranking";
 
 export type LeaderboardRow = {
   user_id: string;
@@ -206,16 +207,7 @@ export default function LeaderboardContent({
       a.displayName.localeCompare(b.displayName)
   );
 
-  const ranks: number[] = [];
-  let rank = 0;
-  let prevScore = -1;
-  for (const entry of sorted) {
-    if (entry.totalScore !== prevScore) {
-      rank++;
-      prevScore = entry.totalScore;
-    }
-    ranks.push(rank);
-  }
+  const ranks = rankByScore(sorted.map((e) => e.totalScore));
 
   const podiumEntries =
     sorted.length >= 3 ? [sorted[1], sorted[0], sorted[2]] : [];

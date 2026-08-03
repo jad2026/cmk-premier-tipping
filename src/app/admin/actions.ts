@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
+import { rankByScore } from "@/lib/ranking";
 
 import { CMK_COMPETITION_ID, getCurrentCompetitionId } from "@/lib/competition";
 
@@ -354,17 +355,10 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
       overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + (p.points ?? 0));
     }
 
-    // Competition ranking: rank = players with strictly higher score + 1
     const sortedUsers = Array.from(overallMap.entries()).sort((a, b) => b[1] - a[1]);
+    const ranks = rankByScore(sortedUsers.map(([, s]) => s));
     const rankMap = new Map<string, number>();
-    for (let i = 0; i < sortedUsers.length; i++) {
-      const [uid, score] = sortedUsers[i];
-      if (i === 0 || score < sortedUsers[i - 1][1]) {
-        rankMap.set(uid, i + 1);
-      } else {
-        rankMap.set(uid, rankMap.get(sortedUsers[i - 1][0])!);
-      }
-    }
+    sortedUsers.forEach(([uid], i) => rankMap.set(uid, ranks[i]));
     const totalPlayers = enrolledUserIds.size;
 
     // Group round picks by user
