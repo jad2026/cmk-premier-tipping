@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { fetchParticipants, type ParticipantRow } from "./actions";
+import { fetchParticipants, flagSuspectedBots, type ParticipantRow } from "./actions";
 
 export default function ParticipantsPanel({ timezone, locale }: { timezone: string; locale: string }) {
   const [rows, setRows] = useState<ParticipantRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [botResult, setBotResult] = useState<{ flagged: number; names: string[] } | null>(null);
+  const [botRunning, setBotRunning] = useState(false);
 
   useEffect(() => {
     startTransition(async () => {
@@ -41,9 +43,58 @@ export default function ParticipantsPanel({ timezone, locale }: { timezone: stri
     return <p className="text-sm text-gray-400 py-8 text-center">No participants yet.</p>;
   }
 
+  async function handleFlagBots() {
+    setBotRunning(true);
+    setBotResult(null);
+    try {
+      const result = await flagSuspectedBots();
+      setBotResult(result);
+    } catch {
+      setBotResult({ flagged: 0, names: [] });
+    } finally {
+      setBotRunning(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">{rows.length} registered participant{rows.length !== 1 ? "s" : ""}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-500">{rows.length} registered participant{rows.length !== 1 ? "s" : ""}</p>
+        <button
+          onClick={handleFlagBots}
+          disabled={botRunning}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: ".04em",
+            textTransform: "uppercase",
+            border: "1px solid #E4E1D8",
+            background: botRunning ? "#F4F2EC" : "#fff",
+            color: botRunning ? "#8B8676" : "#B23A48",
+            cursor: botRunning ? "wait" : "pointer",
+          }}
+        >
+          {botRunning ? "Scanning…" : "Flag Suspected Bots"}
+        </button>
+      </div>
+      {botResult && (
+        <div
+          style={{
+            borderRadius: 12,
+            border: "1px solid #E4E1D8",
+            background: botResult.flagged > 0 ? "#FDF5F5" : "#F4F9F4",
+            padding: "12px 16px",
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 600, color: botResult.flagged > 0 ? "#B23A48" : "#2D7A3A", margin: 0 }}>
+            {botResult.flagged === 0
+              ? "No new bots detected."
+              : `Flagged ${botResult.flagged} suspected bot${botResult.flagged !== 1 ? "s" : ""}: ${botResult.names.join(", ")}`}
+          </p>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-xl border border-gray-100">
         <table className="w-full text-sm">
           <thead>
