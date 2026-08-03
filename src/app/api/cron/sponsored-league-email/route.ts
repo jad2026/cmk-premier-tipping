@@ -221,7 +221,7 @@ export async function GET(request: Request) {
     // Get member profiles and emails
     const { data: profiles } = await admin
       .from("profiles")
-      .select("id, display_name, first_name")
+      .select("id, display_name, first_name, is_suspected_bot")
       .in("id", memberUserIds);
 
     const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -230,8 +230,13 @@ export async function GET(request: Request) {
       (profiles ?? []).map((p: { id: string; display_name: string | null; first_name: string | null }) => [p.id, p])
     );
 
+    const botIds = new Set(
+      (profiles ?? []).filter((p: { is_suspected_bot?: boolean }) => p.is_suspected_bot).map((p: { id: string }) => p.id)
+    );
+
     let sent = 0;
     for (const userId of memberUserIds) {
+      if (botIds.has(userId)) continue;
       const user = (users ?? []).find((u) => u.id === userId);
       const email = user?.email;
       if (!email) continue;

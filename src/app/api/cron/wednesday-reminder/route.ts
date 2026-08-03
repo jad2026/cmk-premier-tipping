@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     let from = 0;
     const batchSize = 1000;
     while (true) {
-      const { data } = await admin.from("profiles").select("id, display_name, first_name").range(from, from + batchSize - 1);
+      const { data } = await admin.from("profiles").select("id, display_name, first_name, is_suspected_bot").range(from, from + batchSize - 1);
       profiles.push(...(data ?? []));
       if (!data || data.length < batchSize) break;
       from += batchSize;
@@ -80,6 +80,8 @@ export async function GET(request: Request) {
     if (batch.length < 1000) break;
     page++;
   }
+
+  const botUserIds = new Set(profiles.filter((p) => p.is_suspected_bot).map((p) => p.id));
 
   let totalSent = 0;
   let totalFailed = 0;
@@ -160,7 +162,7 @@ export async function GET(request: Request) {
     }
 
     const incompleteUsers = (users ?? []).filter(
-      (u) => enrolledUserIds.has(u.id) && (pickCountByUser.get(u.id) ?? 0) < totalFixtures
+      (u) => enrolledUserIds.has(u.id) && !botUserIds.has(u.id) && (pickCountByUser.get(u.id) ?? 0) < totalFixtures
     );
 
     let sent = 0;

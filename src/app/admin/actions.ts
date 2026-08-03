@@ -1274,3 +1274,94 @@ export async function backfillCmkParticipants() {
   revalidatePath("/leaderboard");
   return { enrolled: rows.length };
 }
+
+// ---------------------------------------------------------------------------
+// Flag suspected bot accounts
+// ---------------------------------------------------------------------------
+const BOT_NAME_PATTERN = /^[a-zA-Z0-9]{15,}$/;
+
+export async function flagSuspectedBots(): Promise<{ flagged: number; names: string[] }> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { flagged: 0, names: [] };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { fetch: (url: any, init: any) => fetch(url, { ...init, cache: "no-store" }) },
+    }
+  );
+
+  let allProfiles: { id: string; display_name: string | null; is_suspected_bot: boolean }[] = [];
+  {
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data } = await admin
+        .from("profiles")
+        .select("id, display_name, is_suspected_bot")
+        .range(from, from + batchSize - 1);
+      allProfiles.push(...(data ?? []));
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
+    }
+  }
+
+  const candidates = allProfiles.filter(
+    (p) => !p.is_suspected_bot && p.display_name && BOT_NAME_PATTERN.test(p.display_name)
+  );
+  if (candidates.length === 0) return { flagged: 0, names: [] };
+
+  let allUsers: { id: string; created_at: string; last_sign_in_at: string | null }[] = [];
+  let page = 1;
+  while (true) {
+    const { data: { users: batch } } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    allUsers.push(...batch.map((u) => ({ id: u.id, created_at: u.created_at, last_sign_in_at: u.last_sign_in_at ?? null })));
+    if (batch.length < 1000) break;
+    page++;
+  }
+  const userMap = new Map(allUsers.map((u) => [u.id, u]));
+
+  const quickSignIn = new Set<string>();
+  for (const c of candidates) {
+    const u = userMap.get(c.id);
+    if (!u || !u.last_sign_in_at) continue;
+    const diff = Math.abs(new Date(u.last_sign_in_at).getTime() - new Date(u.created_at).getTime());
+    if (diff <= 1000) quickSignIn.add(c.id);
+  }
+
+  const candidateIds = candidates.filter((c) => quickSignIn.has(c.id)).map((c) => c.id);
+  if (candidateIds.length === 0) return { flagged: 0, names: [] };
+
+  const usersWithPicks = new Set<string>();
+  {
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data } = await admin
+        .from("picks")
+        .select("user_id")
+        .in("user_id", candidateIds)
+        .range(from, from + batchSize - 1);
+      for (const p of data ?? []) usersWithPicks.add(p.user_id);
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
+    }
+  }
+
+  const toFlag = candidateIds.filter((id) => !usersWithPicks.has(id));
+  if (toFlag.length === 0) return { flagged: 0, names: [] };
+
+  for (let i = 0; i < toFlag.length; i += 100) {
+    const batch = toFlag.slice(i, i + 100);
+    await admin.from("profiles").update({ is_suspected_bot: true }).in("id", batch);
+  }
+
+  const flaggedNames = candidates
+    .filter((c) => toFlag.includes(c.id))
+    .map((c) => c.display_name!);
+
+  return { flagged: toFlag.length, names: flaggedNames };
+}

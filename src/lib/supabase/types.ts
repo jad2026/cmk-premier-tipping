@@ -58,6 +58,7 @@ export type Profile = {
   avatar_url: string | null;
   is_admin: boolean;
   supported_team_id: string | null;
+  is_suspected_bot: boolean;
 };
 
 export type SeasonConfig = {
