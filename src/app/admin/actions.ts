@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendResultsEmail, type ResultsEmailPayload } from "@/lib/email/resultsEmail";
-import { fetchActiveSponsors } from "@/app/admin/sponsorActions";
+
 import { CMK_COMPETITION_ID, getCurrentCompetitionId } from "@/lib/competition";
 
 // ---------------------------------------------------------------------------
@@ -167,16 +167,6 @@ export async function saveResults(
   // by the auto_score_on_result_change trigger on the fixtures table.
   // It fires on each fixture UPDATE above and uses per-competition scoring config.
 
-  // ── Step 3: send results emails to all users ─────────────────────────────
-  const emailGameweekIds = Array.from(new Set((fixtureMeta ?? []).map((f) => f.gameweek_id)));
-  console.log("[saveResults] About to send emails");
-  try {
-    await sendResultsEmailsForGameweeks(emailGameweekIds);
-    console.log("[saveResults] Emails sent successfully");
-  } catch (err) {
-    console.error("[saveResults] Email error:", err);
-  }
-
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
   revalidatePath("/");
@@ -184,17 +174,29 @@ export async function saveResults(
 }
 
 // ── Results email dispatcher ──────────────────────────────────────────────────
-// Fetches all data for the given gameweeks and sends one email per user.
+// Explicit admin action — decoupled from saveResults so emails only send after
+// the scoring trigger has finished and an admin deliberately triggers dispatch.
 
-async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
+export async function sendResultsEmails(gameweekIds: string[], testEmail?: string): Promise<{ sent: number; errors: string[] }> {
+  const errors: string[] = [];
+
   if (gameweekIds.length === 0) {
-    console.log("[resultsEmail] No gameweek IDs — skipping");
-    return;
+    return { sent: 0, errors: ["No gameweek IDs provided"] };
   }
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[resultsEmail] RESEND_API_KEY not set — skipping email dispatch");
-    return;
+    return { sent: 0, errors: ["RESEND_API_KEY not set"] };
   }
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    return { sent: 0, errors: ["SUPABASE_SERVICE_ROLE_KEY not set"] };
+  }
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   const COMPETITION_SITE_URLS: Record<string, string> = {
     "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
@@ -202,164 +204,234 @@ async function sendResultsEmailsForGameweeks(gameweekIds: string[]) {
     "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
   };
 
-  console.log(`[resultsEmail] Starting dispatch for gameweeks: ${gameweekIds.join(", ")}`);
-  const supabase = await createClient();
+  // Pre-fetch shared data
+  let profiles: any[] = [];
+  {
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data } = await admin.from("profiles").select("id, display_name").order("id").range(from, from + batchSize - 1);
+      profiles.push(...(data ?? []));
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
+    }
+  }
+  const { data: teams } = await admin.from("teams").select("id, name");
+  const teamName = (id: string | null) => teams?.find((t) => t.id === id)?.name ?? "?";
+
+  let authUsers: any[] = [];
+  let page = 1;
+  while (true) {
+    const { data: { users: batch } } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    authUsers.push(...batch);
+    if (batch.length < 1000) break;
+    page++;
+  }
+
+  let totalSent = 0;
 
   for (const gwId of gameweekIds) {
-    // Fetch gameweek label and competition
-    const { data: gw } = await supabase
+    const { data: gw } = await admin
       .from("gameweeks")
       .select("label, competition_id")
       .eq("id", gwId)
       .single();
-    if (!gw) { console.warn(`[resultsEmail] Gameweek ${gwId} not found — skipping`); continue; }
+    if (!gw) { errors.push(`Gameweek ${gwId} not found`); continue; }
 
     const compId = gw.competition_id;
-    const [{ data: seasonConfig }, { data: compConfig }] = await Promise.all([
-      supabase.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      supabase.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single() as unknown as Promise<{ data: { name: string | null; accent_color: string | null; accent_text_color: string | null } | null }>,
-    ]);
-    const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
-    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
-    const accentColor = compConfig?.accent_color ?? undefined;
-    const accentTextColor = compConfig?.accent_text_color ?? undefined;
 
-    // Fetch all fixtures for this gameweek
-    const { data: fixtures } = await supabase
+    const { data: fixtures } = await admin
       .from("fixtures")
       .select("id, result_team_id, is_draw, home_team_id, away_team_id, match_date")
       .eq("gameweek_id", gwId)
       .order("match_date");
-    if (!fixtures || fixtures.length === 0) { console.warn(`[resultsEmail] No fixtures for ${gw.label} — skipping`); continue; }
+    if (!fixtures || fixtures.length === 0) { errors.push(`No fixtures for ${gw.label}`); continue; }
 
-    // Only send if all fixtures in this round have results
     if (fixtures.some((f) => f.result_team_id === null && !f.is_draw)) {
-      console.log(`[resultsEmail] ${gw.label} has incomplete results — skipping email`);
+      errors.push(`${gw.label} has incomplete results — cannot send`);
       continue;
     }
-    console.log(`[resultsEmail] ${gw.label} is fully scored — proceeding`);
 
-    // Fetch all picks for these fixtures
     const fixtureIds = fixtures.map((f) => f.id);
-    const { data: picks } = await supabase
-      .from("picks")
-      .select("user_id, fixture_id, picked_team_id, is_correct, auto_picked, predicted_margin, margin_correct")
-      .in("fixture_id", fixtureIds);
-    if (!picks) continue;
 
-    const { data: compFeaturesRow } = await supabase
-      .from("competitions")
-      .select("features")
-      .eq("id", compId)
-      .single() as unknown as { data: { features?: Record<string, boolean> } | null };
-    const marginPicking = compFeaturesRow?.features?.margin_picking === true;
+    const [
+      { data: seasonConfig },
+      { data: compConfig },
+      { data: compFeaturesRow },
+      { data: sponsors },
+    ] = await Promise.all([
+      admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color").eq("id", compId).single(),
+      admin.from("competitions").select("features").eq("id", compId).single(),
+      admin.from("sponsors").select("*").eq("competition_id", compId).eq("is_active", true)
+        .or("display_location.eq.email,display_location.eq.all").order("order_position").limit(5),
+    ]);
 
-    // Fetch all teams for name lookup
-    const { data: teams } = await supabase.from("teams").select("id, name");
-    const teamName = (id: string | null) => teams?.find((t) => t.id === id)?.name ?? "?";
+    const competitionName = (compConfig as any)?.name ?? (seasonConfig as any)?.season_name ?? "Club Rugby Tipping";
+    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
+    const accentColor = (compConfig as any)?.accent_color ?? "#D9A521";
+    const accentTextColor = (compConfig as any)?.accent_text_color ?? "#11151C";
+    const marginPicking = (compFeaturesRow as any)?.features?.margin_picking === true;
 
-    // Fetch leaderboard: total correct per user across all rounds
-    const { data: allCorrect } = await supabase
-      .from("picks")
-      .select("user_id, is_correct")
-      .eq("is_correct", true);
+    // Enrolled participants (paginated)
+    let participants: { user_id: string }[] = [];
+    {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin.from("competition_participants").select("user_id")
+          .eq("competition_id", compId).order("user_id").range(from, from + batchSize - 1);
+        participants.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
+    }
+    const enrolledUserIds = new Set(participants.map((p) => p.user_id));
 
-    const seasonTally = new Map<string, number>();
-    for (const p of allCorrect ?? []) {
-      seasonTally.set(p.user_id, (seasonTally.get(p.user_id) ?? 0) + 1);
+    const totalFixtures = fixtureIds.length;
+    const fixtureResults = fixtures.map((f) => ({
+      homeTeam: teamName(f.home_team_id),
+      awayTeam: teamName(f.away_team_id),
+      winner: f.is_draw ? null : (f.result_team_id ? teamName(f.result_team_id) : null),
+    }));
+
+    // All picks for this round (paginated)
+    let roundPicks: any[] = [];
+    {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin.from("picks")
+          .select("user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, predicted_margin, margin_correct")
+          .in("fixture_id", fixtureIds)
+          .order("user_id").order("fixture_id")
+          .range(from, from + batchSize - 1);
+        roundPicks.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
     }
 
-    // Build sorted leaderboard for position lookup
-    const leaderboardEntries = Array.from(seasonTally.entries())
-      .sort((a, b) => b[1] - a[1]);
-
-    const positionOf = (userId: string): number => {
-      const score = seasonTally.get(userId) ?? 0;
-      const rank = leaderboardEntries.findIndex(([, s]) => s <= score);
-      return rank === -1 ? leaderboardEntries.length + 1 : rank + 1;
-    };
-
-    // Fetch all user emails + profiles
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name");
-
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceKey) {
-      console.warn("[resultsEmail] SUPABASE_SERVICE_ROLE_KEY not set — cannot look up user emails, skipping");
+    // Pre-send guard: refuse if any enrolled user's pick is unscored
+    const unscoredCount = roundPicks.filter(
+      (p) => enrolledUserIds.has(p.user_id) && p.is_correct === null
+    ).length;
+    if (unscoredCount > 0) {
+      errors.push(`${gw.label} has ${unscoredCount} unscored picks (is_correct IS NULL) — scoring may still be in progress`);
       continue;
     }
 
-    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
-    const admin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    // Leaderboard picks scoped to competition via gameweeks (paginated)
+    const { data: compGwRows } = await admin.from("gameweeks").select("id").eq("competition_id", compId);
+    const compGwIds = (compGwRows ?? []).map((g: { id: string }) => g.id);
 
-    // Fetch email sponsors once per round
-    const emailSponsors = await fetchActiveSponsors("email");
+    let allCompFixtureIds: string[] = [];
+    if (compGwIds.length > 0) {
+      const { data: rows } = await admin.from("fixtures").select("id").in("gameweek_id", compGwIds);
+      allCompFixtureIds = (rows ?? []).map((f: { id: string }) => f.id);
+    }
 
-    // Get all user IDs who have picks in this round
-    const userIds = Array.from(new Set(picks.map((p) => p.user_id)));
-    console.log(`[resultsEmail] ${gw.label} — sending to ${userIds.length} user(s)`);
+    let allCompPicks: { user_id: string; is_correct: boolean | null }[] = [];
+    if (allCompFixtureIds.length > 0) {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin.from("picks").select("user_id, is_correct")
+          .in("fixture_id", allCompFixtureIds)
+          .order("user_id")
+          .range(from, from + batchSize - 1);
+        allCompPicks.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
+    }
 
-    for (const userId of userIds) {
-      const { data: userData, error: userErr } = await admin.auth.admin.getUserById(userId);
-      if (userErr) { console.error(`[resultsEmail] Failed to fetch user ${userId}:`, userErr.message); continue; }
-      const email = userData?.user?.email;
-      if (!email) { console.warn(`[resultsEmail] No email for user ${userId} — skipping`); continue; }
+    // Build leaderboard for enrolled users
+    const overallMap = new Map<string, number>();
+    for (const uid of Array.from(enrolledUserIds)) overallMap.set(uid, 0);
+    for (const p of allCompPicks) {
+      if (!enrolledUserIds.has(p.user_id)) continue;
+      if (p.is_correct) overallMap.set(p.user_id, (overallMap.get(p.user_id) ?? 0) + 1);
+    }
 
-      const profile = profiles?.find((p) => p.id === userId);
-      const displayName = profile?.display_name?.trim() || `Player ${userId.slice(0, 5).toUpperCase()}`;
+    const sortedUsers = Array.from(overallMap.entries()).sort((a, b) => b[1] - a[1]);
+    const rankMap = new Map<string, number>();
+    let rank = 0;
+    let prevScore = -1;
+    for (const [uid, score] of sortedUsers) {
+      if (score !== prevScore) { rank++; prevScore = score; }
+      rankMap.set(uid, rank);
+    }
+    const totalPlayers = sortedUsers.length;
 
-      const userPicks = picks.filter((p) => p.user_id === userId);
-      const roundCorrect = userPicks.filter((p) => p.is_correct).length;
-      const roundTotal = userPicks.length;
+    // Group round picks by user
+    const picksByUser = new Map<string, typeof roundPicks>();
+    for (const p of roundPicks) {
+      const list = picksByUser.get(p.user_id) ?? [];
+      list.push(p);
+      picksByUser.set(p.user_id, list);
+    }
 
-      const picksWithMargin = userPicks.filter((p) => p.predicted_margin != null);
+    const fixtureMap = new Map(fixtures.map((f) => [f.id, f]));
+
+    // Send to enrolled users who have picks
+    const userIdsToEmail = Array.from(picksByUser.keys()).filter((uid) => enrolledUserIds.has(uid));
+    console.log(`[resultsEmail] ${gw.label} — ${testEmail ? `test mode → ${testEmail}` : `sending to ${userIdsToEmail.length} user(s)`}`);
+
+    for (const userId of userIdsToEmail) {
+      const user = authUsers.find((u) => u.id === userId);
+      const email = user?.email;
+      if (!email) continue;
+      if (testEmail && email !== testEmail) continue;
+
+      const userRoundPicks = picksByUser.get(userId) ?? [];
+      const correctThisRound = userRoundPicks.filter((p) => p.is_correct).length;
+
+      const picksWithMargin = userRoundPicks.filter((p) => p.predicted_margin != null);
       const marginCorrect = picksWithMargin.filter((p) => p.margin_correct === true).length;
       const marginTotal = picksWithMargin.length;
 
-      const fixtureResults = fixtures.map((f) => ({
-        homeTeam: teamName(f.home_team_id),
-        awayTeam: teamName(f.away_team_id),
-        winner: f.result_team_id ? teamName(f.result_team_id) : null,
-      }));
-
-      const userPickRows = userPicks.map((pk) => {
-        const fixture = fixtures.find((f) => f.id === pk.fixture_id)!;
+      const pickRows = userRoundPicks.map((p) => {
+        const fix = fixtureMap.get(p.fixture_id);
         return {
-          homeTeam: teamName(fixture?.home_team_id ?? null),
-          awayTeam: teamName(fixture?.away_team_id ?? null),
-          pickedTeam: teamName(pk.picked_team_id),
-          isCorrect: pk.is_correct ?? false,
-          autoPicked: pk.auto_picked ?? false,
+          homeTeam: fix ? teamName(fix.home_team_id) : "?",
+          awayTeam: fix ? teamName(fix.away_team_id) : "?",
+          pickedTeam: p.picked_draw ? "Draw" : (p.picked_team_id ? teamName(p.picked_team_id) : "—"),
+          isCorrect: p.is_correct === true,
+          autoPicked: p.auto_picked === true,
         };
       });
 
-      const payload: ResultsEmailPayload = {
+      await sendResultsEmail({
         to: email,
         roundLabel: gw.label,
         fixtures: fixtureResults,
-        picks: userPickRows,
-        correct: roundCorrect,
-        total: roundTotal,
-        leaderboardPosition: positionOf(userId),
-        totalPlayers: leaderboardEntries.length,
-        seasonCorrect: seasonTally.get(userId) ?? 0,
-        sponsors: emailSponsors,
+        picks: pickRows,
+        correct: correctThisRound,
+        total: totalFixtures,
+        leaderboardPosition: rankMap.get(userId) ?? totalPlayers,
+        totalPlayers,
+        seasonCorrect: overallMap.get(userId) ?? 0,
+        sponsors: sponsors ?? [],
         ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName,
         siteUrl,
         accentColor,
         accentTextColor,
-      };
+      });
 
-      await sendResultsEmail(payload);
-      console.log(`[resultsEmail] Sent ${gw.label} results to ${email} (${displayName})`);
+      totalSent++;
+      console.log(`[resultsEmail] Sent ${gw.label} results to ${email} (${correctThisRound}/${totalFixtures})`);
+    }
+
+    // Mark gameweek as emailed so cron doesn't re-send (skip in test mode)
+    if (!testEmail) {
+      await admin.from("gameweeks").update({ results_email_sent: true }).eq("id", gwId);
+      console.log(`[resultsEmail] Marked ${gw.label} as results_email_sent`);
     }
   }
+
+  return { sent: totalSent, errors };
 }
 
 // ---------------------------------------------------------------------------

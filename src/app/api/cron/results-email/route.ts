@@ -178,11 +178,33 @@ export async function GET(request: Request) {
       .single();
     const marginPicking = (compFeaturesRow as { features?: Record<string, boolean> } | null)?.features?.margin_picking === true;
 
-    // Get all picks for this round
-    const { data: roundPicks } = await admin
-      .from("picks")
-      .select("user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, predicted_margin, margin_correct")
-      .in("fixture_id", fixtureIds);
+    // Get all picks for this round (paginated — Round 1 has ~11,000)
+    let roundPicks: any[] = [];
+    {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin
+          .from("picks")
+          .select("user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, predicted_margin, margin_correct")
+          .in("fixture_id", fixtureIds)
+          .order("user_id")
+          .order("fixture_id")
+          .range(from, from + batchSize - 1);
+        roundPicks.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
+    }
+
+    // Pre-send guard: refuse if any enrolled user's pick is unscored
+    const unscoredCount = roundPicks.filter(
+      (p) => enrolledUserIds.has(p.user_id) && p.is_correct === null
+    ).length;
+    if (unscoredCount > 0) {
+      console.log(`[results-email] ${gw.label} has ${unscoredCount} unscored picks (is_correct IS NULL) — skipping`);
+      continue;
+    }
 
     // Get ALL competition fixture IDs for overall leaderboard calculation
     const { data: compGwRows } = await admin
@@ -196,9 +218,23 @@ export async function GET(request: Request) {
       : { data: [] as { id: string }[] };
     const allCompFixtureIds = (allCompFixtureRows ?? []).map((f: { id: string }) => f.id);
 
-    const { data: allCompPicks } = allCompFixtureIds.length > 0
-      ? await admin.from("picks").select("user_id, is_correct").in("fixture_id", allCompFixtureIds)
-      : { data: [] as { user_id: string; is_correct: boolean | null }[] };
+    // Get all competition picks for leaderboard (paginated)
+    let allCompPicks: { user_id: string; is_correct: boolean | null }[] = [];
+    if (allCompFixtureIds.length > 0) {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin
+          .from("picks")
+          .select("user_id, is_correct")
+          .in("fixture_id", allCompFixtureIds)
+          .order("user_id")
+          .range(from, from + batchSize - 1);
+        allCompPicks.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
+    }
 
     // Build overall leaderboard for enrolled users
     const overallMap = new Map<string, number>();

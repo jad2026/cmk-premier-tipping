@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { fetchRounds, setRoundOpen, autoFillRandomPicks, type RoundRow } from "./actions";
+import { fetchRounds, setRoundOpen, autoFillRandomPicks, sendResultsEmails, type RoundRow } from "./actions";
 import FixtureListPanel from "./FixtureListPanel";
 import type { Team } from "@/lib/supabase/types";
 
@@ -12,6 +12,19 @@ export default function ManageRoundsPanel({ teams, timezone, locale }: { teams: 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [fillingId, setFillingId] = useState<string | null>(null);
+  const [testGwId, setTestGwId] = useState("");
+  const [testAddr, setTestAddr] = useState("");
+  const [testResult, setTestResult] = useState<{ sent: number; errors: string[] } | null>(null);
+  const [testSending, setTestSending] = useState(false);
+
+  async function handleTestEmail() {
+    if (!testGwId || !testAddr) return;
+    setTestResult(null);
+    setTestSending(true);
+    const result = await sendResultsEmails([testGwId], testAddr);
+    setTestResult(result);
+    setTestSending(false);
+  }
 
   function load() {
     startTransition(async () => {
@@ -205,6 +218,52 @@ export default function ManageRoundsPanel({ teams, timezone, locale }: { teams: 
             </div>
           );
         })}
+      </div>
+
+      {/* TEMPORARY — Test results email send */}
+      <div className="rounded-xl bg-white border-2 border-dashed border-gray-200 p-5">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Test Results Email</p>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Round</label>
+            <select
+              value={testGwId}
+              onChange={(e) => { setTestGwId(e.target.value); setTestResult(null); }}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              <option value="">Select…</option>
+              {rounds.map((r) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Send to</label>
+            <input
+              type="email"
+              value={testAddr}
+              onChange={(e) => { setTestAddr(e.target.value); setTestResult(null); }}
+              placeholder="you@example.com"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64"
+            />
+          </div>
+          <button
+            onClick={handleTestEmail}
+            disabled={testSending || !testGwId || !testAddr}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand hover:bg-brand-light text-white transition-colors disabled:opacity-50"
+          >
+            {testSending ? "Sending…" : "Send Test"}
+          </button>
+        </div>
+        {testResult && (
+          <div className="mt-3">
+            {testResult.errors.length > 0 ? (
+              <p className="text-sm text-red-600">{testResult.errors.join("; ")}</p>
+            ) : (
+              <p className="text-sm text-green-600">Sent {testResult.sent} email(s) — check your inbox.</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-6">
