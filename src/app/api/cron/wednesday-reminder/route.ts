@@ -135,13 +135,25 @@ export async function GET(request: Request) {
     const totalFixtures = fixtureIds.length;
     if (totalFixtures === 0) continue;
 
-    const { data: picksRaw } = await admin
-      .from("picks")
-      .select("user_id")
-      .in("fixture_id", fixtureIds);
+    let picksRaw: { user_id: string }[] = [];
+    {
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data } = await admin
+          .from("picks")
+          .select("user_id")
+          .in("fixture_id", fixtureIds)
+          .order("user_id")
+          .range(from, from + batchSize - 1);
+        picksRaw.push(...(data ?? []));
+        if (!data || data.length < batchSize) break;
+        from += batchSize;
+      }
+    }
 
     const pickCountByUser = new Map<string, number>();
-    for (const p of picksRaw ?? []) {
+    for (const p of picksRaw) {
       pickCountByUser.set(p.user_id, (pickCountByUser.get(p.user_id) ?? 0) + 1);
     }
 
@@ -152,14 +164,17 @@ export async function GET(request: Request) {
     let sent = 0;
     const userSlice = incompleteUsers.slice(offset);
     let timedOut = false;
+    let iterated = 0;
     for (const user of userSlice) {
       if (Date.now() - startTime > 45_000) {
-        const continueUrl = `${baseUrl}/api/cron/wednesday-reminder?offset=${offset + totalSent}`;
+        const nextOffset = offset + iterated;
+        const continueUrl = `${baseUrl}/api/cron/wednesday-reminder?offset=${nextOffset}`;
         fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
-        console.log(`[wednesday-reminder] Timed out, continuing at offset ${offset + totalSent}`);
+        console.log(`[wednesday-reminder] Timed out, continuing at offset ${nextOffset}`);
         timedOut = true;
         break;
       }
+      iterated++;
       const email = user.email;
       if (!email) continue;
 
@@ -190,7 +205,7 @@ export async function GET(request: Request) {
     }
 
     if (timedOut) {
-      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + totalSent });
+      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + iterated });
     }
 
     // Also fire push notifications to this competition's subscribers.
