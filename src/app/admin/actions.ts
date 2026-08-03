@@ -1344,6 +1344,7 @@ export async function flagSuspectedBots(): Promise<{ flagged: number; names: str
         .from("picks")
         .select("user_id")
         .in("user_id", candidateIds)
+        .order("user_id")
         .range(from, from + batchSize - 1);
       for (const p of data ?? []) usersWithPicks.add(p.user_id);
       if (!data || data.length < batchSize) break;
