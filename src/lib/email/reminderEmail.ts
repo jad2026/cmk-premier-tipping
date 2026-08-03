@@ -224,11 +224,26 @@ function buildHtml(p: ReminderEmailPayload): string {
 </html>`;
 }
 
-export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<void> {
+function isValidEmail(email: string): boolean {
+  if (!email || !email.includes("@")) return false;
+  const [local, ...rest] = email.split("@");
+  const domain = rest.join("@");
+  if (!local || !domain || !domain.includes(".")) return false;
+  if (/\.{2,}/.test(local)) return false;
+  if (local.startsWith(".") || local.endsWith(".")) return false;
+  return true;
+}
+
+export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn("[reminderEmail] RESEND_API_KEY not set — skipping");
-    return;
+    return false;
+  }
+
+  if (!isValidEmail(payload.to)) {
+    console.warn(`[reminderEmail] Invalid email address, skipping: ${payload.to}`);
+    return false;
   }
 
   const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
@@ -249,8 +264,11 @@ export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<
     });
     if (error) {
       console.error(`[reminderEmail] Failed to send to ${payload.to}:`, error);
+      return false;
     }
+    return true;
   } catch (e) {
     console.error(`[reminderEmail] Unexpected error:`, e);
+    return false;
   }
 }

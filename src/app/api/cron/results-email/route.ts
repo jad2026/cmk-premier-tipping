@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
 import { sendResultsEmail } from "@/lib/email/resultsEmail";
 import { rankByScore } from "@/lib/ranking";
 
@@ -109,7 +110,8 @@ export async function GET(request: Request) {
   const teamName = (id: string) => teams?.find((t) => t.id === id)?.name ?? "?";
 
   let totalSent = 0;
-  const results: { round: string; competition: string; sent: number }[] = [];
+  let totalFailed = 0;
+  const results: { round: string; competition: string; sent: number; failed: number }[] = [];
 
   for (const gw of completedGws) {
     const compId = gw.competition_id;
@@ -268,6 +270,7 @@ export async function GET(request: Request) {
     );
 
     let sent = 0;
+    let failed = 0;
     const userList = Array.from(enrolledUserIds).slice(offset);
     let timedOut = false;
     let iterated = 0;
@@ -275,7 +278,7 @@ export async function GET(request: Request) {
       if (Date.now() - startTime > 45_000) {
         const nextOffset = offset + iterated;
         const continueUrl = `${baseUrl}/api/cron/results-email?offset=${nextOffset}`;
-        fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
+        waitUntil(fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } }));
         console.log(`[results-email] Timed out, continuing at offset ${nextOffset}`);
         timedOut = true;
         break;
@@ -305,7 +308,7 @@ export async function GET(request: Request) {
         };
       });
 
-      await sendResultsEmail({
+      const ok = await sendResultsEmail({
         to: email,
         roundLabel: gw.label,
         fixtures: fixtureResults,
@@ -324,15 +327,20 @@ export async function GET(request: Request) {
         ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
 
-      sent++;
-      totalSent++;
-      console.log(
-        `[results-email] Sent to ${email} for ${competitionName} ${gw.label} (${correctThisRound}/${totalFixtures})`
-      );
+      if (ok) {
+        sent++;
+        totalSent++;
+        console.log(
+          `[results-email] Sent to ${email} for ${competitionName} ${gw.label} (${correctThisRound}/${totalFixtures})`
+        );
+      } else {
+        failed++;
+        totalFailed++;
+      }
     }
 
     if (timedOut) {
-      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + iterated });
+      return NextResponse.json({ totalSent, totalFailed, results, continued: true, nextOffset: offset + iterated });
     }
 
     // Mark gameweek as emailed
@@ -341,8 +349,8 @@ export async function GET(request: Request) {
       .update({ results_email_sent: true })
       .eq("id", gw.id);
 
-    results.push({ round: gw.label, competition: competitionName, sent });
+    results.push({ round: gw.label, competition: competitionName, sent, failed });
   }
 
-  return NextResponse.json({ totalSent, results });
+  return NextResponse.json({ totalSent, totalFailed, results });
 }

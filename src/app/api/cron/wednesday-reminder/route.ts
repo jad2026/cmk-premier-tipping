@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
 import { sendReminderEmail } from "@/lib/email/reminderEmail";
 import { sendPushNotification } from "@/lib/sendPushNotification";
 
@@ -81,7 +82,8 @@ export async function GET(request: Request) {
   }
 
   let totalSent = 0;
-  const results: { round: string; competition: string; sent: number }[] = [];
+  let totalFailed = 0;
+  const results: { round: string; competition: string; sent: number; failed: number }[] = [];
 
   for (const gw of gws) {
     const compId = gw.competition_id;
@@ -162,6 +164,7 @@ export async function GET(request: Request) {
     );
 
     let sent = 0;
+    let failed = 0;
     const userSlice = incompleteUsers.slice(offset);
     let timedOut = false;
     let iterated = 0;
@@ -169,7 +172,7 @@ export async function GET(request: Request) {
       if (Date.now() - startTime > 45_000) {
         const nextOffset = offset + iterated;
         const continueUrl = `${baseUrl}/api/cron/wednesday-reminder?offset=${nextOffset}`;
-        fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } });
+        waitUntil(fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } }));
         console.log(`[wednesday-reminder] Timed out, continuing at offset ${nextOffset}`);
         timedOut = true;
         break;
@@ -183,7 +186,7 @@ export async function GET(request: Request) {
       const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
       const picksCount = pickCountByUser.get(user.id) ?? 0;
 
-      await sendReminderEmail({
+      const ok = await sendReminderEmail({
         to: email,
         firstName,
         teamName: teamName_,
@@ -199,13 +202,18 @@ export async function GET(request: Request) {
         accentColor,
         accentTextColor,
       });
-      sent++;
-      totalSent++;
-      console.log(`[wednesday-reminder] Sent to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
+      if (ok) {
+        sent++;
+        totalSent++;
+        console.log(`[wednesday-reminder] Sent to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
+      } else {
+        failed++;
+        totalFailed++;
+      }
     }
 
     if (timedOut) {
-      return NextResponse.json({ totalSent, results, continued: true, nextOffset: offset + iterated });
+      return NextResponse.json({ totalSent, totalFailed, results, continued: true, nextOffset: offset + iterated });
     }
 
     // Also fire push notifications to this competition's subscribers.
@@ -257,8 +265,8 @@ export async function GET(request: Request) {
       console.error(`[wednesday-reminder] Native push failed for ${competitionName} ${gw.label}`, err);
     }
 
-    results.push({ round: gw.label, competition: competitionName, sent });
+    results.push({ round: gw.label, competition: competitionName, sent, failed });
   }
 
-  return NextResponse.json({ totalSent, results });
+  return NextResponse.json({ totalSent, totalFailed, results });
 }

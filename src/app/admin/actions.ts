@@ -399,7 +399,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
         };
       });
 
-      await sendResultsEmail({
+      const ok = await sendResultsEmail({
         to: email,
         roundLabel: gw.label,
         fixtures: fixtureResults,
@@ -418,8 +418,12 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
         ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
 
-      totalSent++;
-      console.log(`[resultsEmail] Sent ${gw.label} results to ${email} (${correctThisRound}/${totalFixtures})`);
+      if (ok) {
+        totalSent++;
+        console.log(`[resultsEmail] Sent ${gw.label} results to ${email} (${correctThisRound}/${totalFixtures})`);
+      } else {
+        errors.push(`Failed to send to ${email}`);
+      }
     }
 
     // Mark gameweek as emailed so cron doesn't re-send (skip in test mode)

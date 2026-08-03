@@ -260,11 +260,26 @@ function buildHtml(p: ResultsEmailPayload): string {
 
 // ── Send ───────────────────────────────────────────────────────────────────────
 
-export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<void> {
+function isValidEmail(email: string): boolean {
+  if (!email || !email.includes("@")) return false;
+  const [local, ...rest] = email.split("@");
+  const domain = rest.join("@");
+  if (!local || !domain || !domain.includes(".")) return false;
+  if (/\.{2,}/.test(local)) return false;
+  if (local.startsWith(".") || local.endsWith(".")) return false;
+  return true;
+}
+
+export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn("[resultsEmail] RESEND_API_KEY not set — skipping email");
-    return;
+    return false;
+  }
+
+  if (!isValidEmail(payload.to)) {
+    console.warn(`[resultsEmail] Invalid email address, skipping: ${payload.to}`);
+    return false;
   }
 
   const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
@@ -279,8 +294,11 @@ export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<vo
     });
     if (error) {
       console.error(`[resultsEmail] Failed to send to ${payload.to}:`, error);
+      return false;
     }
+    return true;
   } catch (e) {
     console.error(`[resultsEmail] Unexpected error sending to ${payload.to}:`, e);
+    return false;
   }
 }
