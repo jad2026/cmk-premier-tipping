@@ -6,6 +6,7 @@ import type { Fixture } from "@/lib/supabase/types";
 import TeamBadge from "@/components/TeamBadge";
 import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
+import { hapticImpact, hapticNotification } from "@/lib/native/haptics";
 
 // ── Mobile scroll-snap margin picker ────────────────────────────────────────
 
@@ -306,6 +307,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
     if (isRoundDeadlinePassed(deadline) || resultLocked) return;
     setPicks((prev) => ({ ...prev, [fixtureId]: value }));
     setSaved(false);
+    hapticImpact("medium");
   }
 
   function handleWheelChange(fixtureId: string, value: number, homeTeamId: string, awayTeamId: string, deadline: string, resultLocked: boolean) {
@@ -319,6 +321,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
     }
     setMargins((prev) => ({ ...prev, [fixtureId]: Math.abs(value) }));
     setSaved(false);
+    hapticImpact("light");
   }
 
   function handleSave() {
@@ -361,6 +364,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
         }
       }
       setSaved(true);
+      hapticNotification("success");
     });
   }
 

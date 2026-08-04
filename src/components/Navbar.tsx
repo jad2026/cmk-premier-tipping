@@ -6,7 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { createClient } from "@/lib/supabase/client";
+import { Capacitor } from "@capacitor/core";
 import { initPushNotifications } from "@/lib/pushNotifications";
+import { nativeShare } from "@/lib/native/share";
+import { hapticImpact } from "@/lib/native/haptics";
 
 const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B"];
 
@@ -28,6 +31,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
+  const [isNative, setIsNative] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
 
   // Close on outside click or Escape
@@ -45,12 +49,13 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
-  // Detect Android Capacitor WebView — env(safe-area-inset-top) doesn't work there
+  // Detect Capacitor WebView
   useEffect(() => {
     const ua = navigator.userAgent;
     const isAndroid = /Android/i.test(ua);
     const isCapacitor = !!(window as /* eslint-disable-line */ any).Capacitor || /CapacitorHttp/i.test(ua);
     if (isAndroid && isCapacitor) setAndroidPad(36);
+    if (Capacitor.isNativePlatform()) setIsNative(true);
   }, []);
 
   // Init Capacitor push notifications once per session
@@ -199,6 +204,21 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               Sign in
             </Link>
           )}
+          {isNative && (
+            <button
+              onClick={() => nativeShare(window.location.href)}
+              aria-label="Share"
+              className="flex items-center justify-center w-11 h-11 rounded-[9px] transition-colors"
+              style={{ color: "#99A0AC" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.06)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 3v10M10 3l-4 4M10 3l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 13v3a1 1 0 001 1h12a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
           <button
             onClick={() => setMenuOpen((o) => !o)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -259,7 +279,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
             <Link
               key={href}
               href={href}
-              onClick={() => setMenuOpen(false)}
+              onClick={() => { setMenuOpen(false); hapticImpact("light"); }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
               style={{
                 color: isActive(href) ? "#FFFFFF" : "#99A0AC",
@@ -282,7 +302,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
                 <Link
                   key={href}
                   href={href}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => { setMenuOpen(false); hapticImpact("light"); }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
                   style={{
                     color: isActive(href) ? "#FFFFFF" : "#99A0AC",
