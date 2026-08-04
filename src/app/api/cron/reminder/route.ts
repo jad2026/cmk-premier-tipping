@@ -188,6 +188,7 @@ export async function GET(request: Request) {
     const userSlice = incompleteUsers.slice(offset);
 
     const messages: { from: string; to: string; subject: string; html: string }[] = [];
+    const invalidAddresses: string[] = [];
     for (const user of userSlice) {
       const email = user.email;
       if (!email) continue;
@@ -200,7 +201,14 @@ export async function GET(request: Request) {
         fixtures: fixtureList, sponsors: sponsors ?? [], variant: "24h",
         picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor,
       });
-      if (msg) messages.push(msg);
+      if (msg) {
+        messages.push(msg);
+      } else {
+        invalidAddresses.push(email);
+      }
+    }
+    if (invalidAddresses.length > 0) {
+      console.warn(`[reminder] Skipped ${invalidAddresses.length} invalid addresses: ${invalidAddresses.join(", ")}`);
     }
 
     console.log(`[reminder] Prepared ${messages.length} emails for ${competitionName} ${gw.label}`);

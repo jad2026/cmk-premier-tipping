@@ -266,6 +266,7 @@ export async function GET(request: Request) {
     const userList = Array.from(enrolledUserIds).slice(offset);
 
     const messages: { from: string; to: string; subject: string; html: string }[] = [];
+    const invalidAddresses: string[] = [];
     for (const userId of userList) {
       if (botUserIds.has(userId)) continue;
       const user = (users ?? []).find((u) => u.id === userId);
@@ -300,7 +301,14 @@ export async function GET(request: Request) {
         competitionName, siteUrl, accentColor, accentTextColor,
         ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
-      if (msg) messages.push(msg);
+      if (msg) {
+        messages.push(msg);
+      } else {
+        invalidAddresses.push(email);
+      }
+    }
+    if (invalidAddresses.length > 0) {
+      console.warn(`[results-email] Skipped ${invalidAddresses.length} invalid addresses: ${invalidAddresses.join(", ")}`);
     }
 
     console.log(`[results-email] Prepared ${messages.length} emails for ${competitionName} ${gw.label}`);
