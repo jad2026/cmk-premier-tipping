@@ -105,7 +105,7 @@ export async function GET(request: Request) {
 
   let totalSent = 0;
   let totalFailed = 0;
-  const results: { round: string; competition: string; sent: number; failed: number }[] = [];
+  const results: { round: string; competition: string; sent: number; failed: number; errors: { status: number; message: string; count: number }[] }[] = [];
 
   for (const gw of completedGws) {
     const compId = gw.competition_id;
@@ -304,7 +304,7 @@ export async function GET(request: Request) {
     }
 
     console.log(`[results-email] Prepared ${messages.length} emails for ${competitionName} ${gw.label}`);
-    const { sent, failed } = await sendEmailBatch(messages, "results-email");
+    const { sent, failed, errors: batchErrors } = await sendEmailBatch(messages, "results-email");
     totalSent += sent;
     totalFailed += failed;
 
@@ -314,7 +314,10 @@ export async function GET(request: Request) {
       .update({ results_email_sent: true })
       .eq("id", gw.id);
 
-    results.push({ round: gw.label, competition: competitionName, sent, failed });
+    results.push({
+      round: gw.label, competition: competitionName, sent, failed,
+      errors: batchErrors.map((e) => ({ status: e.statusCode, message: e.message, count: e.emails.length })),
+    });
   }
 
   return NextResponse.json({ totalSent, totalFailed, results });

@@ -92,7 +92,7 @@ export async function GET(request: Request) {
 
   let totalSent = 0;
   let totalFailed = 0;
-  const results: { round: string; competition: string; sent: number; failed: number }[] = [];
+  const results: { round: string; competition: string; sent: number; failed: number; errors: { status: number; message: string; count: number }[] }[] = [];
 
   for (const gw of gws) {
     const deadlineMs = new Date(gw.deadline).getTime();
@@ -204,7 +204,7 @@ export async function GET(request: Request) {
     }
 
     console.log(`[reminder] Prepared ${messages.length} emails for ${competitionName} ${gw.label}`);
-    const { sent, failed } = await sendEmailBatch(messages, "reminder");
+    const { sent, failed, errors: batchErrors } = await sendEmailBatch(messages, "reminder");
     totalSent += sent;
     totalFailed += failed;
 
@@ -257,7 +257,10 @@ export async function GET(request: Request) {
       console.error(`[reminder] Native push failed for ${competitionName} ${gw.label}`, err);
     }
 
-    results.push({ round: gw.label, competition: competitionName, sent, failed });
+    results.push({
+      round: gw.label, competition: competitionName, sent, failed,
+      errors: batchErrors.map((e) => ({ status: e.statusCode, message: e.message, count: e.emails.length })),
+    });
   }
 
   return NextResponse.json({ totalSent, totalFailed, results });
