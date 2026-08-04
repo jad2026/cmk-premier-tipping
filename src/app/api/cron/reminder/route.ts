@@ -1,8 +1,8 @@
 // v2 — force redeploy
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { waitUntil } from "@vercel/functions";
-import { sendReminderEmail } from "@/lib/email/reminderEmail";
+import { prepareReminderEmail } from "@/lib/email/reminderEmail";
+import { sendEmailBatch } from "@/lib/email/batch";
 import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export const dynamic = "force-dynamic";
@@ -185,60 +185,28 @@ export async function GET(request: Request) {
       (u) => enrolledUserIds.has(u.id) && !botUserIds.has(u.id) && (pickCountByUser.get(u.id) ?? 0) < totalFixtures
     );
 
-    let sent = 0;
-    let failed = 0;
     const userSlice = incompleteUsers.slice(offset);
-    let timedOut = false;
-    let iterated = 0;
-    const BATCH = 10;
 
-    for (let i = 0; i < userSlice.length; i += BATCH) {
-      if (Date.now() - now > 270_000) {
-        const nextOffset = offset + iterated;
-        const continueUrl = `${baseUrl}/api/cron/reminder?offset=${nextOffset}`;
-        waitUntil(fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } }));
-        console.log(`[reminder] Timed out, continuing at offset ${nextOffset}`);
-        timedOut = true;
-        break;
-      }
-
-      const chunk = userSlice.slice(i, i + BATCH);
-      const batch: { email: string; picksCount: number; promise: Promise<boolean> }[] = [];
-
-      for (const user of chunk) {
-        iterated++;
-        const email = user.email;
-        if (!email) continue;
-        const profile = profiles?.find((p: { id: string }) => p.id === user.id);
-        const firstName = profile?.first_name?.trim() || "";
-        const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
-        const picksCount = pickCountByUser.get(user.id) ?? 0;
-        batch.push({
-          email,
-          picksCount,
-          promise: sendReminderEmail({
-            to: email, firstName, teamName: teamName_, roundLabel: gw.label, deadline: gw.deadline,
-            fixtures: fixtureList, sponsors: sponsors ?? [], variant: "24h",
-            picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor,
-          }),
-        });
-      }
-
-      const settled = await Promise.allSettled(batch.map((b) => b.promise));
-      for (let j = 0; j < settled.length; j++) {
-        const ok = settled[j].status === "fulfilled" && (settled[j] as PromiseFulfilledResult<boolean>).value;
-        if (ok) {
-          sent++; totalSent++;
-          console.log(`[reminder] Sent 24h reminder to ${batch[j].email} for ${competitionName} ${gw.label} (${batch[j].picksCount}/${totalFixtures} picks)`);
-        } else {
-          failed++; totalFailed++;
-        }
-      }
+    const messages: { from: string; to: string; subject: string; html: string }[] = [];
+    for (const user of userSlice) {
+      const email = user.email;
+      if (!email) continue;
+      const profile = profiles?.find((p: { id: string }) => p.id === user.id);
+      const firstName = profile?.first_name?.trim() || "";
+      const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
+      const picksCount = pickCountByUser.get(user.id) ?? 0;
+      const msg = prepareReminderEmail({
+        to: email, firstName, teamName: teamName_, roundLabel: gw.label, deadline: gw.deadline,
+        fixtures: fixtureList, sponsors: sponsors ?? [], variant: "24h",
+        picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor,
+      });
+      if (msg) messages.push(msg);
     }
 
-    if (timedOut) {
-      return NextResponse.json({ totalSent, totalFailed, results, continued: true, nextOffset: offset + iterated });
-    }
+    console.log(`[reminder] Prepared ${messages.length} emails for ${competitionName} ${gw.label}`);
+    const { sent, failed } = await sendEmailBatch(messages, "reminder");
+    totalSent += sent;
+    totalFailed += failed;
 
     // Also fire push notifications to this competition's subscribers.
     // Wrapped so a push failure never breaks the email reminders.

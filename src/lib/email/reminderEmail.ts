@@ -234,6 +234,19 @@ function isValidEmail(email: string): boolean {
   return true;
 }
 
+export type EmailMessage = { from: string; to: string; subject: string; html: string };
+
+export function prepareReminderEmail(payload: ReminderEmailPayload): EmailMessage | null {
+  if (!isValidEmail(payload.to)) return null;
+  const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
+  const { roundLabel, variant, competitionName } = payload;
+  const compPrefix = competitionName ? `[${competitionName}] ` : "";
+  const subject = variant === "24h"
+    ? `${compPrefix}Last chance! ${roundLabel} closes in 24 hours`
+    : `${compPrefix}Midweek reminder — have you made your picks for ${roundLabel}?`;
+  return { from, to: payload.to, subject, html: buildHtml(payload) };
+}
+
 export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -241,27 +254,15 @@ export async function sendReminderEmail(payload: ReminderEmailPayload): Promise<
     return false;
   }
 
-  if (!isValidEmail(payload.to)) {
+  const msg = prepareReminderEmail(payload);
+  if (!msg) {
     console.warn(`[reminderEmail] Invalid email address, skipping: ${payload.to}`);
     return false;
   }
 
-  const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
-  const { roundLabel, variant, competitionName } = payload;
-  const compPrefix = competitionName ? `[${competitionName}] ` : "";
-
-  const subject = variant === "24h"
-    ? `${compPrefix}Last chance! ${roundLabel} closes in 24 hours`
-    : `${compPrefix}Midweek reminder — have you made your picks for ${roundLabel}?`;
-
   try {
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: payload.to,
-      subject,
-      html: buildHtml(payload),
-    });
+    const { error } = await resend.emails.send(msg);
     if (error) {
       console.error(`[reminderEmail] Failed to send to ${payload.to}:`, error);
       return false;

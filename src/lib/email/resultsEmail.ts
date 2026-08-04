@@ -270,6 +270,15 @@ function isValidEmail(email: string): boolean {
   return true;
 }
 
+export type EmailMessage = { from: string; to: string; subject: string; html: string };
+
+export function prepareResultsEmail(payload: ResultsEmailPayload): EmailMessage | null {
+  if (!isValidEmail(payload.to)) return null;
+  const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
+  const subject = `${payload.competitionName ? `[${payload.competitionName}] ` : ""}${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`;
+  return { from, to: payload.to, subject, html: buildHtml(payload) };
+}
+
 export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -277,21 +286,15 @@ export async function sendResultsEmail(payload: ResultsEmailPayload): Promise<bo
     return false;
   }
 
-  if (!isValidEmail(payload.to)) {
+  const msg = prepareResultsEmail(payload);
+  if (!msg) {
     console.warn(`[resultsEmail] Invalid email address, skipping: ${payload.to}`);
     return false;
   }
 
-  const from = process.env.RESEND_FROM_EMAIL ?? "noreply@clubrugbytipping.com";
-
   try {
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: payload.to,
-      subject: `${payload.competitionName ? `[${payload.competitionName}] ` : ""}${payload.roundLabel} Results — ${payload.correct}/${payload.total} correct`,
-      html: buildHtml(payload),
-    });
+    const { error } = await resend.emails.send(msg);
     if (error) {
       console.error(`[resultsEmail] Failed to send to ${payload.to}:`, error);
       return false;
