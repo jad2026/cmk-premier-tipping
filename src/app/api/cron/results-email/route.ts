@@ -5,6 +5,7 @@ import { sendResultsEmail } from "@/lib/email/resultsEmail";
 import { rankByScore } from "@/lib/ranking";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const COMPETITION_SITE_URLS: Record<string, string> = {
   "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
@@ -275,8 +276,10 @@ export async function GET(request: Request) {
     const userList = Array.from(enrolledUserIds).slice(offset);
     let timedOut = false;
     let iterated = 0;
-    for (const userId of userList) {
-      if (Date.now() - startTime > 45_000) {
+    const BATCH = 10;
+
+    for (let i = 0; i < userList.length; i += BATCH) {
+      if (Date.now() - startTime > 270_000) {
         const nextOffset = offset + iterated;
         const continueUrl = `${baseUrl}/api/cron/results-email?offset=${nextOffset}`;
         waitUntil(fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } }));
@@ -284,60 +287,60 @@ export async function GET(request: Request) {
         timedOut = true;
         break;
       }
-      iterated++;
-      if (botUserIds.has(userId)) continue;
-      const user = (users ?? []).find((u) => u.id === userId);
-      const email = user?.email;
-      if (!email) continue;
 
-      const profile = profiles?.find((p: { id: string }) => p.id === userId);
-      const userRoundPicks = picksByUser.get(userId) ?? [];
-      if (userRoundPicks.length === 0) continue;
-      const correctThisRound = userRoundPicks.filter((p) => p.is_correct).length;
+      const chunk = userList.slice(i, i + BATCH);
+      const batch: { email: string; correct: number; promise: Promise<boolean> }[] = [];
 
-      const picksWithMargin = userRoundPicks.filter((p) => p.predicted_margin != null);
-      const marginCorrect = picksWithMargin.filter((p) => p.margin_correct === true).length;
-      const marginTotal = picksWithMargin.length;
+      for (const userId of chunk) {
+        iterated++;
+        if (botUserIds.has(userId)) continue;
+        const user = (users ?? []).find((u) => u.id === userId);
+        const email = user?.email;
+        if (!email) continue;
 
-      const picks = userRoundPicks.map((p) => {
-        const fix = fixtureMap.get(p.fixture_id);
-        return {
-          homeTeam: fix ? teamName(fix.home_team_id) : "?",
-          awayTeam: fix ? teamName(fix.away_team_id) : "?",
-          pickedTeam: p.picked_draw ? "Draw" : (p.picked_team_id ? teamName(p.picked_team_id) : "—"),
-          isCorrect: p.is_correct === true,
-          autoPicked: p.auto_picked === true,
-        };
-      });
+        const userRoundPicks = picksByUser.get(userId) ?? [];
+        if (userRoundPicks.length === 0) continue;
+        const correctThisRound = userRoundPicks.filter((p) => p.is_correct).length;
 
-      const ok = await sendResultsEmail({
-        to: email,
-        roundLabel: gw.label,
-        fixtures: fixtureResults,
-        picks,
-        correct: correctThisRound,
-        total: totalFixtures,
-        leaderboardPosition: rankMap.get(userId) ?? totalPlayers,
-        totalPlayers,
-        seasonPoints: overallMap.get(userId) ?? 0,
-        sponsors: sponsors ?? [],
-        ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
-        competitionName,
-        siteUrl,
-        accentColor,
-        accentTextColor,
-        ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
-      });
+        const picksWithMargin = userRoundPicks.filter((p) => p.predicted_margin != null);
+        const marginCorrect = picksWithMargin.filter((p) => p.margin_correct === true).length;
+        const marginTotal = picksWithMargin.length;
 
-      if (ok) {
-        sent++;
-        totalSent++;
-        console.log(
-          `[results-email] Sent to ${email} for ${competitionName} ${gw.label} (${correctThisRound}/${totalFixtures})`
-        );
-      } else {
-        failed++;
-        totalFailed++;
+        const picks = userRoundPicks.map((p) => {
+          const fix = fixtureMap.get(p.fixture_id);
+          return {
+            homeTeam: fix ? teamName(fix.home_team_id) : "?",
+            awayTeam: fix ? teamName(fix.away_team_id) : "?",
+            pickedTeam: p.picked_draw ? "Draw" : (p.picked_team_id ? teamName(p.picked_team_id) : "—"),
+            isCorrect: p.is_correct === true,
+            autoPicked: p.auto_picked === true,
+          };
+        });
+
+        batch.push({
+          email,
+          correct: correctThisRound,
+          promise: sendResultsEmail({
+            to: email, roundLabel: gw.label, fixtures: fixtureResults, picks,
+            correct: correctThisRound, total: totalFixtures,
+            leaderboardPosition: rankMap.get(userId) ?? totalPlayers, totalPlayers,
+            seasonPoints: overallMap.get(userId) ?? 0, sponsors: sponsors ?? [],
+            ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
+            competitionName, siteUrl, accentColor, accentTextColor,
+            ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
+          }),
+        });
+      }
+
+      const settled = await Promise.allSettled(batch.map((b) => b.promise));
+      for (let j = 0; j < settled.length; j++) {
+        const ok = settled[j].status === "fulfilled" && (settled[j] as PromiseFulfilledResult<boolean>).value;
+        if (ok) {
+          sent++; totalSent++;
+          console.log(`[results-email] Sent to ${batch[j].email} for ${competitionName} ${gw.label} (${batch[j].correct}/${totalFixtures})`);
+        } else {
+          failed++; totalFailed++;
+        }
       }
     }
 

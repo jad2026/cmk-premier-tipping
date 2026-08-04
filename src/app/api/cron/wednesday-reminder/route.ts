@@ -5,6 +5,7 @@ import { sendReminderEmail } from "@/lib/email/reminderEmail";
 import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const COMPETITION_SITE_URLS: Record<string, string> = {
   "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
@@ -170,8 +171,10 @@ export async function GET(request: Request) {
     const userSlice = incompleteUsers.slice(offset);
     let timedOut = false;
     let iterated = 0;
-    for (const user of userSlice) {
-      if (Date.now() - startTime > 45_000) {
+    const BATCH = 10;
+
+    for (let i = 0; i < userSlice.length; i += BATCH) {
+      if (Date.now() - startTime > 270_000) {
         const nextOffset = offset + iterated;
         const continueUrl = `${baseUrl}/api/cron/wednesday-reminder?offset=${nextOffset}`;
         waitUntil(fetch(continueUrl, { method: "GET", headers: { Authorization: `Bearer ${cronSecret}` } }));
@@ -179,38 +182,38 @@ export async function GET(request: Request) {
         timedOut = true;
         break;
       }
-      iterated++;
-      const email = user.email;
-      if (!email) continue;
 
-      const profile = profiles?.find((p: { id: string }) => p.id === user.id);
-      const firstName = profile?.first_name?.trim() || "";
-      const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
-      const picksCount = pickCountByUser.get(user.id) ?? 0;
+      const chunk = userSlice.slice(i, i + BATCH);
+      const batch: { email: string; picksCount: number; promise: Promise<boolean> }[] = [];
 
-      const ok = await sendReminderEmail({
-        to: email,
-        firstName,
-        teamName: teamName_,
-        roundLabel: gw.label,
-        deadline: gw.deadline,
-        fixtures: fixtureList,
-        sponsors: sponsors ?? [],
-        variant: "wednesday",
-        picksCount,
-        totalFixtures,
-        competitionName,
-        siteUrl,
-        accentColor,
-        accentTextColor,
-      });
-      if (ok) {
-        sent++;
-        totalSent++;
-        console.log(`[wednesday-reminder] Sent to ${email} for ${competitionName} ${gw.label} (${picksCount}/${totalFixtures} picks)`);
-      } else {
-        failed++;
-        totalFailed++;
+      for (const user of chunk) {
+        iterated++;
+        const email = user.email;
+        if (!email) continue;
+        const profile = profiles?.find((p: { id: string }) => p.id === user.id);
+        const firstName = profile?.first_name?.trim() || "";
+        const teamName_ = profile?.display_name?.trim() || email.split("@")[0];
+        const picksCount = pickCountByUser.get(user.id) ?? 0;
+        batch.push({
+          email,
+          picksCount,
+          promise: sendReminderEmail({
+            to: email, firstName, teamName: teamName_, roundLabel: gw.label, deadline: gw.deadline,
+            fixtures: fixtureList, sponsors: sponsors ?? [], variant: "wednesday",
+            picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor,
+          }),
+        });
+      }
+
+      const settled = await Promise.allSettled(batch.map((b) => b.promise));
+      for (let j = 0; j < settled.length; j++) {
+        const ok = settled[j].status === "fulfilled" && (settled[j] as PromiseFulfilledResult<boolean>).value;
+        if (ok) {
+          sent++; totalSent++;
+          console.log(`[wednesday-reminder] Sent to ${batch[j].email} for ${competitionName} ${gw.label} (${batch[j].picksCount}/${totalFixtures} picks)`);
+        } else {
+          failed++; totalFailed++;
+        }
       }
     }
 
