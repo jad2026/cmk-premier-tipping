@@ -118,6 +118,15 @@ export default function SignupPage() {
     setLoading(true);
     setFieldErrors({});
 
+    const trimmedEmail = email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmedEmail)) {
+      setFieldErrors({ email: "Please enter a valid email address." });
+      setLoading(false);
+      scrollToError(emailRef);
+      return;
+    }
+
     const trimmedTeamName = teamName.trim();
 
     const available = await checkTeamNameAvailable(trimmedTeamName);
@@ -129,7 +138,7 @@ export default function SignupPage() {
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
         data: {
@@ -180,7 +189,7 @@ export default function SignupPage() {
       autoEnrollCurrentCompetition(userId).catch(
         (err) => console.error("[signup] auto-enroll failed:", err)
       );
-      triggerWelcomeEmail(email, firstName.trim(), trimmedTeamName).catch(
+      triggerWelcomeEmail(trimmedEmail, firstName.trim(), trimmedTeamName).catch(
         (err) => console.error("[signup] welcome email failed:", err)
       );
 
@@ -266,14 +275,14 @@ export default function SignupPage() {
             <div className="grid grid-cols-2" style={{ gap: 12 }}>
               <div>
                 <label style={labelStyle}>First Name</label>
-                <input type="text" required minLength={1} maxLength={50} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" style={inputStyle}
+                <input type="text" name="firstName" autoComplete="given-name" required minLength={1} maxLength={50} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" style={inputStyle}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
                 />
               </div>
               <div>
                 <label style={labelStyle}>Last Name</label>
-                <input type="text" required minLength={1} maxLength={50} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Smith" style={inputStyle}
+                <input type="text" name="lastName" autoComplete="family-name" required minLength={1} maxLength={50} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Smith" style={inputStyle}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
                 />
@@ -282,7 +291,7 @@ export default function SignupPage() {
 
             <div>
               <label style={labelStyle}>Email</label>
-              <input ref={emailRef} type="email" required value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => { const { email: _, ...rest } = p; return rest; }); }} placeholder="you@example.com"
+              <input ref={emailRef} type="email" name="email" autoComplete="email" required value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => { const { email: _, ...rest } = p; return rest; }); }} placeholder="you@example.com"
                 aria-invalid={!!fieldErrors.email}
                 style={fieldErrors.email ? inputErrorStyle : inputStyle}
                 onFocus={(e) => { if (!fieldErrors.email) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
@@ -293,7 +302,7 @@ export default function SignupPage() {
 
             <div>
               <label style={labelStyle}>Password</label>
-              <input ref={passwordRef} type="password" required minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const { password: _, ...rest } = p; return rest; }); }} placeholder="Min. 6 characters"
+              <input ref={passwordRef} type="password" name="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const { password: _, ...rest } = p; return rest; }); }} placeholder="Min. 6 characters"
                 aria-invalid={!!fieldErrors.password}
                 style={fieldErrors.password ? inputErrorStyle : inputStyle}
                 onFocus={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
@@ -304,7 +313,7 @@ export default function SignupPage() {
 
             <div>
               <label style={labelStyle}>Team Name</label>
-              <input ref={teamNameRef} type="text" required minLength={2} maxLength={40} value={teamName} onChange={(e) => { setTeamName(e.target.value); setFieldErrors((p) => { const { teamName: _, ...rest } = p; return rest; }); }} placeholder="Your team name on the leaderboard"
+              <input ref={teamNameRef} type="text" name="teamName" autoComplete="off" required minLength={2} maxLength={40} value={teamName} onChange={(e) => { setTeamName(e.target.value); setFieldErrors((p) => { const { teamName: _, ...rest } = p; return rest; }); }} placeholder="Your team name on the leaderboard"
                 aria-invalid={!!fieldErrors.teamName}
                 style={fieldErrors.teamName ? inputErrorStyle : inputStyle}
                 onFocus={(e) => { if (!fieldErrors.teamName) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
