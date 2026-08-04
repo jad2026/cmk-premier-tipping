@@ -9,6 +9,25 @@ const config: CapacitorConfig = {
     cleartext: false,
     allowNavigation: ['clubrugbytipping.com', '*.clubrugbytipping.com', '*.supabase.co'],
   },
+  ios: {
+    allowsLinkPreview: false,
+    scrollEnabled: true,
+    contentInset: 'always',
+  },
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 2000,
+      launchFadeOutDuration: 500,
+      backgroundColor: '#0B0E13',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+    PullToRefresh: {
+      enabled: true,
+    },
+  },
 };
 
 export default config;
