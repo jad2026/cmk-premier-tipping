@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
-import type { League, Profile, Pick } from "@/lib/supabase/types";
+import { rankByScore } from "@/lib/ranking";
+import type { League, Profile } from "@/lib/supabase/types";
 
 function randomCode(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -106,6 +107,8 @@ export type LeaderboardEntry = {
   last_name: string | null;
   correct: number;
   total: number;
+  score: number;
+  rank: number;
 };
 
 export async function leaveLeague(leagueId: string): Promise<{ error?: string }> {
@@ -165,35 +168,48 @@ export async function fetchLeagueLeaderboard(
     .select("id, display_name, first_name, last_name")
     .in("id", userIds);
 
-  const { data: picks } = compFixtureIds.length > 0
-    ? await supabase
+  let allPicks: { user_id: string; is_correct: boolean | null; points: number }[] = [];
+  if (compFixtureIds.length > 0) {
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data } = await supabase
         .from("picks")
-        .select("user_id, is_correct")
+        .select("user_id, is_correct, points")
         .in("user_id", userIds)
         .in("fixture_id", compFixtureIds)
-        .not("is_correct", "is", null)
-    : { data: [] as Pick[] };
-
-  const scoreMap = new Map<string, { correct: number; total: number }>(
-    (profiles as Profile[] ?? []).map((p) => [p.id, { correct: 0, total: 0 }])
-  );
-
-  for (const pick of picks as Pick[] ?? []) {
-    const entry = scoreMap.get(pick.user_id);
-    if (!entry) continue;
-    entry.total++;
-    if (pick.is_correct) entry.correct++;
+        .order("user_id")
+        .range(from, from + batchSize - 1);
+      allPicks.push(...(data ?? []));
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
+    }
   }
 
-  const entries: LeaderboardEntry[] = (profiles as Profile[] ?? []).map((p) => ({
-    user_id: p.id,
-    display_name: p.display_name,
-    first_name: p.first_name,
-    last_name: p.last_name,
-    ...(scoreMap.get(p.id) ?? { correct: 0, total: 0 }),
-  }));
+  const scoreMap = new Map<string, { correct: number; total: number; score: number }>(
+    (profiles as Profile[] ?? []).map((p) => [p.id, { correct: 0, total: 0, score: 0 }])
+  );
 
-  entries.sort((a, b) => b.correct - a.correct || b.total - a.total);
+  for (const pick of allPicks) {
+    const entry = scoreMap.get(pick.user_id);
+    if (!entry) continue;
+    if (pick.is_correct !== null) entry.total++;
+    if (pick.is_correct) entry.correct++;
+    entry.score += pick.points ?? 0;
+  }
+
+  const sorted = (profiles as Profile[] ?? [])
+    .map((p) => ({
+      user_id: p.id,
+      display_name: p.display_name,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      ...(scoreMap.get(p.id) ?? { correct: 0, total: 0, score: 0 }),
+    }))
+    .sort((a, b) => b.score - a.score || b.correct - a.correct || a.display_name!.localeCompare(b.display_name!));
+
+  const ranks = rankByScore(sorted.map((e) => e.score));
+  const entries: LeaderboardEntry[] = sorted.map((e, i) => ({ ...e, rank: ranks[i] }));
 
   return { league, entries };
 }

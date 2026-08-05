@@ -109,7 +109,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                 {/* Header */}
                 <div style={{
                   display: "grid",
-                  gridTemplateColumns: "46px 1fr 72px 64px 56px",
+                  gridTemplateColumns: "46px 1fr 64px 72px 64px 56px",
                   padding: "12px 20px",
                   background: "#0D1016",
                   color: "#8B8E94",
@@ -120,6 +120,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                 }}>
                   <span>#</span>
                   <span>Player</span>
+                  <span style={{ textAlign: "right" }}>Score</span>
                   <span style={{ textAlign: "right" }}>Correct</span>
                   <span style={{ textAlign: "right" }}>Picked</span>
                   <span style={{ textAlign: "right" }}>%</span>
@@ -133,7 +134,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                       key={entry.user_id}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "46px 1fr 72px 64px 56px",
+                        gridTemplateColumns: "46px 1fr 64px 72px 64px 56px",
                         padding: "12px 20px",
                         alignItems: "center",
                         borderTop: i > 0 ? "1px solid #EFEDE6" : "none",
@@ -142,7 +143,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                       }}
                     >
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#8B8676" }}>
-                        {i === 0 && entry.total > 0 ? "🏆" : i + 1}
+                        {entry.rank === 1 && entry.total > 0 ? "🏆" : entry.rank}
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "#11151C" }}>
                         {displayName(entry)}
@@ -157,6 +158,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                           </span>
                         )}
                       </span>
+                      <span style={{ textAlign: "right", fontSize: 14, fontWeight: 800, color: "#11151C", fontVariantNumeric: "tabular-nums" }}>{entry.score}</span>
                       <span style={{ textAlign: "right", fontSize: 14, fontWeight: 800, color: "#11151C", fontVariantNumeric: "tabular-nums" }}>{entry.correct}</span>
                       <span style={{ textAlign: "right", fontSize: 13, color: "#8B8676", fontVariantNumeric: "tabular-nums" }}>{entry.total}</span>
                       <span style={{ textAlign: "right", fontSize: 13, color: "#8B8676", fontVariantNumeric: "tabular-nums" }}>
