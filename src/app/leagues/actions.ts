@@ -186,8 +186,12 @@ export async function fetchLeagueLeaderboard(
     }
   }
 
+  const profileMap = new Map<string, Profile>(
+    (profiles as Profile[] ?? []).map((p) => [p.id, p])
+  );
+
   const scoreMap = new Map<string, { correct: number; total: number; score: number }>(
-    (profiles as Profile[] ?? []).map((p) => [p.id, { correct: 0, total: 0, score: 0 }])
+    userIds.map((uid) => [uid, { correct: 0, total: 0, score: 0 }])
   );
 
   for (const pick of allPicks) {
@@ -198,15 +202,18 @@ export async function fetchLeagueLeaderboard(
     entry.score += pick.points ?? 0;
   }
 
-  const sorted = (profiles as Profile[] ?? [])
-    .map((p) => ({
-      user_id: p.id,
-      display_name: p.display_name,
-      first_name: p.first_name,
-      last_name: p.last_name,
-      ...(scoreMap.get(p.id) ?? { correct: 0, total: 0, score: 0 }),
-    }))
-    .sort((a, b) => b.score - a.score || b.correct - a.correct || a.display_name!.localeCompare(b.display_name!));
+  const sorted = userIds
+    .map((uid) => {
+      const p = profileMap.get(uid);
+      return {
+        user_id: uid,
+        display_name: p?.display_name ?? null,
+        first_name: p?.first_name ?? null,
+        last_name: p?.last_name ?? null,
+        ...(scoreMap.get(uid) ?? { correct: 0, total: 0, score: 0 }),
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.correct - a.correct || (a.display_name ?? "").localeCompare(b.display_name ?? ""));
 
   const ranks = rankByScore(sorted.map((e) => e.score));
   const entries: LeaderboardEntry[] = sorted.map((e, i) => ({ ...e, rank: ranks[i] }));
