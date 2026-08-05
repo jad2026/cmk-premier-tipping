@@ -178,7 +178,7 @@ export async function fetchLeagueLeaderboard(
         .select("user_id, is_correct, points")
         .in("user_id", userIds)
         .in("fixture_id", compFixtureIds)
-        .order("user_id")
+        .order("id")
         .range(from, from + batchSize - 1);
       allPicks.push(...(data ?? []));
       if (!data || data.length < batchSize) break;

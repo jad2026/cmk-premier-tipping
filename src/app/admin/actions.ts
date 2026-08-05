@@ -339,7 +339,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
       while (true) {
         const { data } = await admin.from("picks").select("user_id, points")
           .in("fixture_id", allCompFixtureIds)
-          .order("user_id")
+          .order("id")
           .range(from, from + batchSize - 1);
         allCompPicks.push(...(data ?? []));
         if (!data || data.length < batchSize) break;
@@ -729,7 +729,7 @@ export async function fetchParticipants(): Promise<{ data: ParticipantRow[]; err
   const allProfiles: { id: string; display_name: string | null }[] = [];
   const PAGE_SIZE = 1000;
   for (let from = 0; ; from += PAGE_SIZE) {
-    const { data } = await admin.from("profiles").select("id, display_name").range(from, from + PAGE_SIZE - 1);
+    const { data } = await admin.from("profiles").select("id, display_name").order("id").range(from, from + PAGE_SIZE - 1);
     if (!data || data.length === 0) break;
     allProfiles.push(...data);
     if (data.length < PAGE_SIZE) break;
@@ -1302,6 +1302,7 @@ export async function flagSuspectedBots(): Promise<{ flagged: number; names: str
       const { data } = await admin
         .from("profiles")
         .select("id, display_name, is_suspected_bot")
+        .order("id")
         .range(from, from + batchSize - 1);
       allProfiles.push(...(data ?? []));
       if (!data || data.length < batchSize) break;

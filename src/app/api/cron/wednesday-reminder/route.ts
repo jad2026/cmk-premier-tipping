@@ -148,7 +148,7 @@ export async function GET(request: Request) {
           .from("picks")
           .select("user_id")
           .in("fixture_id", fixtureIds)
-          .order("user_id")
+          .order("id")
           .range(from, from + batchSize - 1);
         picksRaw.push(...(data ?? []));
         if (!data || data.length < batchSize) break;

@@ -293,7 +293,7 @@ export default async function LeaderboardPage() {
   // Fetch all profiles (Supabase default limit is 1000 rows)
   const allProfiles: Profile[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data } = await supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id").range(from, from + 999);
+    const { data } = await supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id").order("id").range(from, from + 999);
     if (!data || data.length === 0) break;
     allProfiles.push(...(data as Profile[]));
     if (data.length < 1000) break;
@@ -306,7 +306,7 @@ export default async function LeaderboardPage() {
   const allParticipantIds: string[] = (participants ?? []).map((p) => p.user_id);
   if (participantCount > allParticipantIds.length) {
     for (let from = allParticipantIds.length; ; from += 1000) {
-      const { data } = await supabase.from("competition_participants").select("user_id").eq("competition_id", compId).range(from, from + 999);
+      const { data } = await supabase.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
       if (!data || data.length === 0) break;
       allParticipantIds.push(...data.map((p) => p.user_id));
       if (data.length < 1000) break;
@@ -351,7 +351,7 @@ export default async function LeaderboardPage() {
   const allPicksRaw: { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
   if (compFixtureIds.length > 0) {
     for (let from = 0; ; from += 1000) {
-      const { data } = await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).range(from, from + 999);
+      const { data } = await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
       if (!data || data.length === 0) break;
       allPicksRaw.push(...data);
       if (data.length < 1000) break;
@@ -401,6 +401,7 @@ export default async function LeaderboardPage() {
           .from("picks")
           .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
           .in("fixture_id", weekFixtureIds)
+          .order("id")
           .range(from, from + 999);
         if (!data || data.length === 0) break;
         allWeekPicks.push(...(data as unknown as RichPick[]));
@@ -560,6 +561,7 @@ export default async function LeaderboardPage() {
           .from("picks")
           .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
           .in("fixture_id", allFixtureIds)
+          .order("id")
           .range(from, from + 999);
         if (!data || data.length === 0) break;
         allSummaryPicks.push(...(data as unknown as RichPick[]));
