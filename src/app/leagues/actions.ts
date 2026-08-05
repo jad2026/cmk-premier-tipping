@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import { rankByScore } from "@/lib/ranking";
 import type { League, Profile } from "@/lib/supabase/types";
@@ -130,10 +130,10 @@ export async function fetchLeagueLeaderboard(
   leagueId: string,
   compIdOverride?: string
 ): Promise<{ league: League | null; entries: LeaderboardEntry[] }> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
   const compId = compIdOverride ?? await getCurrentCompetitionId();
 
-  const { data: league } = await supabase
+  const { data: league } = await admin
     .from("leagues")
     .select("*")
     .eq("id", leagueId)
@@ -142,7 +142,7 @@ export async function fetchLeagueLeaderboard(
 
   if (!league) return { league: null, entries: [] };
 
-  const { data: members } = await supabase
+  const { data: members } = await admin
     .from("league_members")
     .select("user_id")
     .eq("league_id", leagueId);
@@ -152,18 +152,18 @@ export async function fetchLeagueLeaderboard(
   const userIds = members.map((m) => m.user_id);
 
   // Scope picks to this competition's fixtures
-  const { data: compGwRows } = await supabase
+  const { data: compGwRows } = await admin
     .from("gameweeks")
     .select("id")
     .eq("competition_id", compId);
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
   const { data: compFixtureRows } = compGwIds.length > 0
-    ? await supabase.from("fixtures").select("id").in("gameweek_id", compGwIds)
+    ? await admin.from("fixtures").select("id").in("gameweek_id", compGwIds)
     : { data: [] as { id: string }[] };
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
-  const { data: profiles } = await supabase
+  const { data: profiles } = await admin
     .from("profiles")
     .select("id, display_name, first_name, last_name")
     .in("id", userIds);
@@ -173,7 +173,7 @@ export async function fetchLeagueLeaderboard(
     let from = 0;
     const batchSize = 1000;
     while (true) {
-      const { data } = await supabase
+      const { data } = await admin
         .from("picks")
         .select("user_id, is_correct, points")
         .in("user_id", userIds)

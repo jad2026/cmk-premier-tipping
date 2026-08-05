@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
 import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
@@ -264,6 +264,7 @@ function FixtureCard({
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const compId = await getCurrentCompetitionId();
   const tz = await getCompetitionTimezone(compId);
 
@@ -281,19 +282,19 @@ export default async function LeaderboardPage() {
     compFeatures,
     participantCountResult,
   ] = await Promise.all([
-    supabase.from("gameweeks").select("id").eq("competition_id", compId),
+    admin.from("gameweeks").select("id").eq("competition_id", compId),
     getCachedTeams(compId),
     getCachedSeasonConfig(compId),
-    supabase.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
-    supabase.from("competition_participants").select("user_id").eq("competition_id", compId),
+    admin.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
+    admin.from("competition_participants").select("user_id").eq("competition_id", compId),
     getCachedCompetitionFeatures(compId),
-    supabase.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
+    admin.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
   ]);
 
   // Fetch all profiles (Supabase default limit is 1000 rows)
   const allProfiles: Profile[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data } = await supabase.from("profiles").select("id, display_name, avatar_url, supported_team_id").order("id").range(from, from + 999);
+    const { data } = await admin.from("profiles").select("id, display_name, avatar_url, supported_team_id").order("id").range(from, from + 999);
     if (!data || data.length === 0) break;
     allProfiles.push(...(data as Profile[]));
     if (data.length < 1000) break;
@@ -306,7 +307,7 @@ export default async function LeaderboardPage() {
   const allParticipantIds: string[] = (participants ?? []).map((p) => p.user_id);
   if (participantCount > allParticipantIds.length) {
     for (let from = allParticipantIds.length; ; from += 1000) {
-      const { data } = await supabase.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
+      const { data } = await admin.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
       if (!data || data.length === 0) break;
       allParticipantIds.push(...data.map((p) => p.user_id));
       if (data.length < 1000) break;
@@ -322,27 +323,27 @@ export default async function LeaderboardPage() {
     { data: fixturesWithResults },
     { data: compFixtureRows },
   ] = await Promise.all([
-    supabase
+    admin
       .from("gameweeks")
       .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
       .eq("is_open", true)
       .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
-    supabase
+    admin
       .from("gameweeks")
       .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
       .eq("is_open", false)
       .order("number"),
     compGwIds.length > 0
-      ? supabase
+      ? admin
           .from("fixtures")
           .select("gameweek_id")
           .or("result_team_id.not.is.null,is_draw.eq.true")
           .in("gameweek_id", compGwIds)
       : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
     compGwIds.length > 0
-      ? supabase.from("fixtures").select("id").in("gameweek_id", compGwIds)
+      ? admin.from("fixtures").select("id").in("gameweek_id", compGwIds)
       : Promise.resolve({ data: [] as { id: string }[], error: null }),
   ]);
 
@@ -351,7 +352,7 @@ export default async function LeaderboardPage() {
   const allPicksRaw: { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
   if (compFixtureIds.length > 0) {
     for (let from = 0; ; from += 1000) {
-      const { data } = await supabase.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
+      const { data } = await admin.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
       if (!data || data.length === 0) break;
       allPicksRaw.push(...data);
       if (data.length < 1000) break;
@@ -385,7 +386,7 @@ export default async function LeaderboardPage() {
   let weekPicksByFixture = new Map<string, RichPick[]>();
 
   if (openGameweek) {
-    const { data: fixturesRaw } = await supabase
+    const { data: fixturesRaw } = await admin
       .from("fixtures")
       .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
       .eq("gameweek_id", openGameweek.id)
@@ -397,7 +398,7 @@ export default async function LeaderboardPage() {
       const weekFixtureIds = weekFixtures.map((f) => f.id);
       const allWeekPicks: RichPick[] = [];
       for (let from = 0; ; from += 1000) {
-        const { data } = await supabase
+        const { data } = await admin
           .from("picks")
           .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
           .in("fixture_id", weekFixtureIds)
@@ -471,7 +472,7 @@ export default async function LeaderboardPage() {
   // Fetch user's leagues + member lists
   let userLeagues: LeagueInfo[] = [];
   if (currentUserId) {
-    const { data: memberships } = await supabase
+    const { data: memberships } = await admin
       .from("league_members")
       .select("league_id")
       .eq("user_id", currentUserId);
@@ -479,7 +480,7 @@ export default async function LeaderboardPage() {
     if (memberships?.length) {
       const leagueIds = memberships.map((m) => m.league_id);
 
-      const { data: leagues } = await supabase
+      const { data: leagues } = await admin
         .from("leagues")
         .select("*")
         .in("id", leagueIds)
@@ -488,7 +489,7 @@ export default async function LeaderboardPage() {
       if (leagues?.length) {
         const filteredIds = leagues.map((l) => l.id);
 
-        const { data: allMembers } = await supabase
+        const { data: allMembers } = await admin
           .from("league_members")
           .select("league_id, user_id")
           .in("league_id", filteredIds);
@@ -532,7 +533,7 @@ export default async function LeaderboardPage() {
   const summaryPicksByFixture = new Map<string, RichPick[]>();
 
   if (seasonComplete) {
-    const { data: allGws } = await supabase
+    const { data: allGws } = await admin
       .from("gameweeks")
       .select("id, number, label, deadline, is_open")
       .eq("competition_id", compId)
@@ -540,7 +541,7 @@ export default async function LeaderboardPage() {
 
     summaryGameweeks = allGws ?? [];
 
-    const { data: allFixturesRich } = await supabase
+    const { data: allFixturesRich } = await admin
       .from("fixtures")
       .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
       .in("gameweek_id", compGwIds)
@@ -557,7 +558,7 @@ export default async function LeaderboardPage() {
     if (allFixtureIds.length > 0) {
       const allSummaryPicks: RichPick[] = [];
       for (let from = 0; ; from += 1000) {
-        const { data } = await supabase
+        const { data } = await admin
           .from("picks")
           .select("id, user_id, fixture_id, picked_team_id, picked_draw, is_correct, auto_picked, picked_team:teams!picks_picked_team_id_fkey(*)")
           .in("fixture_id", allFixtureIds)
