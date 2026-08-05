@@ -268,9 +268,6 @@ export default async function LeaderboardPage() {
   const compId = await getCurrentCompetitionId();
   const tz = await getCompetitionTimezone(compId);
 
-  console.log("[leaderboard] SUPABASE_SERVICE_ROLE_KEY defined:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-  console.log("[leaderboard] admin client type:", (admin as any).supabaseUrl ? "supabase-js" : "unknown");
-  console.log("[leaderboard] compId:", compId);
 
   const {
     data: { user },
@@ -282,20 +279,14 @@ export default async function LeaderboardPage() {
     teams,
     seasonConfig,
     { data: matchResultsRaw },
-    { data: participants },
     compFeatures,
-    participantCountResult,
   ] = await Promise.all([
     admin.from("gameweeks").select("id").eq("competition_id", compId),
     getCachedTeams(compId),
     getCachedSeasonConfig(compId),
     admin.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
-    admin.from("competition_participants").select("user_id").eq("competition_id", compId),
     getCachedCompetitionFeatures(compId),
-    admin.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
   ]);
-
-  console.log("[leaderboard] participants count from query:", participants?.length ?? 0, "participantCount (exact):", participantCountResult.count);
 
   // Fetch all profiles (Supabase default limit is 1000 rows)
   const allProfiles: Profile[] = [];
@@ -305,30 +296,17 @@ export default async function LeaderboardPage() {
     allProfiles.push(...(data as Profile[]));
     if (data.length < 1000) break;
   }
-  console.log("[leaderboard] profiles fetched:", allProfiles.length);
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
-  const participantCount = participantCountResult.count ?? 0;
 
-  // Paginate competition_participants beyond the default 1000-row limit
-  const allParticipantIds: string[] = (participants ?? []).map((p) => p.user_id);
-  if (participantCount > allParticipantIds.length) {
-    for (let from = allParticipantIds.length; ; from += 1000) {
-      const { data } = await admin.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
-      if (!data || data.length === 0) break;
-      allParticipantIds.push(...data.map((p) => p.user_id));
-      if (data.length < 1000) break;
-    }
+  const allParticipantIds: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await admin.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
+    if (!data || data.length === 0) break;
+    allParticipantIds.push(...data.map((p) => p.user_id));
+    if (data.length < 1000) break;
   }
   const participantIds = new Set(allParticipantIds);
-  console.log("[leaderboard] participantIds size:", participantIds.size);
-
-  // Check if HBMagpies2026 profile exists
-  const hbProfile = allProfiles.find((p) => p.display_name?.includes("HBMagpies"));
-  console.log("[leaderboard] HBMagpies profile:", hbProfile ? { id: hbProfile.id, display_name: hbProfile.display_name } : "NOT FOUND");
-  if (hbProfile) {
-    console.log("[leaderboard] HBMagpies in participantIds:", participantIds.has(hbProfile.id));
-  }
 
   // Fetch user's leagues + member lists early so league members are
   // included in the main leaderboard array (the league tab filters it
@@ -624,7 +602,7 @@ export default async function LeaderboardPage() {
           </h1>
           <p style={{ fontSize: 16, color: "#AEB4BE", margin: "14px 0 0", maxWidth: 480 }}>
             Every correct tip is worth a point.{" "}
-            {participantCount > 0 && `${participantCount} tipper${participantCount !== 1 ? "s" : ""} in the comp this season.`}
+            {participantIds.size > 0 && `${participantIds.size} tipper${participantIds.size !== 1 ? "s" : ""} in the comp this season.`}
           </p>
         </div>
       </section>
