@@ -40,7 +40,8 @@ const xmlParser = new XMLParser({
     name === "fixture" || name === "game" || name === "team" ||
     name === "match" || name === "event" || name === "sub" ||
     name === "Player" || name === "PlayerStat" || name === "TeamStat" ||
-    name === "Team" || name === "Message" || name === "players",
+    name === "Team" || name === "Message" || name === "players" ||
+    name === "TeamRecord",
 });
 
 function createAdmin() {
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   const admin = createAdmin();
 
   // --- Determine feed type ---
-  let feedType: "RU1" | "RU5" | "RU6" | "RU7" | "RU8" | "RU10" | "RU13" | "unknown" = "unknown";
+  let feedType: "RU1" | "RU5" | "RU6" | "RU7" | "RU8" | "RU10" | "RU13" | "RU31" | "unknown" = "unknown";
   if (rawXml.includes("<fixtures")) feedType = "RU1";
   else if (rawXml.includes("<livescores")) feedType = "RU5";
   else if (rawXml.includes("<wapresults")) feedType = "RU6";
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
   else if (rawXml.includes("<RugbyCommentary")) feedType = "RU8";
   else if (rawXml.includes("<RU10_Profile")) feedType = "RU10";
   else if (rawXml.includes("<RU13LINEUP")) feedType = "RU13";
+  else if (rawXml.includes("<RU31Table")) feedType = "RU31";
 
   // --- Capture raw XML first ---
   const { error: rawError } = await admin.from("opta_raw_feed").insert({
@@ -145,6 +147,10 @@ export async function POST(request: Request) {
     }
     if (feedType === "RU13") {
       const result = await processRU13(admin, parsed);
+      return NextResponse.json({ feedType, ...result });
+    }
+    if (feedType === "RU31") {
+      const result = await processRU31(admin, parsed);
       return NextResponse.json({ feedType, ...result });
     }
 
@@ -977,4 +983,69 @@ async function processRU13(
 
   console.log(`[opta/RU13] Done: processed=${processed}, errors=${errors}`);
   return { processed, errors };
+}
+
+// ---------------------------------------------------------------------------
+// RU31 — Live Table Standings (RU31Table)
+// ---------------------------------------------------------------------------
+
+const RU31_COMP_ID = "npc-2026-manual";
+
+interface RU31TeamRecord {
+  "@_team_id"?: string;
+  "@_team_name"?: string;
+  "@_position"?: string;
+  "@_matches_played"?: string;
+  "@_matches_won"?: string;
+  "@_matches_drawn"?: string;
+  "@_matches_lost"?: string;
+  "@_points_for"?: string;
+  "@_points_against"?: string;
+  "@_points_diff"?: string;
+  "@_bonus_points"?: string;
+  "@_match_points"?: string;
+  [key: string]: string | undefined;
+}
+
+async function processRU31(
+  admin: ReturnType<typeof createAdmin>,
+  parsed: Record<string, unknown>
+) {
+  const root = parsed.RU31Table as { TeamRecord?: RU31TeamRecord[] } | undefined;
+  const records = root?.TeamRecord ?? [];
+
+  if (records.length === 0) {
+    console.warn("[opta/RU31] No TeamRecord elements found");
+    return { processed: 0, errors: 0 };
+  }
+
+  const rows = records.map((r) => ({
+    comp_id: RU31_COMP_ID,
+    team_id: r["@_team_id"] ?? null,
+    team_name: r["@_team_name"] ?? "Unknown",
+    position: r["@_position"] != null ? parseInt(r["@_position"], 10) : null,
+    matches_played: r["@_matches_played"] != null ? parseInt(r["@_matches_played"], 10) : null,
+    matches_won: r["@_matches_won"] != null ? parseInt(r["@_matches_won"], 10) : null,
+    matches_drawn: r["@_matches_drawn"] != null ? parseInt(r["@_matches_drawn"], 10) : null,
+    matches_lost: r["@_matches_lost"] != null ? parseInt(r["@_matches_lost"], 10) : null,
+    points_for: r["@_points_for"] != null ? parseInt(r["@_points_for"], 10) : null,
+    points_against: r["@_points_against"] != null ? parseInt(r["@_points_against"], 10) : null,
+    points_diff: r["@_points_diff"] != null ? parseInt(r["@_points_diff"], 10) : null,
+    bonus_points: r["@_bonus_points"] != null ? parseInt(r["@_bonus_points"], 10) : null,
+    match_points: r["@_match_points"] != null ? parseInt(r["@_match_points"], 10) : null,
+    raw: r,
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error, count } = await admin
+    .from("ladder_standings")
+    .upsert(rows, { onConflict: "comp_id,team_name" });
+
+  if (error) {
+    console.error(`[opta/RU31] Upsert failed:`, error.message);
+    return { processed: 0, errors: rows.length, detail: error.message };
+  }
+
+  console.log(`[opta/RU31] Upserted ${rows.length} standings for comp=${RU31_COMP_ID}`);
+  return { processed: rows.length, errors: 0 };
 }
