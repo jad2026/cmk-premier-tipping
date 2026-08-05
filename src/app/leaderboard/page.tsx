@@ -315,6 +315,55 @@ export default async function LeaderboardPage() {
   }
   const participantIds = new Set(allParticipantIds);
 
+  // Fetch user's leagues + member lists early so league members are
+  // included in the main leaderboard array (the league tab filters it
+  // client-side and can only show entries that exist in the array).
+  let userLeagues: LeagueInfo[] = [];
+  if (currentUserId) {
+    const { data: memberships } = await admin
+      .from("league_members")
+      .select("league_id")
+      .eq("user_id", currentUserId);
+
+    if (memberships?.length) {
+      const leagueIds = memberships.map((m) => m.league_id);
+
+      const { data: leagues } = await admin
+        .from("leagues")
+        .select("*")
+        .in("id", leagueIds)
+        .eq("competition_id", compId);
+
+      if (leagues?.length) {
+        const filteredIds = leagues.map((l) => l.id);
+
+        const { data: allMembers } = await admin
+          .from("league_members")
+          .select("league_id, user_id")
+          .in("league_id", filteredIds);
+
+        const memberMap = new Map<string, string[]>();
+        const countMap = new Map<string, number>();
+        for (const m of allMembers ?? []) {
+          const list = memberMap.get(m.league_id) ?? [];
+          list.push(m.user_id);
+          memberMap.set(m.league_id, list);
+          countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
+          participantIds.add(m.user_id);
+        }
+
+        userLeagues = leagues.map((l) => ({
+          id: l.id,
+          name: l.name,
+          invite_code: l.invite_code,
+          member_count: countMap.get(l.id) ?? 0,
+          memberUserIds: memberMap.get(l.id) ?? [],
+          created_by: l.created_by,
+        }));
+      }
+    }
+  }
+
   const compGwIds = (compGwRows ?? []).map((g) => g.id);
 
   const [
@@ -465,52 +514,6 @@ export default async function LeaderboardPage() {
         s.total += 1;
         if (pick.is_correct) s.correct += 1;
         thisRoundScores.set(pick.user_id, s);
-      }
-    }
-  }
-
-  // Fetch user's leagues + member lists
-  let userLeagues: LeagueInfo[] = [];
-  if (currentUserId) {
-    const { data: memberships } = await admin
-      .from("league_members")
-      .select("league_id")
-      .eq("user_id", currentUserId);
-
-    if (memberships?.length) {
-      const leagueIds = memberships.map((m) => m.league_id);
-
-      const { data: leagues } = await admin
-        .from("leagues")
-        .select("*")
-        .in("id", leagueIds)
-        .eq("competition_id", compId);
-
-      if (leagues?.length) {
-        const filteredIds = leagues.map((l) => l.id);
-
-        const { data: allMembers } = await admin
-          .from("league_members")
-          .select("league_id, user_id")
-          .in("league_id", filteredIds);
-
-        const memberMap = new Map<string, string[]>();
-        const countMap = new Map<string, number>();
-        for (const m of allMembers ?? []) {
-          const list = memberMap.get(m.league_id) ?? [];
-          list.push(m.user_id);
-          memberMap.set(m.league_id, list);
-          countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
-        }
-
-        userLeagues = leagues.map((l) => ({
-          id: l.id,
-          name: l.name,
-          invite_code: l.invite_code,
-          member_count: countMap.get(l.id) ?? 0,
-          memberUserIds: memberMap.get(l.id) ?? [],
-          created_by: l.created_by,
-        }));
       }
     }
   }
