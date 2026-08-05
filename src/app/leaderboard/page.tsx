@@ -268,6 +268,10 @@ export default async function LeaderboardPage() {
   const compId = await getCurrentCompetitionId();
   const tz = await getCompetitionTimezone(compId);
 
+  console.log("[leaderboard] SUPABASE_SERVICE_ROLE_KEY defined:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log("[leaderboard] admin client type:", (admin as any).supabaseUrl ? "supabase-js" : "unknown");
+  console.log("[leaderboard] compId:", compId);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -291,6 +295,8 @@ export default async function LeaderboardPage() {
     admin.from("competition_participants").select("*", { count: "exact", head: true }).eq("competition_id", compId),
   ]);
 
+  console.log("[leaderboard] participants count from query:", participants?.length ?? 0, "participantCount (exact):", participantCountResult.count);
+
   // Fetch all profiles (Supabase default limit is 1000 rows)
   const allProfiles: Profile[] = [];
   for (let from = 0; ; from += 1000) {
@@ -299,6 +305,7 @@ export default async function LeaderboardPage() {
     allProfiles.push(...(data as Profile[]));
     if (data.length < 1000) break;
   }
+  console.log("[leaderboard] profiles fetched:", allProfiles.length);
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
   const participantCount = participantCountResult.count ?? 0;
@@ -314,6 +321,14 @@ export default async function LeaderboardPage() {
     }
   }
   const participantIds = new Set(allParticipantIds);
+  console.log("[leaderboard] participantIds size:", participantIds.size);
+
+  // Check if HBMagpies2026 profile exists
+  const hbProfile = allProfiles.find((p) => p.display_name?.includes("HBMagpies"));
+  console.log("[leaderboard] HBMagpies profile:", hbProfile ? { id: hbProfile.id, display_name: hbProfile.display_name } : "NOT FOUND");
+  if (hbProfile) {
+    console.log("[leaderboard] HBMagpies in participantIds:", participantIds.has(hbProfile.id));
+  }
 
   // Fetch user's leagues + member lists early so league members are
   // included in the main leaderboard array (the league tab filters it
