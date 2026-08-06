@@ -221,7 +221,7 @@ export async function GET(request: Request) {
     // Get member profiles and emails
     const { data: profiles } = await admin
       .from("profiles")
-      .select("id, display_name, first_name, is_suspected_bot")
+      .select("id, display_name, first_name, is_suspected_bot, unsubscribed")
       .in("id", memberUserIds);
 
     const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -231,7 +231,7 @@ export async function GET(request: Request) {
     );
 
     const botIds = new Set(
-      (profiles ?? []).filter((p: { is_suspected_bot?: boolean }) => p.is_suspected_bot).map((p: { id: string }) => p.id)
+      (profiles ?? []).filter((p: { is_suspected_bot?: boolean; unsubscribed?: boolean }) => p.is_suspected_bot || p.unsubscribed).map((p: { id: string }) => p.id)
     );
 
     let sent = 0;
@@ -255,6 +255,7 @@ export async function GET(request: Request) {
       });
 
       const { subject, html } = buildSponsoredLeagueEmail({
+        to: email,
         recipientName,
         leagueName: league.name,
         roundLabel: currentGw.label,

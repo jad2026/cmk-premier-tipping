@@ -248,6 +248,7 @@ function buildHtml(p: ResultsEmailPayload): string {
             <div style="width:20px;height:3px;background:${t.accent};border-radius:2px;margin:0 auto 10px;"></div>
             <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:${t.textMutedOnDark};">${competitionName}</p>
             <p style="margin:4px 0 0;font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;">You're receiving this because you have an account.</p>
+            <p style="margin:8px 0 0;"><a href="${(p.siteUrl || 'https://clubrugbytipping.com')}/api/unsubscribe?token=${Buffer.from(p.to).toString('base64')}" style="font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:${t.textMutedOnDark};opacity:.6;text-decoration:underline;">Unsubscribe</a></p>
           </td>
         </tr>
 

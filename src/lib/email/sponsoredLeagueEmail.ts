@@ -1,4 +1,5 @@
 export type SponsoredLeagueEmailPayload = {
+  to: string;
   recipientName: string;
   leagueName: string;
   roundLabel: string;
@@ -171,6 +172,7 @@ export function buildSponsoredLeagueEmail(p: SponsoredLeagueEmailPayload): { sub
           <td style="background:#0B0E13;padding:24px 32px;text-align:center;">
             ${p.sponsorLogos.length > 0 ? `<table cellpadding="0" cellspacing="0" style="margin:0 auto 14px;"><tr>${footerLogosCells}</tr></table>` : ""}
             <p style="margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:12px;color:#9AA1AD;">clubrugbytipping.com</p>
+            <p style="margin:8px 0 0;"><a href="${p.siteUrl}/api/unsubscribe?token=${Buffer.from(p.to).toString('base64')}" style="font-family:'Archivo',system-ui,sans-serif;font-size:11px;color:#9AA1AD;opacity:.6;text-decoration:underline;">Unsubscribe</a></p>
           </td>
         </tr>
 

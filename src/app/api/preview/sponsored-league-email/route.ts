@@ -42,6 +42,7 @@ export async function GET() {
   ]);
 
   const { html } = buildSponsoredLeagueEmail({
+    to: "preview@example.com",
     recipientName: "John D",
     leagueName: league.name,
     roundLabel: "Round 3",
