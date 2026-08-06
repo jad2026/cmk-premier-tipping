@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
-
-const REVIEW_EMAIL = "review@clubrugbytipping.com";
 
 function useSiteName() {
   const [name, setName] = useState("Club Rugby Tipping");
@@ -40,7 +37,6 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
   const supabase = createClient();
@@ -49,38 +45,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-
-  const isReviewAccount = email.trim().toLowerCase() === REVIEW_EMAIL;
+  const [resetSent, setResetSent] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    if (isReviewAccount) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) {
-        setLoading(false);
-        setError(error.message);
-      } else {
-        if (data.user) {
-          autoEnrollCurrentCompetition(data.user.id).catch(() => {});
-        }
-        window.location.href = redirectTo || "/tips";
-      }
-    } else {
-      const redirectUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || "/tips")}`;
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: redirectUrl },
-      });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
       setLoading(false);
-      if (error) {
-        setError(error.message);
-      } else {
-        setMagicLinkSent(true);
-      }
+      setError(error.message);
+    } else {
+      window.location.href = redirectTo || "/tips";
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError("Enter your email address first.");
+      return;
+    }
+    setResetting(true);
+    setError(null);
+    setResetSent(false);
+
+    const redirectUrl = `${window.location.origin}/auth/callback?type=recovery&next=/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: redirectUrl,
+    });
+    setResetting(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setResetSent(true);
     }
   }
 
@@ -110,116 +109,105 @@ export default function LoginPage() {
             </h1>
           </div>
 
-          {magicLinkSent ? (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>✉️</span>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#11151C", margin: "0 0 8px" }}>Check your email</h2>
-              <p style={{ fontSize: 15, color: "#8B8676", margin: 0, lineHeight: 1.5 }}>
-                We sent a sign-in link to <strong style={{ color: "#11151C" }}>{email}</strong>. Click the link in the email to sign in.
-              </p>
-              <button
-                type="button"
-                onClick={() => { setMagicLinkSent(false); setError(null); }}
-                style={{ marginTop: 24, fontSize: 14, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
-              >
-                Use a different email
-              </button>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(null); setResetSent(false); }}
+                placeholder="you@example.com"
+                style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              />
             </div>
-          ) : (
-            <>
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                    placeholder="you@example.com"
-                    style={inputStyle}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
-                  />
-                </div>
 
-                {isReviewAccount && (
-                  <div>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      style={inputStyle}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
-                    />
-                  </div>
-                )}
-
-                {error && (
-                  <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
-                    <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{error}</p>
-                  </div>
-                )}
-
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
                 <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    width: "100%",
-                    background: "var(--accent)",
-                    color: "var(--accent-text, #11151C)",
-                    padding: "14px 28px",
-                    borderRadius: 12,
-                    fontWeight: 800,
-                    fontSize: 16,
-                    textTransform: "uppercase",
-                    letterSpacing: ".04em",
-                    border: "none",
-                    cursor: loading ? "wait" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    opacity: loading ? 0.7 : 1,
-                    transition: "opacity .15s",
-                    marginTop: 4,
-                  }}
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={resetting}
+                  style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: resetting ? "wait" : "pointer", padding: 0 }}
                 >
-                  {loading ? (
-                    <>
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          border: "2px solid rgba(255,255,255,.3)",
-                          borderTopColor: "#fff",
-                          borderRadius: "50%",
-                          animation: "spin 1s linear infinite",
-                        }}
-                      />
-                      {isReviewAccount ? "Signing in…" : "Sending link…"}
-                    </>
-                  ) : isReviewAccount ? "Sign In" : "Send Sign-In Link"}
+                  {resetting ? "Sending…" : "Forgot password?"}
                 </button>
-              </form>
+              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                style={inputStyle}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; }}
+              />
+            </div>
 
-              {!isReviewAccount && (
-                <p style={{ marginTop: 16, textAlign: "center", fontSize: 13, color: "#AEB4BE" }}>
-                  No password needed — we&apos;ll email you a sign-in link.
-                </p>
-              )}
+            {resetSent && (
+              <div style={{ borderRadius: 12, background: "rgba(31,158,90,.06)", border: "1px solid rgba(31,158,90,.15)", padding: "12px 16px" }}>
+                <p style={{ fontSize: 14, color: "#1F9E5A", margin: 0 }}>Password reset link sent — check your email.</p>
+              </div>
+            )}
 
-              <p style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#8B8676" }}>
-                No account?{" "}
-                <Link href="/signup" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
-                  Sign up free
-                </Link>
-              </p>
-            </>
-          )}
+            {error && (
+              <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.15)", padding: "12px 16px" }}>
+                <p style={{ fontSize: 14, color: "#B23A48", margin: 0 }}>{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                background: "var(--accent)",
+                color: "var(--accent-text, #11151C)",
+                padding: "14px 28px",
+                borderRadius: 12,
+                fontWeight: 800,
+                fontSize: 16,
+                textTransform: "uppercase",
+                letterSpacing: ".04em",
+                border: "none",
+                cursor: loading ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: loading ? 0.7 : 1,
+                transition: "opacity .15s",
+                marginTop: 4,
+              }}
+            >
+              {loading ? (
+                <>
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: "2px solid rgba(255,255,255,.3)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                  Signing in…
+                </>
+              ) : "Sign In"}
+            </button>
+          </form>
+
+          <p style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#8B8676" }}>
+            No account?{" "}
+            <Link href="/signup" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
+              Sign up free
+            </Link>
+          </p>
         </div>
       </div>
     </div>
