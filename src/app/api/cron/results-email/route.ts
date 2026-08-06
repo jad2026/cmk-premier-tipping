@@ -299,7 +299,7 @@ export async function GET(request: Request) {
         seasonPoints: overallMap.get(userId) ?? 0, sponsors: sponsors ?? [],
         ...(marginPicking && marginTotal > 0 ? { marginCorrect, marginTotal } : {}),
         competitionName, siteUrl, accentColor, accentTextColor,
-        ...(gw.number === 2 ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
+        ...(gw.number === 2 && compId === ‘bf6bb916-86c7-4cb1-8268-ba887a973c1f’ ? { noticeText: "Round 1’s results email had a bug and showed some scores and positions incorrectly. Apologies if yours looked wrong — it’s fixed, and everything below is accurate." } : {}),
       });
       if (msg) {
         messages.push(msg);
