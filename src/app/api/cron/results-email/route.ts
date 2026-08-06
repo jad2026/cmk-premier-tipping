@@ -146,11 +146,10 @@ export async function GET(request: Request) {
         .limit(5),
     ]);
 
-    // TEMP: reminders_enabled check disabled — Vercel caching issue
-    // if (compConfig?.reminders_enabled === false) {
-    //   console.log(`[results-email] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
-    //   continue;
-    // }
+    if (compConfig?.reminders_enabled === false) {
+      console.log(`[results-email] Skipping ${gw.label} — reminders disabled for competition ${compId}`);
+      continue;
+    }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
