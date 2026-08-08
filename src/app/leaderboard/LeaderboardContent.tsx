@@ -406,60 +406,61 @@ export default function LeaderboardContent({
             </div>
           )}
 
-          {/* Round selector for sponsored leagues */}
-          {isSponsored && availableRounds.length > 0 && (
-            <div style={{ marginTop: 16, marginBottom: 8 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                flexWrap: 'wrap',
-                padding: '4px',
-                background: '#fff',
-                border: '1px solid #E4E1D8',
-                borderRadius: 14,
-              }}>
-                <button
-                  onClick={() => setSelectedRound("total")}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 10,
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
-                    transition: 'all .15s',
-                    background: selectedRound === "total" ? '#0D1016' : 'transparent',
-                    color: selectedRound === "total" ? '#fff' : '#8B8676',
-                  }}
-                >
-                  Total
-                </button>
-                {availableRounds.map((round) => (
-                  <button
-                    key={round.gameweekId}
-                    onClick={() => setSelectedRound(round.gameweekId)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 10,
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
-                      transition: 'all .15s',
-                      background: selectedRound === round.gameweekId ? '#0D1016' : 'transparent',
-                      color: selectedRound === round.gameweekId ? '#fff' : '#8B8676',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Rd {round.gameweekNumber}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {/* Round selector — visible for overall + all leagues */}
+      {availableRounds.length > 0 && (
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: currentUserId && leagues.length > 0 ? "16px 32px 0" : "20px 32px 0" }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flexWrap: 'wrap',
+            padding: '4px',
+            background: '#fff',
+            border: '1px solid #E4E1D8',
+            borderRadius: 14,
+          }}>
+            <button
+              onClick={() => setSelectedRound("total")}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+                transition: 'all .15s',
+                background: selectedRound === "total" ? '#0D1016' : 'transparent',
+                color: selectedRound === "total" ? '#fff' : '#8B8676',
+              }}
+            >
+              Total
+            </button>
+            {availableRounds.map((round) => (
+              <button
+                key={round.gameweekId}
+                onClick={() => setSelectedRound(round.gameweekId)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+                  transition: 'all .15s',
+                  background: selectedRound === round.gameweekId ? '#0D1016' : 'transparent',
+                  color: selectedRound === round.gameweekId ? '#fff' : '#8B8676',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Rd {round.gameweekNumber}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
