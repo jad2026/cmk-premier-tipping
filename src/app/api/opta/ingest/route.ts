@@ -1036,24 +1036,33 @@ async function processRU31(
     return { processed: 0, errors: 0 };
   }
 
-  const rows = teams.map((t) => ({
-    comp_id: RU31_COMP_ID,
-    team_id: t["@_id"] ?? null,
-    team_name: t["@_name"] ?? "Unknown",
-    position: t["@_rank"] != null ? parseInt(t["@_rank"], 10) : null,
-    matches_played: t["@_played"] != null ? parseInt(t["@_played"], 10) : null,
-    matches_won: t["@_won"] != null ? parseInt(t["@_won"], 10) : null,
-    matches_drawn: t["@_drawn"] != null ? parseInt(t["@_drawn"], 10) : null,
-    matches_lost: t["@_lost"] != null ? parseInt(t["@_lost"], 10) : null,
-    points_for: t["@_for"] != null ? parseInt(t["@_for"], 10) : null,
-    points_against: t["@_against"] != null ? parseInt(t["@_against"], 10) : null,
-    points_diff: t["@_pointsdiff"] != null ? parseInt(t["@_pointsdiff"], 10) : null,
-    bonus_points: t["@_bonus"] != null ? parseInt(t["@_bonus"], 10) : null,
-    match_points: t["@_points"] != null ? parseInt(t["@_points"], 10) : null,
-    byes: t["@_byes"] != null ? parseInt(t["@_byes"], 10) : null,
-    raw: t,
-    updated_at: new Date().toISOString(),
-  }));
+  const nameNormalize: Record<string, string> = {
+    'Bay Of Plenty': 'Bay of Plenty',
+    'Manawatū': 'Manawatu',
+  };
+
+  const rows = teams.map((t) => {
+    const rawName = t["@_name"] ?? "Unknown";
+    const teamName = nameNormalize[rawName] ?? rawName;
+    return {
+      comp_id: RU31_COMP_ID,
+      team_id: t["@_id"] ?? null,
+      team_name: teamName,
+      position: t["@_rank"] != null ? parseInt(t["@_rank"], 10) : null,
+      matches_played: t["@_played"] != null ? parseInt(t["@_played"], 10) : null,
+      matches_won: t["@_won"] != null ? parseInt(t["@_won"], 10) : null,
+      matches_drawn: t["@_drawn"] != null ? parseInt(t["@_drawn"], 10) : null,
+      matches_lost: t["@_lost"] != null ? parseInt(t["@_lost"], 10) : null,
+      points_for: t["@_for"] != null ? parseInt(t["@_for"], 10) : null,
+      points_against: t["@_against"] != null ? parseInt(t["@_against"], 10) : null,
+      points_diff: t["@_pointsdiff"] != null ? parseInt(t["@_pointsdiff"], 10) : null,
+      bonus_points: t["@_bonus"] != null ? parseInt(t["@_bonus"], 10) : null,
+      match_points: t["@_points"] != null ? parseInt(t["@_points"], 10) : null,
+      byes: t["@_byes"] != null ? parseInt(t["@_byes"], 10) : null,
+      raw: t,
+      updated_at: new Date().toISOString(),
+    };
+  });
 
   const { error } = await admin
     .from("ladder_standings")
