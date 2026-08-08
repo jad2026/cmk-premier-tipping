@@ -41,7 +41,7 @@ const xmlParser = new XMLParser({
     name === "match" || name === "event" || name === "sub" ||
     name === "Player" || name === "PlayerStat" || name === "TeamStat" ||
     name === "Team" || name === "Message" || name === "players" ||
-    name === "TeamRecord",
+    name === "TeamRecord" || name === "group" || name === "comp",
 });
 
 function createAdmin() {
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   else if (rawXml.includes("<RugbyCommentary")) feedType = "RU8";
   else if (rawXml.includes("<RU10_Profile")) feedType = "RU10";
   else if (rawXml.includes("<RU13LINEUP")) feedType = "RU13";
-  else if (rawXml.includes("<RU31Table")) feedType = "RU31";
+  else if (rawXml.includes("<table") && rawXml.includes("<comp")) feedType = "RU31";
 
   // --- Capture raw XML first ---
   const { error: rawError } = await admin.from("opta_raw_feed").insert({
@@ -986,58 +986,76 @@ async function processRU13(
 }
 
 // ---------------------------------------------------------------------------
-// RU31 — Live Table Standings (RU31Table)
+// RU31 — Live Table Standings (<table> → <comp> → <group> → <team>)
 // ---------------------------------------------------------------------------
 
 const RU31_COMP_ID = "npc-2026-manual";
 
-interface RU31TeamRecord {
-  "@_team_id"?: string;
-  "@_team_name"?: string;
-  "@_position"?: string;
-  "@_matches_played"?: string;
-  "@_matches_won"?: string;
-  "@_matches_drawn"?: string;
-  "@_matches_lost"?: string;
-  "@_points_for"?: string;
-  "@_points_against"?: string;
-  "@_points_diff"?: string;
-  "@_bonus_points"?: string;
-  "@_match_points"?: string;
+interface RU31Team {
+  "@_name"?: string;
+  "@_id"?: string;
+  "@_rank"?: string;
+  "@_played"?: string;
+  "@_won"?: string;
+  "@_drawn"?: string;
+  "@_lost"?: string;
+  "@_for"?: string;
+  "@_against"?: string;
+  "@_pointsdiff"?: string;
+  "@_bonus"?: string;
+  "@_points"?: string;
+  "@_byes"?: string;
   [key: string]: string | undefined;
+}
+
+interface RU31Group {
+  team?: RU31Team[];
+}
+
+interface RU31Comp {
+  group?: RU31Group[];
 }
 
 async function processRU31(
   admin: ReturnType<typeof createAdmin>,
   parsed: Record<string, unknown>
 ) {
-  const root = parsed.RU31Table as { TeamRecord?: RU31TeamRecord[] } | undefined;
-  const records = root?.TeamRecord ?? [];
+  const root = parsed.table as { comp?: RU31Comp[] } | undefined;
+  const comps = root?.comp ?? [];
+  const teams: RU31Team[] = [];
+  for (const comp of comps) {
+    for (const group of comp.group ?? []) {
+      for (const team of group.team ?? []) {
+        teams.push(team);
+      }
+    }
+  }
 
-  if (records.length === 0) {
-    console.warn("[opta/RU31] No TeamRecord elements found");
+  if (teams.length === 0) {
+    console.warn("[opta/RU31] No team elements found");
     return { processed: 0, errors: 0 };
   }
 
-  const rows = records.map((r) => ({
+  const rows = teams.map((t) => ({
     comp_id: RU31_COMP_ID,
-    team_id: r["@_team_id"] ?? null,
-    team_name: r["@_team_name"] ?? "Unknown",
-    position: r["@_position"] != null ? parseInt(r["@_position"], 10) : null,
-    matches_played: r["@_matches_played"] != null ? parseInt(r["@_matches_played"], 10) : null,
-    matches_won: r["@_matches_won"] != null ? parseInt(r["@_matches_won"], 10) : null,
-    matches_drawn: r["@_matches_drawn"] != null ? parseInt(r["@_matches_drawn"], 10) : null,
-    matches_lost: r["@_matches_lost"] != null ? parseInt(r["@_matches_lost"], 10) : null,
-    points_for: r["@_points_for"] != null ? parseInt(r["@_points_for"], 10) : null,
-    points_against: r["@_points_against"] != null ? parseInt(r["@_points_against"], 10) : null,
-    points_diff: r["@_points_diff"] != null ? parseInt(r["@_points_diff"], 10) : null,
-    bonus_points: r["@_bonus_points"] != null ? parseInt(r["@_bonus_points"], 10) : null,
-    match_points: r["@_match_points"] != null ? parseInt(r["@_match_points"], 10) : null,
-    raw: r,
+    team_id: t["@_id"] ?? null,
+    team_name: t["@_name"] ?? "Unknown",
+    position: t["@_rank"] != null ? parseInt(t["@_rank"], 10) : null,
+    matches_played: t["@_played"] != null ? parseInt(t["@_played"], 10) : null,
+    matches_won: t["@_won"] != null ? parseInt(t["@_won"], 10) : null,
+    matches_drawn: t["@_drawn"] != null ? parseInt(t["@_drawn"], 10) : null,
+    matches_lost: t["@_lost"] != null ? parseInt(t["@_lost"], 10) : null,
+    points_for: t["@_for"] != null ? parseInt(t["@_for"], 10) : null,
+    points_against: t["@_against"] != null ? parseInt(t["@_against"], 10) : null,
+    points_diff: t["@_pointsdiff"] != null ? parseInt(t["@_pointsdiff"], 10) : null,
+    bonus_points: t["@_bonus"] != null ? parseInt(t["@_bonus"], 10) : null,
+    match_points: t["@_points"] != null ? parseInt(t["@_points"], 10) : null,
+    byes: t["@_byes"] != null ? parseInt(t["@_byes"], 10) : null,
+    raw: t,
     updated_at: new Date().toISOString(),
   }));
 
-  const { error, count } = await admin
+  const { error } = await admin
     .from("ladder_standings")
     .upsert(rows, { onConflict: "comp_id,team_name" });
 
