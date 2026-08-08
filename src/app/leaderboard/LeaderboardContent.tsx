@@ -33,6 +33,23 @@ export type LeagueInfo = {
   member_count: number;
   memberUserIds: string[];
   created_by: string;
+  is_sponsored?: boolean;
+};
+
+export type RoundScoreEntry = {
+  user_id: string;
+  score: number;
+  correct: number;
+  total: number;
+  marginBonus: number;
+};
+
+export type RoundData = {
+  gameweekId: string;
+  gameweekNumber: number;
+  gameweekLabel: string;
+  hasResults: boolean;
+  scores: RoundScoreEntry[];
 };
 
 type Props = {
@@ -42,6 +59,7 @@ type Props = {
   marginPicking: boolean;
   showSupportedTeam: boolean;
   noRoundsPlayed: boolean;
+  roundsData: RoundData[];
 };
 
 const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B", "#6E3A2A", "#2C6E8F"];
@@ -162,8 +180,10 @@ export default function LeaderboardContent({
   marginPicking,
   showSupportedTeam,
   noRoundsPlayed,
+  roundsData,
 }: Props) {
   const [selectedLeague, setSelectedLeague] = useState("overall");
+  const [selectedRound, setSelectedRound] = useState("total"); // "total" or gameweekId
   const [showManage, setShowManage] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -176,6 +196,17 @@ export default function LeaderboardContent({
   const [joinError, setJoinError] = useState("");
   const [joinFeedback, setJoinFeedback] = useState("");
   const [sponsorLogos, setSponsorLogos] = useState<{id: string; name: string; logo_url: string; display_order: number}[]>([]);
+
+  // Reset round selection when league changes
+  useEffect(() => {
+    setSelectedRound("total");
+  }, [selectedLeague]);
+
+  const selectedLeagueInfo = leagues.find((l) => l.id === selectedLeague);
+  const isSponsored = selectedLeagueInfo?.is_sponsored ?? false;
+
+  // Filter rounds that have results for the round selector
+  const availableRounds = roundsData.filter((r) => r.hasResults);
 
   useEffect(() => {
     if (!selectedLeague || selectedLeague === "overall") {
@@ -199,7 +230,28 @@ export default function LeaderboardContent({
           return league?.memberUserIds.includes(e.user_id);
         });
 
-  const sorted = [...filtered].sort(
+  // If a specific round is selected, override scores with that round's data
+  const selectedRoundData = selectedRound !== "total"
+    ? roundsData.find((r) => r.gameweekId === selectedRound)
+    : null;
+
+  const withRoundScores: LeaderboardRow[] = selectedRoundData
+    ? filtered.map((entry) => {
+        const roundScore = selectedRoundData.scores.find((s) => s.user_id === entry.user_id);
+        return {
+          ...entry,
+          totalScore: roundScore?.score ?? 0,
+          correct: roundScore?.correct ?? 0,
+          total: roundScore?.total ?? 0,
+          marginBonus: roundScore?.marginBonus ?? 0,
+          manualCorrect: roundScore?.correct ?? 0,
+          manualTotal: roundScore?.total ?? 0,
+          manualResulted: roundScore?.total ?? 0,
+        };
+      })
+    : filtered;
+
+  const sorted = [...withRoundScores].sort(
     (a, b) =>
       b.totalScore - a.totalScore ||
       b.correct - a.correct ||
@@ -353,11 +405,91 @@ export default function LeaderboardContent({
               </div>
             </div>
           )}
+
+          {/* Round selector for sponsored leagues */}
+          {isSponsored && availableRounds.length > 0 && (
+            <div style={{ marginTop: 16, marginBottom: 8 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                flexWrap: 'wrap',
+                padding: '4px',
+                background: '#fff',
+                border: '1px solid #E4E1D8',
+                borderRadius: 14,
+              }}>
+                <button
+                  onClick={() => setSelectedRound("total")}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 10,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+                    transition: 'all .15s',
+                    background: selectedRound === "total" ? '#0D1016' : 'transparent',
+                    color: selectedRound === "total" ? '#fff' : '#8B8676',
+                  }}
+                >
+                  Total
+                </button>
+                {availableRounds.map((round) => (
+                  <button
+                    key={round.gameweekId}
+                    onClick={() => setSelectedRound(round.gameweekId)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 10,
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+                      transition: 'all .15s',
+                      background: selectedRound === round.gameweekId ? '#0D1016' : 'transparent',
+                      color: selectedRound === round.gameweekId ? '#fff' : '#8B8676',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Rd {round.gameweekNumber}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Round label when a specific round is selected */}
+      {selectedRound !== "total" && selectedRoundData && (
+        <div className="mx-auto px-3 sm:px-8" style={{ maxWidth: 1100, paddingTop: 24 }}>
+          <div className="flex items-center gap-3">
+            <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#11151C" }}>
+              {selectedRoundData.gameweekLabel}
+            </span>
+            {sorted.length > 0 && sorted[0].totalScore > 0 && (
+              <span style={{
+                padding: '3px 10px',
+                borderRadius: 999,
+                background: 'rgba(var(--accent-rgb,217,165,33),.12)',
+                color: 'var(--accent)',
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '.04em',
+              }}>
+                Round Winner: {sorted[0].displayName}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
       {/* Podium */}
-      {podiumEntries.length === 3 && !noRoundsPlayed && (
+      {podiumEntries.length === 3 && !noRoundsPlayed && !(selectedRoundData && sorted.every((e) => e.totalScore === 0)) && (
         <section className="mx-auto px-3 sm:px-8" style={{ maxWidth: 1100, paddingTop: 34, paddingBottom: 16 }}>
           <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
             {podiumEntries.map((entry, idx) => {
@@ -378,14 +510,16 @@ export default function LeaderboardContent({
 
       {/* Full table */}
       <section className="mx-auto px-3 sm:px-8 pt-[18px] pb-10" style={{ maxWidth: 1100 }}>
-        {noRoundsPlayed && (
+        {(noRoundsPlayed || (selectedRoundData && sorted.every((e) => e.totalScore === 0))) && (
           <div
             className="flex items-center gap-3"
             style={{ borderRadius: 14, background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "14px 20px", marginBottom: 18 }}
           >
             <span style={{ fontSize: 20, flexShrink: 0 }}>🏉</span>
             <p style={{ fontSize: 14, color: "#1E40AF", fontWeight: 600, margin: 0 }}>
-              No rounds played yet — scores will appear here once the first round is complete.
+              {selectedRoundData
+                ? "No results for this round yet — scores will appear once fixtures are complete."
+                : "No rounds played yet — scores will appear here once the first round is complete."}
             </p>
           </div>
         )}

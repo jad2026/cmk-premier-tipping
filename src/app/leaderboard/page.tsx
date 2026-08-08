@@ -352,6 +352,7 @@ export default async function LeaderboardPage() {
           member_count: countMap.get(l.id) ?? 0,
           memberUserIds: memberMap.get(l.id) ?? [],
           created_by: l.created_by,
+          is_sponsored: (l as Record<string, unknown>).is_sponsored === true,
         }));
       }
     }
@@ -385,16 +386,22 @@ export default async function LeaderboardPage() {
           .in("gameweek_id", compGwIds)
       : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
     compGwIds.length > 0
-      ? admin.from("fixtures").select("id").in("gameweek_id", compGwIds)
-      : Promise.resolve({ data: [] as { id: string }[], error: null }),
+      ? admin.from("fixtures").select("id, gameweek_id").in("gameweek_id", compGwIds)
+      : Promise.resolve({ data: [] as { id: string; gameweek_id: string }[], error: null }),
   ]);
 
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
-  const allPicksRaw: { user_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
+  // Build fixture → gameweek mapping for per-round scoring
+  const fixtureToGameweek = new Map<string, string>();
+  for (const f of compFixtureRows ?? []) {
+    fixtureToGameweek.set(f.id, f.gameweek_id);
+  }
+
+  const allPicksRaw: { user_id: string; fixture_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
   if (compFixtureIds.length > 0) {
     for (let from = 0; ; from += 1000) {
-      const { data } = await admin.from("picks").select("user_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
+      const { data } = await admin.from("picks").select("user_id, fixture_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
       if (!data || data.length === 0) break;
       allPicksRaw.push(...data);
       if (data.length < 1000) break;
@@ -511,6 +518,66 @@ export default async function LeaderboardPage() {
     }
   }
 
+  // ── Per-round scores (for round-by-round winner feature) ────────────────
+  // Build a map of gameweekId → userId → { score, correct, total, marginBonus }
+  const roundScoreMap = new Map<string, Map<string, { score: number; correct: number; total: number; marginBonus: number }>>();
+  for (const pick of allPicksRaw) {
+    if (!participantIds.has(pick.user_id)) continue;
+    const gwId = fixtureToGameweek.get(pick.fixture_id);
+    if (!gwId) continue;
+
+    if (!roundScoreMap.has(gwId)) roundScoreMap.set(gwId, new Map());
+    const gwScores = roundScoreMap.get(gwId)!;
+    const entry = gwScores.get(pick.user_id) ?? { score: 0, correct: 0, total: 0, marginBonus: 0 };
+    if (pick.is_correct !== null) entry.total++;
+    if (pick.is_correct) entry.correct++;
+    entry.score += pick.points ?? 0;
+    entry.marginBonus += pick.margin_bonus ?? 0;
+    gwScores.set(pick.user_id, entry);
+  }
+
+  // Get all gameweeks with their metadata for the round selector
+  const allGameweeksForRounds = [...(closedGameweeks ?? [])];
+  if (openGameweek) allGameweeksForRounds.push(openGameweek);
+  allGameweeksForRounds.sort((a, b) => a.number - b.number);
+
+  type RoundScoreEntry = {
+    user_id: string;
+    score: number;
+    correct: number;
+    total: number;
+    marginBonus: number;
+  };
+
+  type RoundData = {
+    gameweekId: string;
+    gameweekNumber: number;
+    gameweekLabel: string;
+    hasResults: boolean;
+    scores: RoundScoreEntry[];
+  };
+
+  const roundsData: RoundData[] = allGameweeksForRounds.map((gw) => {
+    const gwScores = roundScoreMap.get(gw.id);
+    const hasResults = gwIdsWithResults.has(gw.id);
+    const scores: RoundScoreEntry[] = [];
+
+    if (gwScores) {
+      gwScores.forEach((s, userId) => {
+        scores.push({ user_id: userId, ...s });
+      });
+      scores.sort((a, b) => b.score - a.score || b.correct - a.correct);
+    }
+
+    return {
+      gameweekId: gw.id,
+      gameweekNumber: gw.number,
+      gameweekLabel: gw.label,
+      hasResults,
+      scores,
+    };
+  });
+
   // Serialize leaderboard for client component
   const serializedLeaderboard: LeaderboardRow[] = leaderboard.map((entry) => {
     const team = entry.supportedTeamId ? teamMap.get(entry.supportedTeamId) : null;
@@ -615,6 +682,7 @@ export default async function LeaderboardPage() {
         marginPicking={marginPicking}
         showSupportedTeam={showSupportedTeam}
         noRoundsPlayed={noRoundsPlayed}
+        roundsData={roundsData}
       />
 
       {/* ── This Week ────────────────────────────────────────────────── */}
