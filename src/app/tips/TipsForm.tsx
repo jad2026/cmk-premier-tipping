@@ -428,27 +428,71 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
 
       {/* ── Match cards ─────────────────────────────────────────────────── */}
       <section className="max-w-content-inner mx-auto flex flex-col gap-2 sm:gap-4" style={{ padding: "20px 16px 32px" }}>
-        {rounds.map((round) => {
+        {rounds.map((round, roundIdx) => {
           const isPastDeadline = isRoundDeadlinePassed(round.deadline);
-          return round.fixtures.map((fixture) => (
-            <FixtureCard
-              key={fixture.id}
-              fixture={fixture}
-              picks={picks}
-              margins={margins}
-              marginPicking={marginPicking}
-              isPastDeadline={isPastDeadline}
-              compact={isMobile}
-              onSelect={(value) =>
-                selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
-              }
-              onWheelChange={(value) =>
-                handleWheelChange(fixture.id, value, fixture.home_team_id, fixture.away_team_id, round.deadline, fixture.result_team_id !== null || fixture.is_draw)
-              }
-              timezone={timezone}
-              locale={locale}
-            />
-          ));
+          return (
+            <div key={round.id} className="flex flex-col gap-2 sm:gap-4">
+              {/* Round header — shown when multiple rounds are open */}
+              {rounds.length > 1 && (
+                <div
+                  style={{
+                    padding: roundIdx === 0 ? "0 4px 10px" : "24px 4px 10px",
+                  }}
+                >
+                  <div className="flex items-baseline justify-between gap-4">
+                    <h2
+                      className="font-display text-[20px] uppercase leading-none m-0"
+                      style={{ color: "#11151C" }}
+                    >
+                      {round.label}
+                    </h2>
+                    <span
+                      className="text-[11px] font-semibold tracking-[.02em] whitespace-nowrap"
+                      style={{ color: "#8A8578" }}
+                    >
+                      Tips close:{" "}
+                      {new Date(round.deadline).toLocaleString("en-NZ", {
+                        timeZone: "Pacific/Auckland",
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 1,
+                      background: "#D6D3C9",
+                      marginTop: 10,
+                    }}
+                  />
+                </div>
+              )}
+
+              {round.fixtures.map((fixture) => (
+                <FixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  picks={picks}
+                  margins={margins}
+                  marginPicking={marginPicking}
+                  isPastDeadline={isPastDeadline}
+                  compact={isMobile}
+                  onSelect={(value) =>
+                    selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
+                  }
+                  onWheelChange={(value) =>
+                    handleWheelChange(fixture.id, value, fixture.home_team_id, fixture.away_team_id, round.deadline, fixture.result_team_id !== null || fixture.is_draw)
+                  }
+                  timezone={timezone}
+                  locale={locale}
+                />
+              ))}
+            </div>
+          );
         })}
       </section>
 
