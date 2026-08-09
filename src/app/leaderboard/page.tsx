@@ -536,10 +536,14 @@ export default async function LeaderboardPage() {
     gwScores.set(pick.user_id, entry);
   }
 
-  // Get all gameweeks with their metadata for the round selector
-  const allGameweeksForRounds = [...(closedGameweeks ?? [])];
-  if (openGameweek) allGameweeksForRounds.push(openGameweek);
-  allGameweeksForRounds.sort((a, b) => a.number - b.number);
+  // Get ALL gameweeks for the round selector (not just closed + single open,
+  // because multiple gameweeks can be open at once and .maybeSingle() drops extras)
+  const { data: allGwsForRounds } = await admin
+    .from("gameweeks")
+    .select("id, number, label, deadline, is_open")
+    .eq("competition_id", compId)
+    .order("number");
+  const allGameweeksForRounds = (allGwsForRounds ?? []) as Pick<Gameweek, "id" | "number" | "label" | "deadline" | "is_open">[];
 
   type RoundScoreEntry = {
     user_id: string;
