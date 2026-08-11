@@ -12,10 +12,6 @@
     {
       "path": "/api/cron/results-email",
       "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/sponsored-league-email",
-      "schedule": "0 9 * * 1"
     }
   ]
 }
