@@ -45,6 +45,7 @@ function MobileMarginPicker({
   const scrollRef = useRef<HTMLDivElement>(null);
   const settling = useRef(true);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
+  const lastEmitted = useRef(value);
 
   const valueToIndex = (v: number) => {
     if (v > 0) return PICKER_MAX - v;
@@ -67,14 +68,16 @@ function MobileMarginPicker({
     debounce.current = setTimeout(() => {
       const idx = Math.round(el.scrollTop / PICKER_ITEM_H);
       const clamped = Math.max(0, Math.min(items.length - 1, idx));
+      lastEmitted.current = items[clamped].value;
       onChange(items[clamped].value);
-    }, 60);
+    }, 80);
   }, [disabled, onChange, items]);
 
   useEffect(() => () => clearTimeout(debounce.current), []);
 
   useEffect(() => {
     if (settling.current) return;
+    if (value === lastEmitted.current) return;
     const el = scrollRef.current;
     if (!el) return;
     const targetIdx = valueToIndex(value);
@@ -120,6 +123,7 @@ function MobileMarginPicker({
           height: PICKER_HEIGHT,
           overflow: "hidden",
           background: "#FAFAF8",
+          margin: "0 20px",
         }}
       >
         {/* Centre highlight band */}
@@ -517,7 +521,9 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
                   ? "Tips saved successfully!"
                   : allPicked
                   ? "All picks made — lock them in!"
-                  : `Pick ${totalPickable - pickedCount} more to lock in your tips`}
+                  : pickedCount > 0
+                  ? `${totalPickable - pickedCount} remaining — save anytime`
+                  : `Pick a winner to get started`}
               </div>
               {error && <div className="text-[13px] text-loss-red mt-1">{error}</div>}
             </div>
@@ -529,7 +535,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
                 padding: "16px 34px",
                 ...(saved
                   ? { background: "#2CC36B", color: "#fff" }
-                  : allPicked
+                  : pickedCount > 0
                   ? { background: "var(--accent)", color: "var(--accent-text)" }
                   : { background: "rgba(255,255,255,.14)", color: "#737A86" }),
               }}
