@@ -85,7 +85,7 @@ function MobileMarginPicker({
     if (Math.abs(el.scrollTop - targetTop) > 2) {
       settling.current = true;
       el.scrollTo({ top: targetTop, behavior: "smooth" });
-      setTimeout(() => { settling.current = false; }, 200);
+      setTimeout(() => { settling.current = false; }, 250);
     }
   }, [value]);
 
@@ -410,7 +410,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       <div
         className="sticky z-40"
         style={{
-          top: 74,
+          top: "var(--nav-h, 74px)",
           background: "rgba(242,240,234,.92)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",

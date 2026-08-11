@@ -100,6 +100,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(255,255,255,.08)",
         paddingTop: androidPad ? androidPad : "env(safe-area-inset-top)",
+        ["--nav-h" as string]: androidPad ? `${74 + androidPad}px` : "calc(74px + env(safe-area-inset-top, 0px))",
       }}
     >
       <div className="max-w-content mx-auto px-4 sm:px-8 flex items-center justify-between h-[74px]">
