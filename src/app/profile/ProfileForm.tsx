@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
@@ -54,6 +55,7 @@ export default function ProfileForm({
   teams,
 }: Props) {
   const supabase = createClient();
+  const router = useRouter();
 
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
@@ -75,6 +77,10 @@ export default function ProfileForm({
   const [profileError, setProfileError] = useState<string | null>(null);
   const [teamError, setTeamError] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,6 +178,19 @@ export default function ProfileForm({
     }
     setUploadingAvatar(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await fetch("/api/account/delete", { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setDeleteError(body.error || "Something went wrong. Please try again.");
+      setDeleting(false);
+      return;
+    }
+    router.push("/");
   }
 
   async function handleSaveSupportedTeam(teamId: string | null) {
@@ -532,6 +551,116 @@ export default function ProfileForm({
           )}
         </div>
       )}
+
+      {/* ── Delete Account ─────────────────────────────────────────── */}
+      <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "28px 32px", marginTop: 20 }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+          <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "#B23A48" }} />
+          <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+            Delete Account
+          </h2>
+        </div>
+
+        <p style={{ fontSize: 14, color: "#5A6371", marginBottom: 16, lineHeight: 1.5 }}>
+          Permanently delete your account, picks, and all associated data. This cannot be undone.
+        </p>
+
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(178,58,72,.3)",
+              borderRadius: 12,
+              padding: "12px 24px",
+              fontWeight: 800,
+              fontSize: 14,
+              textTransform: "uppercase",
+              letterSpacing: ".04em",
+              color: "#B23A48",
+              cursor: "pointer",
+              transition: "all .15s",
+            }}
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div style={{ borderRadius: 12, background: "rgba(178,58,72,.06)", border: "1px solid rgba(178,58,72,.2)", padding: "20px 20px" }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#B23A48", margin: "0 0 6px" }}>
+              Are you sure?
+            </p>
+            <p style={{ fontSize: 13, color: "#5A6371", margin: "0 0 16px", lineHeight: 1.5 }}>
+              This will permanently delete your account, all your picks, competition entries, and profile data. You will be signed out immediately.
+            </p>
+
+            {deleteError && (
+              <div style={{ borderRadius: 10, background: "rgba(178,58,72,.08)", border: "1px solid rgba(178,58,72,.2)", padding: "10px 14px", marginBottom: 12 }}>
+                <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{deleteError}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteAccount}
+                style={{
+                  background: "#B23A48",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "12px 24px",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  textTransform: "uppercase",
+                  letterSpacing: ".04em",
+                  color: "#fff",
+                  cursor: deleting ? "wait" : "pointer",
+                  opacity: deleting ? 0.7 : 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  transition: "opacity .15s",
+                }}
+              >
+                {deleting ? (
+                  <>
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        border: "2px solid rgba(255,255,255,.3)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite",
+                      }}
+                    />
+                    Deleting…
+                  </>
+                ) : "Yes, delete my account"}
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #E4E1D8",
+                  borderRadius: 10,
+                  padding: "12px 24px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: "#5A6371",
+                  cursor: "pointer",
+                  transition: "border-color .15s",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
