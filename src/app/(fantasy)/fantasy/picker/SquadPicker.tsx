@@ -53,7 +53,7 @@ function PlayerCard({
     <button
       onClick={onToggle}
       disabled={disabled && !selected}
-      className="w-full text-left transition-all duration-150"
+      className="w-full text-left transition-all duration-150 group/card"
       style={{
         background: selected ? "#2C9FD4" : "#161B24",
         borderRadius: 12,
@@ -64,7 +64,18 @@ function PlayerCard({
       }}
     >
       <div className="flex items-center gap-3">
-        <Badge player={player} />
+        <div className="relative shrink-0">
+          <Badge player={player} />
+          {selected && (
+            <span
+              className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center text-white"
+              style={{ fontSize: 10, lineHeight: 1 }}
+            >
+              <span className="group-hover/card:hidden" style={{ background: "#0B0E13", width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>&#10003;</span>
+              <span className="hidden group-hover/card:flex" style={{ background: "#B23A48", width: 18, height: 18, borderRadius: "50%", alignItems: "center", justifyContent: "center" }}>&times;</span>
+            </span>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div
             className="font-display uppercase truncate"
@@ -76,6 +87,14 @@ function PlayerCard({
             {player.position} &middot; {player.teamName}
           </div>
         </div>
+        {selected ? (
+          <div
+            className="shrink-0 font-display uppercase hidden group-hover/card:block"
+            style={{ fontSize: 11, color: "#0B0E13", opacity: 0.7 }}
+          >
+            Remove
+          </div>
+        ) : null}
         <div className="text-right shrink-0" style={{ minWidth: 44 }}>
           <div
             className="font-display"
@@ -146,28 +165,31 @@ function SquadSlot({ player, onRemove }: { player: PickerPlayer | null; onRemove
 }
 
 export default function SquadPicker({ players }: { players: PickerPlayer[] }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Record<string, true>>({});
   const [posFilter, setPosFilter] = useState<"All" | PositionKey>("All");
   const [teamFilter, setTeamFilter] = useState<string>("All");
   const [search, setSearch] = useState("");
 
+  const selectedIds = Object.keys(selected);
+  const selectedCount = selectedIds.length;
+
   const teamCountMap = useMemo(() => {
     const counts = new Map<string, number>();
-    Array.from(selected).forEach((id) => {
+    for (const id of selectedIds) {
       const p = players.find((pl) => pl.id === id);
       if (p) counts.set(p.teamId, (counts.get(p.teamId) ?? 0) + 1);
-    });
+    }
     return counts;
   }, [selected, players]);
 
   const posCountMap = useMemo(() => {
     const counts: Record<PositionKey, number> = { Forward: 0, Back: 0 };
-    Array.from(selected).forEach((id) => {
+    for (const id of selectedIds) {
       const p = players.find((pl) => pl.id === id);
       if (p && (p.position === "Forward" || p.position === "Back")) {
         counts[p.position]++;
       }
-    });
+    }
     return counts;
   }, [selected, players]);
 
@@ -193,8 +215,8 @@ export default function SquadPicker({ players }: { players: PickerPlayer[] }) {
   }, [players, posFilter, teamFilter, search]);
 
   function isDisabled(player: PickerPlayer): boolean {
-    if (selected.has(player.id)) return false;
-    if (selected.size >= SQUAD_SIZE) return true;
+    if (selected[player.id]) return false;
+    if (selectedCount >= SQUAD_SIZE) return true;
     if ((teamCountMap.get(player.teamId) ?? 0) >= MAX_PER_TEAM) return true;
     const pos = player.position as PositionKey;
     if (pos in POSITION_SLOTS && posCountMap[pos] >= POSITION_SLOTS[pos]) return true;
@@ -203,14 +225,15 @@ export default function SquadPicker({ players }: { players: PickerPlayer[] }) {
 
   function toggle(id: string) {
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+      if (prev[id]) {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [id]: true as const };
     });
   }
 
-  const selectedPlayers = players.filter((p) => selected.has(p.id));
+  const selectedPlayers = players.filter((p) => selected[p.id]);
   const forwards = selectedPlayers.filter((p) => p.position === "Forward");
   const backs = selectedPlayers.filter((p) => p.position === "Back");
   const totalPoints = selectedPlayers.reduce((s, p) => s + p.points, 0);
@@ -265,10 +288,10 @@ export default function SquadPicker({ players }: { players: PickerPlayer[] }) {
                 className="font-display"
                 style={{
                   fontSize: 12,
-                  color: selected.size === SQUAD_SIZE ? "#2C9FD4" : "#5A6371",
+                  color: selectedCount === SQUAD_SIZE ? "#2C9FD4" : "#5A6371",
                 }}
               >
-                {selected.size}/{SQUAD_SIZE}
+                {selectedCount}/{SQUAD_SIZE}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -388,7 +411,7 @@ export default function SquadPicker({ players }: { players: PickerPlayer[] }) {
                 <PlayerCard
                   key={player.id}
                   player={player}
-                  selected={selected.has(player.id)}
+                  selected={!!selected[player.id]}
                   disabled={isDisabled(player)}
                   onToggle={() => toggle(player.id)}
                 />
