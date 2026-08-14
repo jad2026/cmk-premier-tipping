@@ -38,17 +38,13 @@ export default async function HowToPlayPage() {
   const supabase = await createClient();
 
   let rules: ScoringRule[] = DEFAULT_RULES;
-  try {
-    const { data } = (await supabase
-      .from("fantasy_scoring_rules")
-      .select("action, points, position_group")
-      .order("points", { ascending: false })) as unknown as {
-      data: ScoringRule[] | null;
-    };
-    if (data && data.length > 0) rules = data;
-  } catch {
-    // table doesn't exist yet — use defaults
-  }
+  const result = (await supabase
+    .from("fantasy_scoring_rules")
+    .select("action, points, position_group")
+    .order("points", { ascending: false })) as unknown as {
+    data: ScoringRule[] | null;
+  };
+  if (result.data && result.data.length > 0) rules = result.data;
 
   return (
     <div

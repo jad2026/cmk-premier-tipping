@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
-import type { PickerPlayer, PickerTeam } from "./page";
+import type { PickerPlayer, PickerTeam, SavedSquad } from "./page";
+import { saveSquad } from "./actions";
 
 /* ───────── Fantasy slot config (mirrors future fantasy_slots table) ───────── */
 
@@ -141,13 +142,26 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
 export default function SquadPicker({
   players,
   teams,
+  gameweekId,
+  gameweekLabel,
+  savedSquad,
+  isSignedIn,
 }: {
   players: PickerPlayer[];
   teams: PickerTeam[];
+  gameweekId: string | null;
+  gameweekLabel: string | null;
+  savedSquad: SavedSquad | null;
+  isSignedIn: boolean;
 }) {
-  const [squad, setSquad] = useState<Record<number, string>>({});
-  const [captain, setCaptain] = useState<string | null>(null);
-  const [viceCaptain, setViceCaptain] = useState<string | null>(null);
+  const [squad, setSquad] = useState<Record<number, string>>(() => {
+    if (!savedSquad) return {};
+    const s: Record<number, string> = {};
+    for (const pick of savedSquad.picks) s[pick.slot_number] = pick.player_id;
+    return s;
+  });
+  const [captain, setCaptain] = useState<string | null>(savedSquad?.captainId ?? null);
+  const [viceCaptain, setViceCaptain] = useState<string | null>(savedSquad?.viceCaptainId ?? null);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [posFilter, setPosFilter] = useState(0);
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
@@ -156,6 +170,8 @@ export default function SquadPicker({
   const [tab, setTab] = useState<"browse" | "squad">("browse");
   const [toast, setToast] = useState<string | null>(null);
   const toastKey = useRef(0);
+  const [saving, setSaving] = useState(false);
+  const isLocked = savedSquad?.isLocked ?? false;
 
   const playerById = useMemo(() => {
     const map: Record<string, PickerPlayer> = {};
@@ -337,7 +353,39 @@ export default function SquadPicker({
     }
   }
 
-  const canSave = filledCount === SQUAD_SIZE && captain !== null && viceCaptain !== null;
+  const canSave = filledCount === SQUAD_SIZE && captain !== null && viceCaptain !== null && !isLocked && !saving;
+
+  async function handleSave() {
+    if (!canSave) return;
+    if (!isSignedIn) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!gameweekId) {
+      showToast("No open round available");
+      return;
+    }
+    setSaving(true);
+    const prices: Record<string, number> = {};
+    for (const jersey of Object.keys(squad)) {
+      const pid = squad[Number(jersey)];
+      if (pid && playerById[pid]) prices[pid] = playerById[pid].price;
+    }
+    const result = await saveSquad({
+      gameweekId,
+      squad,
+      captainId: captain!,
+      viceCaptainId: viceCaptain!,
+      totalSpent: budgetUsed,
+      prices,
+    });
+    setSaving(false);
+    if (result.error) {
+      showToast(result.error);
+    } else {
+      showToast("Squad saved!");
+    }
+  }
 
   return (
     <div
@@ -368,6 +416,22 @@ export default function SquadPicker({
           </a>
         </div>
       </section>
+
+      {/* ── Locked / gameweek banner ── */}
+      {(isLocked || gameweekLabel) && (
+        <div style={{ background: isLocked ? "#1a1008" : "#0D1016", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="mx-auto" style={{ maxWidth: 1100, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10 }}>
+            {gameweekLabel && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#8C93A0" }}>{gameweekLabel}</span>
+            )}
+            {isLocked && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#D9A521" }}>
+                This round is locked. You can edit your squad for the next round.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Tab toggle ── */}
       <section style={{ background: "#0D1016", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -889,6 +953,7 @@ export default function SquadPicker({
             {/* Save button */}
             <button
               disabled={!canSave}
+              onClick={handleSave}
               className="font-display uppercase shrink-0"
               style={{
                 padding: "9px 22px",
@@ -902,7 +967,7 @@ export default function SquadPicker({
                 fontWeight: 900,
               }}
             >
-              Save Squad
+              {saving ? "Saving…" : isLocked ? "Locked" : "Save Squad"}
             </button>
           </div>
         </div>

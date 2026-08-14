@@ -2,7 +2,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import SquadPicker from "./SquadPicker";
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export const metadata = {
   title: "Fantasy Squad Picker — Club Rugby Tipping",
@@ -66,6 +66,21 @@ export type PickerTeam = {
   shortName: string;
   colour: string;
   logoUrl: string | null;
+};
+
+export type SavedSquadPick = {
+  slot_number: number;
+  player_id: string;
+};
+
+export type SavedSquad = {
+  id: string;
+  gameweekId: string;
+  gameweekLabel: string;
+  captainId: string | null;
+  viceCaptainId: string | null;
+  isLocked: boolean;
+  picks: SavedSquadPick[];
 };
 
 /* ── Opta position → fantasy position mapping ── */
@@ -274,7 +289,62 @@ export default async function FantasyPickerPage() {
     logoUrl: t.logo_url,
   }));
 
-  return <SquadPicker players={players} teams={pickerTeams} />;
+  // Find the current gameweek: earliest open or earliest with a future deadline
+  const { data: currentGw } = (await supabase
+    .from("gameweeks")
+    .select("id, number, label, deadline, is_open")
+    .eq("competition_id", compId)
+    .or("is_open.eq.true,deadline.gte." + new Date().toISOString())
+    .order("number")
+    .limit(1)
+    .maybeSingle()) as unknown as {
+    data: { id: string; number: number; label: string; deadline: string; is_open: boolean } | null;
+  };
+
+  // Check if user is signed in and has a saved squad
+  const { data: { user } } = await supabase.auth.getUser();
+  let savedSquad: SavedSquad | null = null;
+
+  if (user && currentGw) {
+    const { data: squad } = (await supabase
+      .from("fantasy_squads")
+      .select("id, captain_player_id, vice_captain_player_id, is_locked")
+      .eq("user_id", user.id)
+      .eq("gameweek_id", currentGw.id)
+      .maybeSingle()) as unknown as {
+      data: { id: string; captain_player_id: string | null; vice_captain_player_id: string | null; is_locked: boolean } | null;
+    };
+
+    if (squad) {
+      const { data: picks } = (await supabase
+        .from("fantasy_squad_picks")
+        .select("slot_number, player_id")
+        .eq("squad_id", squad.id)) as unknown as {
+        data: SavedSquadPick[] | null;
+      };
+
+      savedSquad = {
+        id: squad.id,
+        gameweekId: currentGw.id,
+        gameweekLabel: currentGw.label,
+        captainId: squad.captain_player_id,
+        viceCaptainId: squad.vice_captain_player_id,
+        isLocked: squad.is_locked ?? false,
+        picks: picks ?? [],
+      };
+    }
+  }
+
+  return (
+    <SquadPicker
+      players={players}
+      teams={pickerTeams}
+      gameweekId={currentGw?.id ?? null}
+      gameweekLabel={currentGw?.label ?? null}
+      savedSquad={savedSquad}
+      isSignedIn={!!user}
+    />
+  );
 }
 
 function mostCommonPosition(counts: Record<string, number>): string | null {
