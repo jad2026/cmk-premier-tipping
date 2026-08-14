@@ -8,18 +8,13 @@ export const metadata = {
   title: "Fantasy Squad Picker — Club Rugby Tipping",
 };
 
-type PlayerRow = {
+type RawPlayerRow = {
+  opta_game_id: string;
   opta_player_id: string;
   player_name: string;
   opta_team_id: number;
-  position: string;
-  season: string;
-  games: number;
-  tries: number;
-  tackles: number;
-  metres: number;
-  clean_breaks: number;
-  points: number;
+  position: string | null;
+  stats: Record<string, string> | null;
 };
 
 type MappingRow = {
@@ -62,11 +57,71 @@ export type PickerTeam = {
   logoUrl: string | null;
 };
 
+/* ── Opta position → fantasy position mapping ── */
+
+const OPTA_TO_FANTASY: Record<string, string> = {
+  "Forward 1":      "Prop",
+  "Forward 3":      "Prop",
+  "Replacement 1":  "Prop",
+  "Replacement 3":  "Prop",
+  "Forward 2":      "Hooker",
+  "Replacement 2":  "Hooker",
+  "Forward 4":      "Lock",
+  "Forward 5":      "Lock",
+  "Replacement 4":  "Lock",
+  "Forward 6":      "Loose Forward",
+  "Forward 7":      "Loose Forward",
+  "Forward 8":      "Loose Forward",
+  "Replacement 5":  "Loose Forward",
+  "Back 1":         "Halfback",
+  "Replacement 6":  "Halfback",
+  "Back 2":         "First Five",
+  "Replacement 7":  "First Five",
+  "Back 4":         "Centre",
+  "Back 5":         "Centre",
+  "Back 3":         "Outside Back",
+  "Back 6":         "Outside Back",
+  "Back 7":         "Outside Back",
+  "Replacement 8":  "Outside Back",
+};
+
+function mapOptaPosition(raw: string | null): string | null {
+  if (!raw) return null;
+  return OPTA_TO_FANTASY[raw] ?? null;
+}
+
+function statVal(stats: Record<string, string> | null, ...keys: string[]): number {
+  if (!stats) return 0;
+  let total = 0;
+  for (const k of keys) {
+    const v = stats[k];
+    if (v != null) {
+      const n = parseInt(v, 10);
+      if (!isNaN(n)) total += n;
+    }
+  }
+  return total;
+}
+
+/* ── Aggregate per-game rows into one player ── */
+
+type PlayerAccum = {
+  name: string;
+  optaTeamId: number;
+  games: Set<string>;
+  positionCounts: Record<string, number>;
+  tries: number;
+  tackles: number;
+  metres: number;
+  cleanBreaks: number;
+  points: number;
+};
+
 export default async function FantasyPickerPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
-  const [{ data: mappings }, { data: teams }] = await Promise.all([
+  const [{ data: mappings }, { data: teams }, { data: rawRows }] = await Promise.all([
     supabase
       .from("opta_team_mapping")
       .select("opta_team_id, team_id") as unknown as Promise<{
@@ -79,6 +134,11 @@ export default async function FantasyPickerPage() {
       .order("name") as unknown as Promise<{
       data: TeamRow[] | null;
     }>,
+    supabase
+      .from("opta_player_stats")
+      .select("opta_game_id, opta_player_id, player_name, opta_team_id, position, stats") as unknown as Promise<{
+      data: RawPlayerRow[] | null;
+    }>,
   ]);
 
   const optaToTeamId = new Map<string, string>();
@@ -89,34 +149,69 @@ export default async function FantasyPickerPage() {
 
   const compTeamIds = new Set((teams ?? []).map((t) => t.id));
 
-  const { data: playerRows } = (await supabase
-    .from("player_season_stats" as "fixtures")
-    .select("*")
-    .in("season", ["2026"])) as unknown as { data: PlayerRow[] | null };
-
-  const players: PickerPlayer[] = [];
-  for (const row of playerRows ?? []) {
+  const accum = new Map<string, PlayerAccum>();
+  for (const row of rawRows ?? []) {
     const teamId = optaToTeamId.get(String(row.opta_team_id));
     if (!teamId || !compTeamIds.has(teamId)) continue;
+
+    let entry = accum.get(row.opta_player_id);
+    if (!entry) {
+      entry = {
+        name: row.player_name,
+        optaTeamId: row.opta_team_id,
+        games: new Set<string>(),
+        positionCounts: {},
+        tries: 0,
+        tackles: 0,
+        metres: 0,
+        cleanBreaks: 0,
+        points: 0,
+      };
+      accum.set(row.opta_player_id, entry);
+    }
+
+    entry.games.add(row.opta_game_id);
+
+    const fantasyPos = mapOptaPosition(row.position);
+    if (fantasyPos) {
+      entry.positionCounts[fantasyPos] = (entry.positionCounts[fantasyPos] ?? 0) + 1;
+    }
+
+    entry.tries += statVal(row.stats, "Tries", "tries");
+    entry.tackles += statVal(row.stats, "Tackles", "tackles", "TacklesMade", "tackles_made");
+    entry.metres += statVal(row.stats, "MetresRun", "metres_run", "Metres", "metres");
+    entry.cleanBreaks += statVal(row.stats, "CleanBreaks", "clean_breaks", "LineBreaks", "line_breaks");
+    entry.points += statVal(row.stats, "Points", "points");
+  }
+
+  const players: PickerPlayer[] = [];
+  for (const [playerId, entry] of Array.from(accum.entries())) {
+    const teamId = optaToTeamId.get(String(entry.optaTeamId));
+    if (!teamId) continue;
     const team = teamById.get(teamId);
     if (!team) continue;
 
+    const position = mostCommonPosition(entry.positionCounts);
+    if (!position) continue;
+
+    const gameCount = entry.games.size;
+
     players.push({
-      id: row.opta_player_id,
-      name: row.player_name,
-      position: normalisePosition(row.position),
+      id: playerId,
+      name: entry.name,
+      position,
       teamId,
       teamName: team.name,
       teamShortName: team.short_name,
       teamColour: team.colour,
       teamLogoUrl: team.logo_url,
-      games: row.games,
-      tries: row.tries,
-      tackles: row.tackles,
-      metres: row.metres,
-      cleanBreaks: row.clean_breaks,
-      points: row.points,
-      avgPoints: row.games > 0 ? Math.round((row.points / row.games) * 10) / 10 : 0,
+      games: gameCount,
+      tries: entry.tries,
+      tackles: entry.tackles,
+      metres: entry.metres,
+      cleanBreaks: entry.cleanBreaks,
+      points: entry.points,
+      avgPoints: gameCount > 0 ? Math.round((entry.points / gameCount) * 10) / 10 : 0,
       price: 5.0,
     });
   }
@@ -134,24 +229,14 @@ export default async function FantasyPickerPage() {
   return <SquadPicker players={players} teams={pickerTeams} />;
 }
 
-function normalisePosition(raw: string | null): string {
-  if (!raw) return "Loose Forward";
-  const lower = raw.toLowerCase();
-  if (lower.includes("prop") || lower.includes("loosehead") || lower.includes("tighthead"))
-    return "Prop";
-  if (lower.includes("hooker")) return "Hooker";
-  if (lower.includes("lock") || lower.includes("second row")) return "Lock";
-  if (lower.includes("flanker") || lower.includes("openside") || lower.includes("blindside") || lower.includes("number 8") || lower.includes("no.8") || lower.includes("no. 8"))
-    return "Loose Forward";
-  if (lower.includes("scrum") || lower.includes("halfback") || lower === "half back")
-    return "Halfback";
-  if (lower.includes("fly") || lower.includes("first five") || lower.includes("flyhalf") || lower.includes("fly half") || lower.includes("stand off") || lower.includes("standoff"))
-    return "First Five";
-  if (lower.includes("centre") || lower.includes("center") || lower.includes("second five") || lower.includes("inside centre") || lower.includes("outside centre") || lower.includes("midfield"))
-    return "Centre";
-  if (lower.includes("wing") || lower.includes("fullback") || lower.includes("full back") || lower.includes("outside back"))
-    return "Outside Back";
-  if (lower === "forward" || lower === "forwards") return "Loose Forward";
-  if (lower === "back" || lower === "backs") return "Outside Back";
-  return "Loose Forward";
+function mostCommonPosition(counts: Record<string, number>): string | null {
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [pos, count] of Object.entries(counts)) {
+    if (count > bestCount) {
+      best = pos;
+      bestCount = count;
+    }
+  }
+  return best;
 }
