@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import type { PickerPlayer, PickerTeam } from "./page";
 
@@ -100,6 +100,42 @@ function TeamBadgeMini({ player, size = 24 }: { player: PickerPlayer; size?: num
   );
 }
 
+/* ───────── Toast ───────── */
+
+function Toast({ message, onDone }: { message: string; onDone: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(onDone, 2400);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "fixed",
+        top: 24,
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#161B24",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 10,
+        padding: "10px 20px",
+        color: "#fff",
+        fontSize: 13,
+        fontWeight: 600,
+        zIndex: 100,
+        pointerEvents: "none",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
 /* ───────── Main component ───────── */
 
 export default function SquadPicker({
@@ -118,6 +154,8 @@ export default function SquadPicker({
   const [sortKey, setSortKey] = useState<SortKey>("avg");
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"browse" | "squad">("browse");
+  const [toast, setToast] = useState<string | null>(null);
+  const toastKey = useRef(0);
 
   const playerById = useMemo(() => {
     const map: Record<string, PickerPlayer> = {};
@@ -158,6 +196,18 @@ export default function SquadPicker({
 
   const budgetRemaining = Math.round((TOTAL_BUDGET - budgetUsed) * 10) / 10;
 
+  function showToast(msg: string) {
+    toastKey.current += 1;
+    setToast(msg);
+  }
+
+  const hasOpenSlotForPosition = useCallback(
+    (position: string): boolean => {
+      return SLOTS.some((s) => s.positionGroup === position && !squad[s.jersey]);
+    },
+    [squad],
+  );
+
   const eligibleGroups = useMemo(() => {
     if (activeSlot === null) return null;
     const slot = SLOTS.find((s) => s.jersey === activeSlot);
@@ -194,37 +244,75 @@ export default function SquadPicker({
       if (filledCount >= SQUAD_SIZE) return true;
       if ((teamCounts[player.teamId] ?? 0) >= MAX_PER_TEAM) return true;
       if (player.price > budgetRemaining) return true;
+      if (!hasOpenSlotForPosition(player.position)) return true;
       return false;
     },
-    [assignedIds, filledCount, teamCounts, budgetRemaining],
+    [assignedIds, filledCount, teamCounts, budgetRemaining, hasOpenSlotForPosition],
   );
 
   function addPlayer(playerId: string) {
+    const player = playerById[playerId];
+    if (!player) return;
+
+    if (assignedIds.has(playerId)) return;
+
+    if ((teamCounts[player.teamId] ?? 0) >= MAX_PER_TEAM) {
+      showToast(`Max ${MAX_PER_TEAM} per team reached`);
+      return;
+    }
+
+    if (filledCount >= SQUAD_SIZE) {
+      showToast("Squad is full");
+      return;
+    }
+
+    if (player.price > budgetRemaining) {
+      showToast("Not enough budget");
+      return;
+    }
+
     if (activeSlot !== null) {
-      setSquad((prev) => ({ ...prev, [activeSlot]: playerId }));
+      const slotDef = SLOTS.find((s) => s.jersey === activeSlot);
+      if (slotDef && slotDef.positionGroup !== player.position) {
+        showToast(`#${activeSlot} needs a ${slotDef.positionGroup}`);
+        return;
+      }
+      setSquad((prev) => {
+        const next = { ...prev, [activeSlot]: playerId };
+        console.log("[fantasy] add", player.name, "→ #" + activeSlot, next);
+        return next;
+      });
       const currentIdx = SLOTS.findIndex((s) => s.jersey === activeSlot);
       const nextEmpty = SLOTS.find(
-        (s, i) => i > currentIdx && !squad[s.jersey],
+        (s, i) => i > currentIdx && !squad[s.jersey] && s.jersey !== activeSlot,
       );
       setActiveSlot(nextEmpty ? nextEmpty.jersey : null);
       return;
     }
 
-    const slot = SLOTS.find((s) => {
-      if (squad[s.jersey]) return false;
-      const p = players.find((pl) => pl.id === playerId);
-      return p && p.position === s.positionGroup;
-    });
-    if (slot) {
-      setSquad((prev) => ({ ...prev, [slot.jersey]: playerId }));
+    const slot = SLOTS.find(
+      (s) => !squad[s.jersey] && s.positionGroup === player.position,
+    );
+
+    if (!slot) {
+      showToast(`All ${player.position} slots are filled`);
+      return;
     }
+
+    setSquad((prev) => {
+      const next = { ...prev, [slot.jersey]: playerId };
+      console.log("[fantasy] add", player.name, "→ #" + slot.jersey, next);
+      return next;
+    });
   }
 
   function removePlayer(jersey: number) {
     const pid = squad[jersey];
+    const player = pid ? playerById[pid] : null;
     setSquad((prev) => {
       const next = { ...prev };
       delete next[jersey];
+      console.log("[fantasy] remove", player?.name ?? pid, "from #" + jersey, next);
       return next;
     });
     if (pid === captain) setCaptain(null);
@@ -458,6 +546,7 @@ export default function SquadPicker({
                   {filtered.map((player) => {
                     const inSquad = assignedIds.has(player.id);
                     const disabled = isPlayerDisabled(player);
+                    const dimmed = inSquad || (disabled && !inSquad);
 
                     return (
                       <div
@@ -466,10 +555,10 @@ export default function SquadPicker({
                           display: "flex",
                           alignItems: "center",
                           gap: 0,
-                          background: "#161B24",
+                          background: inSquad ? "rgba(44,159,212,0.06)" : "#161B24",
                           borderRadius: 10,
                           overflow: "hidden",
-                          opacity: disabled ? 0.4 : 1,
+                          opacity: dimmed ? 0.45 : 1,
                         }}
                       >
                         {/* Team colour bar */}
@@ -486,35 +575,54 @@ export default function SquadPicker({
                             </div>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0, minWidth: 52 }}>
-                            <div className="font-display" style={{ fontSize: 13, color: "#fff" }}>
+                            <div className="font-display" style={{ fontSize: 13, color: inSquad ? "#5A6371" : "#fff" }}>
                               ${player.price}m
                             </div>
                             <div style={{ fontSize: 10, color: "#8C93A0", marginTop: 1 }}>
                               {player.avgPoints} avg
                             </div>
                           </div>
-                          <button
-                            disabled={disabled}
-                            onClick={() => addPlayer(player.id)}
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: "50%",
-                              border: "none",
-                              background: inSquad ? "rgba(44,159,212,0.15)" : disabled ? "#1a1f28" : "#2C9FD4",
-                              color: inSquad ? "#2C9FD4" : disabled ? "#3a3f48" : "#0B0E13",
-                              fontSize: 18,
-                              fontWeight: 700,
-                              cursor: disabled ? "not-allowed" : "pointer",
-                              flexShrink: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              lineHeight: 1,
-                            }}
-                          >
-                            {inSquad ? "✓" : "+"}
-                          </button>
+                          {inSquad ? (
+                            <div
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                background: "rgba(44,159,212,0.15)",
+                                color: "#2C9FD4",
+                                fontSize: 16,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              ✓
+                            </div>
+                          ) : (
+                            <button
+                              disabled={disabled}
+                              onClick={() => addPlayer(player.id)}
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                border: "none",
+                                background: disabled ? "#1a1f28" : "#2C9FD4",
+                                color: disabled ? "#3a3f48" : "#0B0E13",
+                                fontSize: 18,
+                                fontWeight: 700,
+                                cursor: disabled ? "not-allowed" : "pointer",
+                                flexShrink: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                lineHeight: 1,
+                              }}
+                            >
+                              +
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -684,7 +792,9 @@ export default function SquadPicker({
                 <button
                   key={slot.jersey}
                   onClick={() => {
-                    if (active) {
+                    if (filled) {
+                      removePlayer(slot.jersey);
+                    } else if (active) {
                       setActiveSlot(null);
                     } else {
                       setActiveSlot(slot.jersey);
@@ -692,7 +802,7 @@ export default function SquadPicker({
                     }
                   }}
                   className="font-display"
-                  title={slot.label}
+                  title={filled ? `Remove ${playerById[squad[slot.jersey]]?.name ?? "player"}` : slot.label}
                   style={{
                     width: 28,
                     height: 28,
@@ -791,6 +901,15 @@ export default function SquadPicker({
           </div>
         </div>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          key={toastKey.current}
+          message={toast}
+          onDone={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
