@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import SquadPicker from "./SquadPicker";
 
@@ -130,6 +130,7 @@ type PlayerAccum = {
 
 export default async function FantasyPickerPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const compId = await getCurrentCompetitionId();
 
   const FANTASY_COMP_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
@@ -152,13 +153,13 @@ export default async function FantasyPickerPage() {
       .select("opta_game_id, opta_player_id, player_name, opta_team_id, position, stats") as unknown as Promise<{
       data: RawPlayerRow[] | null;
     }>,
-    supabase
+    admin
       .from("fantasy_player_pool")
       .select("player_id, price, avg_points")
       .eq("competition_id", FANTASY_COMP_ID) as unknown as Promise<{
       data: PoolRow[] | null;
     }>,
-    supabase
+    admin
       .from("players")
       .select("id, opta_player_id") as unknown as Promise<{
       data: PlayerIdRow[] | null;
