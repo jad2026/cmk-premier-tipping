@@ -50,6 +50,16 @@ export type PickerPlayer = {
   metres: number;
   cleanBreaks: number;
   points: number;
+  avgPoints: number;
+  price: number;
+};
+
+export type PickerTeam = {
+  id: string;
+  name: string;
+  shortName: string;
+  colour: string;
+  logoUrl: string | null;
 };
 
 export default async function FantasyPickerPage() {
@@ -65,7 +75,8 @@ export default async function FantasyPickerPage() {
     supabase
       .from("teams")
       .select("id, name, short_name, colour, logo_url")
-      .eq("competition_id", compId) as unknown as Promise<{
+      .eq("competition_id", compId)
+      .order("name") as unknown as Promise<{
       data: TeamRow[] | null;
     }>,
   ]);
@@ -105,22 +116,42 @@ export default async function FantasyPickerPage() {
       metres: row.metres,
       cleanBreaks: row.clean_breaks,
       points: row.points,
+      avgPoints: row.games > 0 ? Math.round((row.points / row.games) * 10) / 10 : 0,
+      price: 5.0,
     });
   }
 
-  players.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  players.sort((a, b) => b.avgPoints - a.avgPoints || a.name.localeCompare(b.name));
 
-  return <SquadPicker players={players} />;
+  const pickerTeams: PickerTeam[] = (teams ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    shortName: t.short_name,
+    colour: t.colour,
+    logoUrl: t.logo_url,
+  }));
+
+  return <SquadPicker players={players} teams={pickerTeams} />;
 }
 
 function normalisePosition(raw: string | null): string {
-  if (!raw) return "Unknown";
+  if (!raw) return "Loose Forward";
   const lower = raw.toLowerCase();
-  if (lower.includes("prop") || lower.includes("hooker") || lower.includes("lock") || lower.includes("flanker") || lower.includes("number 8") || lower.includes("no.8"))
-    return "Forward";
-  if (lower.includes("scrum") || lower.includes("halfback") || lower.includes("half") || lower.includes("fly") || lower.includes("first five") || lower.includes("second five") || lower.includes("centre") || lower.includes("wing") || lower.includes("fullback") || lower.includes("back"))
-    return "Back";
-  if (lower === "forward" || lower === "forwards") return "Forward";
-  if (lower === "back" || lower === "backs") return "Back";
-  return "Forward";
+  if (lower.includes("prop") || lower.includes("loosehead") || lower.includes("tighthead"))
+    return "Prop";
+  if (lower.includes("hooker")) return "Hooker";
+  if (lower.includes("lock") || lower.includes("second row")) return "Lock";
+  if (lower.includes("flanker") || lower.includes("openside") || lower.includes("blindside") || lower.includes("number 8") || lower.includes("no.8") || lower.includes("no. 8"))
+    return "Loose Forward";
+  if (lower.includes("scrum") || lower.includes("halfback") || lower === "half back")
+    return "Halfback";
+  if (lower.includes("fly") || lower.includes("first five") || lower.includes("flyhalf") || lower.includes("fly half") || lower.includes("stand off") || lower.includes("standoff"))
+    return "First Five";
+  if (lower.includes("centre") || lower.includes("center") || lower.includes("second five") || lower.includes("inside centre") || lower.includes("outside centre") || lower.includes("midfield"))
+    return "Centre";
+  if (lower.includes("wing") || lower.includes("fullback") || lower.includes("full back") || lower.includes("outside back"))
+    return "Outside Back";
+  if (lower === "forward" || lower === "forwards") return "Loose Forward";
+  if (lower === "back" || lower === "backs") return "Outside Back";
+  return "Loose Forward";
 }
