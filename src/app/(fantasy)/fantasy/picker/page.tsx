@@ -22,6 +22,17 @@ type MappingRow = {
   team_id: string;
 };
 
+type PoolRow = {
+  player_id: string;
+  price: number;
+  avg_points: number;
+};
+
+type PlayerIdRow = {
+  id: string;
+  opta_player_id: string;
+};
+
 type TeamRow = {
   id: string;
   name: string;
@@ -121,7 +132,9 @@ export default async function FantasyPickerPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
-  const [{ data: mappings }, { data: teams }, { data: rawRows }] = await Promise.all([
+  const FANTASY_COMP_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
+
+  const [{ data: mappings }, { data: teams }, { data: rawRows }, { data: poolRows }, { data: playerIdRows }] = await Promise.all([
     supabase
       .from("opta_team_mapping")
       .select("opta_team_id, team_id") as unknown as Promise<{
@@ -139,6 +152,17 @@ export default async function FantasyPickerPage() {
       .select("opta_game_id, opta_player_id, player_name, opta_team_id, position, stats") as unknown as Promise<{
       data: RawPlayerRow[] | null;
     }>,
+    supabase
+      .from("fantasy_player_pool")
+      .select("player_id, price, avg_points")
+      .eq("competition_id", FANTASY_COMP_ID) as unknown as Promise<{
+      data: PoolRow[] | null;
+    }>,
+    supabase
+      .from("players")
+      .select("id, opta_player_id") as unknown as Promise<{
+      data: PlayerIdRow[] | null;
+    }>,
   ]);
 
   const optaToTeamId = new Map<string, string>();
@@ -149,8 +173,29 @@ export default async function FantasyPickerPage() {
 
   const compTeamIds = new Set((teams ?? []).map((t) => t.id));
 
+  // Build pool lookup: opta_player_id → { price, avgPoints }
+  const poolByPlayerId = new Map<string, { price: number; avgPoints: number }>();
+  for (const row of poolRows ?? []) {
+    poolByPlayerId.set(row.player_id, { price: row.price, avgPoints: row.avg_points });
+  }
+  const playerIdToOpta = new Map<string, string>();
+  const optaToPlayerId = new Map<string, string>();
+  for (const row of playerIdRows ?? []) {
+    if (row.opta_player_id) {
+      playerIdToOpta.set(row.id, row.opta_player_id);
+      optaToPlayerId.set(row.opta_player_id, row.id);
+    }
+  }
+  // Map opta_player_id → pool data
+  const poolByOpta = new Map<string, { price: number; avgPoints: number }>();
+  for (const [playerId, pool] of Array.from(poolByPlayerId.entries())) {
+    const optaId = playerIdToOpta.get(playerId);
+    if (optaId) poolByOpta.set(optaId, pool);
+  }
+
   const accum = new Map<string, PlayerAccum>();
   for (const row of rawRows ?? []) {
+    if (!poolByOpta.has(row.opta_player_id)) continue;
     const teamId = optaToTeamId.get(String(row.opta_team_id));
     if (!teamId || !compTeamIds.has(teamId)) continue;
 
@@ -195,6 +240,8 @@ export default async function FantasyPickerPage() {
     if (!position) continue;
 
     const gameCount = entry.games.size;
+    const pool = poolByOpta.get(playerId);
+    if (!pool) continue;
 
     players.push({
       id: playerId,
@@ -211,8 +258,8 @@ export default async function FantasyPickerPage() {
       metres: entry.metres,
       cleanBreaks: entry.cleanBreaks,
       points: entry.points,
-      avgPoints: gameCount > 0 ? Math.round((entry.points / gameCount) * 10) / 10 : 0,
-      price: 5.0,
+      avgPoints: pool.avgPoints,
+      price: pool.price,
     });
   }
 
