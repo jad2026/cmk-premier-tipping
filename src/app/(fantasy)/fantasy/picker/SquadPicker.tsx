@@ -360,6 +360,12 @@ export default function SquadPicker({
             Fill 15 jersey slots. Max {MAX_PER_TEAM} per team. Budget: ${TOTAL_BUDGET}m.
             Choose a captain (2&times; pts) and vice-captain (1.5&times; pts).
           </p>
+          <a
+            href="/fantasy/how-to-play"
+            style={{ color: "#2C9FD4", fontSize: 12, fontWeight: 600, marginTop: 8, display: "inline-block", textDecoration: "none" }}
+          >
+            How to play &rarr;
+          </a>
         </div>
       </section>
 
