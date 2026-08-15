@@ -437,6 +437,12 @@ export default function SquadPicker({
             >
               Leaderboard &rarr;
             </a>
+            <a
+              href="/fantasy/stats"
+              style={{ color: "#2C9FD4", fontSize: 12, fontWeight: 600, display: "inline-block", textDecoration: "none" }}
+            >
+              Stats &rarr;
+            </a>
           </div>
         </div>
       </section>
