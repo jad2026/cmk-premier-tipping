@@ -246,7 +246,7 @@ export default async function FantasyPickerPage() {
   }
 
   const players: PickerPlayer[] = [];
-  for (const [playerId, entry] of Array.from(accum.entries())) {
+  for (const [optaId, entry] of Array.from(accum.entries())) {
     const teamId = optaToTeamId.get(String(entry.optaTeamId));
     if (!teamId) continue;
     const team = teamById.get(teamId);
@@ -256,11 +256,14 @@ export default async function FantasyPickerPage() {
     if (!position) continue;
 
     const gameCount = entry.games.size;
-    const pool = poolByOpta.get(playerId);
+    const pool = poolByOpta.get(optaId);
     if (!pool) continue;
 
+    const uuid = optaToPlayerId.get(optaId);
+    if (!uuid) continue;
+
     players.push({
-      id: playerId,
+      id: uuid,
       name: entry.name,
       position,
       teamId,
