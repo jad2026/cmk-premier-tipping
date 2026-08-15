@@ -65,6 +65,7 @@ export default async function RootLayout({
     .eq("id", compId)
     .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
   const showSquads = compFeatures?.features?.show_squads === true;
+  const showFantasy = compFeatures?.features?.fantasy_enabled === true;
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedOut = !user;
@@ -131,7 +132,7 @@ export default async function RootLayout({
           />
         </noscript>
         <Analytics />
-        <Navbar siteName={siteName} showSquads={showSquads} user={user} isAdmin={isAdmin} competitionId={compId} />
+        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} user={user} isAdmin={isAdmin} competitionId={compId} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
