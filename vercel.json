@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/results-email",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/fantasy/api/score",
+      "schedule": "0 18 * * *"
     }
   ]
 }

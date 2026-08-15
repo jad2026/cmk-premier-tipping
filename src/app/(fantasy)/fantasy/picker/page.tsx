@@ -296,17 +296,50 @@ export default async function FantasyPickerPage() {
     logoUrl: t.logo_url,
   }));
 
-  // Find the current editable gameweek: earliest with deadline in the future
-  const { data: currentGw } = (await admin
+  // Find the current gameweek: prefer the next open round, fall back to the most recent locked
+  const now = new Date().toISOString();
+  const { data: openGw } = (await admin
     .from("gameweeks")
     .select("id, number, label, deadline")
     .eq("competition_id", FANTASY_COMP_ID)
-    .gt("deadline", new Date().toISOString())
+    .gt("deadline", now)
     .order("number")
     .limit(1)
     .maybeSingle()) as unknown as {
     data: { id: string; number: number; label: string; deadline: string } | null;
   };
+
+  let currentGw = openGw;
+
+  if (!openGw) {
+    const { data: lockedGw } = (await admin
+      .from("gameweeks")
+      .select("id, number, label, deadline")
+      .eq("competition_id", FANTASY_COMP_ID)
+      .order("number", { ascending: false })
+      .limit(1)
+      .maybeSingle()) as unknown as {
+      data: { id: string; number: number; label: string; deadline: string } | null;
+    };
+    currentGw = lockedGw;
+  }
+
+  let nextOpenRoundLabel: string | null = null;
+  if (currentGw) {
+    const { data: nextGw } = (await admin
+      .from("gameweeks")
+      .select("label, deadline")
+      .eq("competition_id", FANTASY_COMP_ID)
+      .gt("number", currentGw.number)
+      .order("number")
+      .limit(1)
+      .maybeSingle()) as unknown as {
+      data: { label: string; deadline: string } | null;
+    };
+    if (nextGw && nextGw.deadline > now) {
+      nextOpenRoundLabel = nextGw.label;
+    }
+  }
 
   // Check if user is signed in and load/carryover squad
   const { data: { user } } = await supabase.auth.getUser();
@@ -410,6 +443,7 @@ export default async function FantasyPickerPage() {
       gameweekDeadline={currentGw?.deadline ?? null}
       savedSquad={savedSquad}
       isSignedIn={!!user}
+      nextOpenRoundLabel={nextOpenRoundLabel}
     />
   );
 }

@@ -147,6 +147,7 @@ export default function SquadPicker({
   gameweekDeadline,
   savedSquad,
   isSignedIn,
+  nextOpenRoundLabel,
 }: {
   players: PickerPlayer[];
   teams: PickerTeam[];
@@ -155,6 +156,7 @@ export default function SquadPicker({
   gameweekDeadline: string | null;
   savedSquad: SavedSquad | null;
   isSignedIn: boolean;
+  nextOpenRoundLabel: string | null;
 }) {
   const [squad, setSquad] = useState<Record<number, string>>(() => {
     if (!savedSquad) return {};
@@ -283,6 +285,7 @@ export default function SquadPicker({
   );
 
   function addPlayer(playerId: string) {
+    if (isLocked) return;
     const player = playerById[playerId];
     if (!player) return;
 
@@ -339,6 +342,7 @@ export default function SquadPicker({
   }
 
   function removePlayer(jersey: number) {
+    if (isLocked) return;
     const pid = squad[jersey];
     const player = pid ? playerById[pid] : null;
     setSquad((prev) => {
@@ -352,6 +356,7 @@ export default function SquadPicker({
   }
 
   function toggleCaptain(pid: string) {
+    if (isLocked) return;
     if (captain === pid) {
       setCaptain(null);
     } else {
@@ -361,6 +366,7 @@ export default function SquadPicker({
   }
 
   function toggleVice(pid: string) {
+    if (isLocked) return;
     if (viceCaptain === pid) {
       setViceCaptain(null);
     } else {
@@ -449,12 +455,25 @@ export default function SquadPicker({
 
       {/* ── Locked / gameweek banner ── */}
       {(isLocked || gameweekLabel) && (
-        <div style={{ background: isLocked ? "#1a1008" : "#0D1016", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="mx-auto" style={{ maxWidth: 1100, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: isLocked ? "#1a0808" : "#0D1016", borderTop: `1px solid ${isLocked ? "rgba(229,62,62,0.2)" : "rgba(255,255,255,0.06)"}` }}>
+          <div className="mx-auto" style={{ maxWidth: 1100, padding: "10px 24px" }}>
             {isLocked ? (
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#D9A521" }}>
-                {gameweekLabel ?? "This round"} is locked
-              </span>
+              <>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#E53E3E" }}>
+                  {gameweekLabel ?? "This round"} is locked
+                </span>
+                <p style={{ fontSize: 12, color: "#8C93A0", margin: "6px 0 0", lineHeight: 1.5 }}>
+                  This round has started. You can edit your squad for the next open round.
+                </p>
+                {nextOpenRoundLabel && (
+                  <a
+                    href="/fantasy/picker"
+                    style={{ fontSize: 12, fontWeight: 600, color: "#2C9FD4", textDecoration: "none", marginTop: 4, display: "inline-block" }}
+                  >
+                    Edit {nextOpenRoundLabel} &rarr;
+                  </a>
+                )}
+              </>
             ) : gameweekLabel ? (
               <span style={{ fontSize: 12, fontWeight: 700, color: "#8C93A0" }}>
                 Editing {gameweekLabel}{deadlineLabel ? ` — Locks ${deadlineLabel}` : ""}
@@ -702,18 +721,18 @@ export default function SquadPicker({
                             </div>
                           ) : (
                             <button
-                              disabled={disabled}
+                              disabled={disabled || isLocked}
                               onClick={() => addPlayer(player.id)}
                               style={{
                                 width: 32,
                                 height: 32,
                                 borderRadius: "50%",
                                 border: "none",
-                                background: disabled ? "#1a1f28" : "#2C9FD4",
-                                color: disabled ? "#3a3f48" : "#0B0E13",
+                                background: (disabled || isLocked) ? "#1a1f28" : "#2C9FD4",
+                                color: (disabled || isLocked) ? "#3a3f48" : "#0B0E13",
                                 fontSize: 18,
                                 fontWeight: 700,
-                                cursor: disabled ? "not-allowed" : "pointer",
+                                cursor: (disabled || isLocked) ? "not-allowed" : "pointer",
                                 flexShrink: 0,
                                 display: "flex",
                                 alignItems: "center",
@@ -785,6 +804,7 @@ export default function SquadPicker({
 
                           {/* C / V pills */}
                           <button
+                            disabled={isLocked}
                             onClick={() => toggleCaptain(pid)}
                             className="font-display"
                             style={{
@@ -795,13 +815,15 @@ export default function SquadPicker({
                               background: isCap ? "#2C9FD4" : "transparent",
                               color: isCap ? "#0B0E13" : "#5A6371",
                               fontSize: 11,
-                              cursor: "pointer",
+                              cursor: isLocked ? "not-allowed" : "pointer",
                               flexShrink: 0,
+                              opacity: isLocked && !isCap ? 0.4 : 1,
                             }}
                           >
                             C
                           </button>
                           <button
+                            disabled={isLocked}
                             onClick={() => toggleVice(pid)}
                             className="font-display"
                             style={{
@@ -812,14 +834,16 @@ export default function SquadPicker({
                               background: isVice ? "#2C9FD4" : "transparent",
                               color: isVice ? "#0B0E13" : "#5A6371",
                               fontSize: 11,
-                              cursor: "pointer",
+                              cursor: isLocked ? "not-allowed" : "pointer",
                               flexShrink: 0,
+                              opacity: isLocked && !isVice ? 0.4 : 1,
                             }}
                           >
                             V
                           </button>
 
                           {/* Remove */}
+                          {!isLocked && (
                           <button
                             onClick={() => removePlayer(slot.jersey)}
                             style={{
@@ -840,6 +864,7 @@ export default function SquadPicker({
                           >
                             &times;
                           </button>
+                          )}
                         </div>
                       </>
                     ) : (
@@ -847,6 +872,7 @@ export default function SquadPicker({
                         <div style={{ fontSize: 12, color: "#3a3f48" }}>
                           {slot.label}
                         </div>
+                        {!isLocked && (
                         <button
                           onClick={() => { setActiveSlot(slot.jersey); setTab("browse"); }}
                           style={{
@@ -861,6 +887,7 @@ export default function SquadPicker({
                         >
                           + Pick player
                         </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -893,6 +920,7 @@ export default function SquadPicker({
                 <button
                   key={slot.jersey}
                   onClick={() => {
+                    if (isLocked) return;
                     if (filled) {
                       removePlayer(slot.jersey);
                     } else if (active) {
