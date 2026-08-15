@@ -342,24 +342,28 @@ export default async function FantasyPickerPage() {
         picks: picks ?? [],
       };
     } else if (currentGw.number > 1) {
-      const { data: prevGw } = (await admin
+      const { data: prevGws } = (await admin
         .from("gameweeks")
         .select("id")
         .eq("competition_id", FANTASY_COMP_ID)
-        .eq("number", currentGw.number - 1)
-        .maybeSingle()) as unknown as {
-        data: { id: string } | null;
+        .lt("number", currentGw.number)
+        .order("number", { ascending: false })) as unknown as {
+        data: { id: string }[] | null;
       };
 
-      if (prevGw) {
+      const prevGwIds = (prevGws ?? []).map((g) => g.id);
+
+      if (prevGwIds.length > 0) {
         const { data: prevSquad } = (await (
           admin.from("fantasy_squads") as unknown as AnyTable
         )
-          .select("id, captain_player_id, vice_captain_player_id")
+          .select("id, captain_player_id, vice_captain_player_id, gameweek_id")
           .eq("user_id", user.id)
-          .eq("gameweek_id", prevGw.id)
+          .in("gameweek_id", prevGwIds)
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle()) as {
-          data: { id: string; captain_player_id: string | null; vice_captain_player_id: string | null } | null;
+          data: { id: string; captain_player_id: string | null; vice_captain_player_id: string | null; gameweek_id: string } | null;
         };
 
         if (prevSquad) {
