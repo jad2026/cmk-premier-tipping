@@ -414,10 +414,9 @@ export async function GET(request: Request) {
 
   /* ── 9. Score squads ── */
 
-  const squadsTable = admin.from("fantasy_squads") as unknown as AnyTable;
-  const picksTable = admin.from("fantasy_squad_picks") as unknown as AnyTable;
-
-  const { data: squads } = (await squadsTable
+  const { data: squads } = (await (
+    admin.from("fantasy_squads") as unknown as AnyTable
+  )
     .select("id, captain_player_id, vice_captain_player_id")
     .eq("gameweek_id", gameweekId)
     .eq("competition_id", FANTASY_COMP_ID)
@@ -435,7 +434,9 @@ export async function GET(request: Request) {
 
   if (squads?.length) {
     const squadIds = squads.map((s) => s.id);
-    const { data: allPicks } = (await picksTable
+    const { data: allPicks } = (await (
+      admin.from("fantasy_squad_picks") as unknown as AnyTable
+    )
       .select("id, squad_id, player_id")
       .in("squad_id", squadIds)) as {
       data: { id: string; squad_id: string; player_id: string }[] | null;
@@ -475,23 +476,56 @@ export async function GET(request: Request) {
         if (pick.player_id === squad.captain_player_id) captainMinutes = mins;
       }
 
-      let squadTotal = 0; console.log("[fantasy] captain_id:", squad.captain_player_id, "vice:", squad.vice_captain_player_id, "picks:", pickScores.map(p => p.playerId));
+      let squadTotal = 0;
       for (const ps of pickScores) {
         let mult = 1;
-        if (ps.playerId === squad.captain_player_id) { console.log("[fantasy] CAPTAIN MATCH", ps.playerId);
+        if (ps.playerId === squad.captain_player_id) {
           mult = 2;
         } else if (ps.playerId === squad.vice_captain_player_id) {
           mult = captainMinutes === 0 ? 1.5 : 1;
         }
-        const final = Math.round(ps.raw * mult * 100) / 100;
-        squadTotal += final;
+        const finalPts = Math.round(ps.raw * mult * 100) / 100;
+        squadTotal += finalPts;
 
-        await picksTable.update({ points: final }).eq("id", ps.pickId);
+        const { error: pickUpErr } = await (
+          admin.from("fantasy_squad_picks") as unknown as AnyTable
+        )
+          .update({ points: finalPts })
+          .eq("id", ps.pickId);
+        if (pickUpErr) {
+          console.error(
+            `[fantasy-score] pick update failed id=${ps.pickId}:`,
+            pickUpErr.message
+          );
+        }
       }
 
-      await squadsTable
-        .update({ points: Math.round(squadTotal * 100) / 100 })
+      const squadPts = Math.round(squadTotal * 100) / 100;
+      const { error: squadUpErr } = await (
+        admin.from("fantasy_squads") as unknown as AnyTable
+      )
+        .update({ points: squadPts })
         .eq("id", squad.id);
+      if (squadUpErr) {
+        console.error(
+          `[fantasy-score] squad update failed id=${squad.id}:`,
+          squadUpErr.message
+        );
+      }
+
+      // Verify the update persisted
+      const { data: verify } = (await (
+        admin.from("fantasy_squads") as unknown as AnyTable
+      )
+        .select("points")
+        .eq("id", squad.id)
+        .single()) as { data: { points: number } | null };
+      if (verify && verify.points !== squadPts) {
+        console.error(
+          `[fantasy-score] squad ${squad.id} verify mismatch: expected=${squadPts} got=${verify.points}`
+        );
+      }
+
       squadsUpdated++;
     }
   }
