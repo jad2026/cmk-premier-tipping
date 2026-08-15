@@ -530,13 +530,61 @@ export async function GET(request: Request) {
     }
   }
 
-  /* ── 10. Return summary ── */
+  /* ── 10. Refresh avg_points in fantasy_player_pool ── */
+
+  let avgPointsUpdated = 0;
+
+  try {
+    const { data: avgRows, error: avgErr } = (await (
+      admin.from("fantasy_player_match_stats") as unknown as AnyTable
+    ).select("player_id, fantasy_points")) as {
+      data: { player_id: string; fantasy_points: number }[] | null;
+      error: { message: string } | null;
+    };
+
+    if (avgErr) {
+      console.error("[fantasy-score] avg_points query failed:", avgErr.message);
+    } else if (avgRows?.length) {
+      const sumByPlayer = new Map<string, { total: number; count: number }>();
+      for (const row of avgRows) {
+        const entry = sumByPlayer.get(row.player_id) || { total: 0, count: 0 };
+        entry.total += row.fantasy_points;
+        entry.count += 1;
+        sumByPlayer.set(row.player_id, entry);
+      }
+
+      for (const [playerId, { total, count }] of Array.from(sumByPlayer.entries())) {
+        const avg = Math.round((total / count) * 10) / 10;
+        const { error: updErr } = await (
+          admin.from("fantasy_player_pool") as unknown as AnyTable
+        )
+          .update({ avg_points: avg })
+          .eq("player_id", playerId)
+          .eq("competition_id", FANTASY_COMP_ID)
+          .eq("is_active", true);
+
+        if (updErr) {
+          console.error(
+            `[fantasy-score] avg_points update failed player=${playerId}:`,
+            updErr.message
+          );
+        } else {
+          avgPointsUpdated++;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[fantasy-score] avg_points refresh failed:", err);
+  }
+
+  /* ── 11. Return summary ── */
 
   return NextResponse.json({
     gameweek: { id: gameweekId, label: gameweekLabel },
     fixturesScored: fixtures.length,
     playersScored,
     squadsUpdated,
+    avgPointsUpdated,
     warnings: warnings.length ? warnings : undefined,
   });
 }
