@@ -144,6 +144,7 @@ export default function SquadPicker({
   teams,
   gameweekId,
   gameweekLabel,
+  gameweekDeadline,
   savedSquad,
   isSignedIn,
 }: {
@@ -151,6 +152,7 @@ export default function SquadPicker({
   teams: PickerTeam[];
   gameweekId: string | null;
   gameweekLabel: string | null;
+  gameweekDeadline: string | null;
   savedSquad: SavedSquad | null;
   isSignedIn: boolean;
 }) {
@@ -171,7 +173,21 @@ export default function SquadPicker({
   const [toast, setToast] = useState<string | null>(null);
   const toastKey = useRef(0);
   const [saving, setSaving] = useState(false);
-  const isLocked = savedSquad?.isLocked ?? false;
+  const isLocked = (savedSquad?.isLocked ?? false) ||
+    (gameweekDeadline ? new Date(gameweekDeadline) <= new Date() : !gameweekId);
+
+  const deadlineLabel = useMemo(() => {
+    if (!gameweekDeadline) return null;
+    return new Date(gameweekDeadline).toLocaleString("en-NZ", {
+      timeZone: "Pacific/Auckland",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }, [gameweekDeadline]);
 
   const playerById = useMemo(() => {
     const map: Record<string, PickerPlayer> = {};
@@ -383,7 +399,7 @@ export default function SquadPicker({
     if (result.error) {
       showToast(result.error);
     } else {
-      showToast("Squad saved!");
+      showToast(`Squad saved for ${gameweekLabel ?? "this round"}`);
     }
   }
 
@@ -429,14 +445,15 @@ export default function SquadPicker({
       {(isLocked || gameweekLabel) && (
         <div style={{ background: isLocked ? "#1a1008" : "#0D1016", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="mx-auto" style={{ maxWidth: 1100, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10 }}>
-            {gameweekLabel && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#8C93A0" }}>{gameweekLabel}</span>
-            )}
-            {isLocked && (
+            {isLocked ? (
               <span style={{ fontSize: 12, fontWeight: 600, color: "#D9A521" }}>
-                This round is locked. You can edit your squad for the next round.
+                {gameweekLabel ?? "This round"} is locked
               </span>
-            )}
+            ) : gameweekLabel ? (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#8C93A0" }}>
+                Editing {gameweekLabel}{deadlineLabel ? ` — Locks ${deadlineLabel}` : ""}
+              </span>
+            ) : null}
           </div>
         </div>
       )}

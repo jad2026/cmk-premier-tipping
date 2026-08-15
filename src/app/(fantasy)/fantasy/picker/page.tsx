@@ -83,6 +83,9 @@ export type SavedSquad = {
   picks: SavedSquadPick[];
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyTable = any;
+
 /* ── Opta position → fantasy position mapping ── */
 
 const OPTA_TO_FANTASY: Record<string, string> = {
@@ -171,7 +174,8 @@ export default async function FantasyPickerPage() {
     admin
       .from("fantasy_player_pool")
       .select("player_id, price, avg_points")
-      .eq("competition_id", FANTASY_COMP_ID) as unknown as Promise<{
+      .eq("competition_id", FANTASY_COMP_ID)
+      .eq("is_active", true) as unknown as Promise<{
       data: PoolRow[] | null;
     }>,
     admin
@@ -292,37 +296,39 @@ export default async function FantasyPickerPage() {
     logoUrl: t.logo_url,
   }));
 
-  // Find the current gameweek: earliest open or earliest with a future deadline
-  const { data: currentGw } = (await supabase
+  // Find the current editable gameweek: earliest with deadline in the future
+  const { data: currentGw } = (await admin
     .from("gameweeks")
-    .select("id, number, label, deadline, is_open")
-    .eq("competition_id", compId)
-    .or("is_open.eq.true,deadline.gte." + new Date().toISOString())
+    .select("id, number, label, deadline")
+    .eq("competition_id", FANTASY_COMP_ID)
+    .gt("deadline", new Date().toISOString())
     .order("number")
     .limit(1)
     .maybeSingle()) as unknown as {
-    data: { id: string; number: number; label: string; deadline: string; is_open: boolean } | null;
+    data: { id: string; number: number; label: string; deadline: string } | null;
   };
 
-  // Check if user is signed in and has a saved squad
+  // Check if user is signed in and load/carryover squad
   const { data: { user } } = await supabase.auth.getUser();
   let savedSquad: SavedSquad | null = null;
 
   if (user && currentGw) {
-    const { data: squad } = (await supabase
-      .from("fantasy_squads")
+    const { data: squad } = (await (
+      admin.from("fantasy_squads") as unknown as AnyTable
+    )
       .select("id, captain_player_id, vice_captain_player_id, is_locked")
       .eq("user_id", user.id)
       .eq("gameweek_id", currentGw.id)
-      .maybeSingle()) as unknown as {
+      .maybeSingle()) as {
       data: { id: string; captain_player_id: string | null; vice_captain_player_id: string | null; is_locked: boolean } | null;
     };
 
     if (squad) {
-      const { data: picks } = (await supabase
-        .from("fantasy_squad_picks")
+      const { data: picks } = (await (
+        admin.from("fantasy_squad_picks") as unknown as AnyTable
+      )
         .select("slot_number, player_id")
-        .eq("squad_id", squad.id)) as unknown as {
+        .eq("squad_id", squad.id)) as {
         data: SavedSquadPick[] | null;
       };
 
@@ -335,6 +341,47 @@ export default async function FantasyPickerPage() {
         isLocked: squad.is_locked ?? false,
         picks: picks ?? [],
       };
+    } else if (currentGw.number > 1) {
+      const { data: prevGw } = (await admin
+        .from("gameweeks")
+        .select("id")
+        .eq("competition_id", FANTASY_COMP_ID)
+        .eq("number", currentGw.number - 1)
+        .maybeSingle()) as unknown as {
+        data: { id: string } | null;
+      };
+
+      if (prevGw) {
+        const { data: prevSquad } = (await (
+          admin.from("fantasy_squads") as unknown as AnyTable
+        )
+          .select("id, captain_player_id, vice_captain_player_id")
+          .eq("user_id", user.id)
+          .eq("gameweek_id", prevGw.id)
+          .maybeSingle()) as {
+          data: { id: string; captain_player_id: string | null; vice_captain_player_id: string | null } | null;
+        };
+
+        if (prevSquad) {
+          const { data: prevPicks } = (await (
+            admin.from("fantasy_squad_picks") as unknown as AnyTable
+          )
+            .select("slot_number, player_id")
+            .eq("squad_id", prevSquad.id)) as {
+            data: SavedSquadPick[] | null;
+          };
+
+          savedSquad = {
+            id: "",
+            gameweekId: currentGw.id,
+            gameweekLabel: currentGw.label,
+            captainId: prevSquad.captain_player_id,
+            viceCaptainId: prevSquad.vice_captain_player_id,
+            isLocked: false,
+            picks: prevPicks ?? [],
+          };
+        }
+      }
     }
   }
 
@@ -344,6 +391,7 @@ export default async function FantasyPickerPage() {
       teams={pickerTeams}
       gameweekId={currentGw?.id ?? null}
       gameweekLabel={currentGw?.label ?? null}
+      gameweekDeadline={currentGw?.deadline ?? null}
       savedSquad={savedSquad}
       isSignedIn={!!user}
     />
