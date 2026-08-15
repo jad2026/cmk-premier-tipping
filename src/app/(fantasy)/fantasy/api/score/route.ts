@@ -14,8 +14,7 @@ type AnyTable = any;
 type ScoringRule = {
   stat_key: string;
   points: number;
-  position_group?: string | null;
-  applies_to?: string | null;
+  applies_to: string[] | null;
 };
 
 type PlayerStatRow = {
@@ -41,59 +40,42 @@ type GameweekRow = {
   label: string;
 };
 
-/* ── Opta position → Forwards / Backs ── */
+/* ── Opta position → fantasy_position ── */
 
-const OPTA_POS_TO_GROUP: Record<string, "Forwards" | "Backs"> = {
-  "Forward 1": "Forwards",
-  "Forward 2": "Forwards",
-  "Forward 3": "Forwards",
-  "Forward 4": "Forwards",
-  "Forward 5": "Forwards",
-  "Forward 6": "Forwards",
-  "Forward 7": "Forwards",
-  "Forward 8": "Forwards",
-  "Back 1": "Backs",
-  "Back 2": "Backs",
-  "Back 3": "Backs",
-  "Back 4": "Backs",
-  "Back 5": "Backs",
-  "Back 6": "Backs",
-  "Back 7": "Backs",
-  "Replacement 1": "Forwards",
-  "Replacement 2": "Forwards",
-  "Replacement 3": "Forwards",
-  "Replacement 4": "Forwards",
-  "Replacement 5": "Forwards",
-  "Replacement 6": "Backs",
-  "Replacement 7": "Backs",
-  "Replacement 8": "Backs",
+const OPTA_TO_FANTASY_POS: Record<string, string> = {
+  "Forward 1": "prop",
+  "Forward 3": "prop",
+  "Forward 2": "hooker",
+  "Forward 4": "lock",
+  "Forward 5": "lock",
+  "Forward 6": "loose_forward",
+  "Forward 7": "loose_forward",
+  "Forward 8": "loose_forward",
+  "Back 1": "halfback",
+  "Back 2": "first_five",
+  "Back 3": "outside_back",
+  "Back 4": "centre",
+  "Back 5": "centre",
+  "Back 6": "outside_back",
+  "Back 7": "outside_back",
+  "Replacement 1": "prop",
+  "Replacement 2": "hooker",
+  "Replacement 3": "prop",
+  "Replacement 4": "lock",
+  "Replacement 5": "loose_forward",
+  "Replacement 6": "halfback",
+  "Replacement 7": "first_five",
+  "Replacement 8": "outside_back",
 };
 
-/* ── Scoring-rule stat_key → opta blob keys ── */
+/* ── Special-case stat_key → actual opta blob key ── */
 
-const STAT_KEY_TO_OPTA: Record<string, string[]> = {
-  tries: ["Tries", "tries"],
-  try_assists: ["TryAssists", "try_assists"],
-  conversions: ["ConversionGoals", "conversion_goals", "Conversions", "conversions"],
-  penalty_goals: ["KickPenaltyGood", "kick_penalty_good", "PenaltyGoals", "penalty_goals"],
-  drop_goals: ["DropGoals", "drop_goals", "DropGoal", "drop_goal"],
-  carry_metres_fwd: ["carry_metres_total", "CarriesMetres", "carries_metres", "MetresRun", "metres_run"],
-  carry_metres_back: ["carry_metres_total", "CarriesMetres", "carries_metres", "MetresRun", "metres_run"],
-  clean_breaks: ["CleanBreaks", "clean_breaks", "LineBreaks", "line_breaks"],
-  defenders_beaten: ["DefendersBeaten", "defenders_beaten"],
-  offloads: ["Offload", "offload", "Offloads", "offloads"],
-  tackles_fwd: ["tackles", "Tackles", "TacklesMade", "tackles_made"],
-  tackles_back: ["tackles", "Tackles", "TacklesMade", "tackles_made"],
-  dominant_tackles: ["DominantTackles", "dominant_tackles"],
-  turnovers_won: ["TackleTurnover", "tackle_turnover", "TurnoverWon", "turnover_won"],
-  lineouts_won: ["LineoutsWon", "lineouts_won"],
-  scrums_won: ["ScrumsWonOutright", "scrums_won_outright", "ScrumWon", "scrum_won"],
-  penalties_conceded: ["PenaltiesConceded", "penalties_conceded"],
-  missed_tackles: ["MissedTackles", "missed_tackles"],
-  handling_errors: ["HandlingErrors", "handling_errors", "HandlingError", "handling_error"],
-  turnovers_conceded: ["TurnoversConceded", "turnovers_conceded"],
-  yellow_cards: ["YellowCards", "yellow_cards"],
-  red_cards: ["RedCards", "red_cards"],
+const STAT_KEY_REMAP: Record<string, string> = {
+  carry_metres_fwd: "carry_metres_total",
+  carry_metres_back: "carry_metres_total",
+  tackles_fwd: "tackles",
+  tackles_back: "tackles",
+  lineout_throw_fwd: "lineout_won_own_throw",
 };
 
 const MINUTES_KEYS = [
@@ -105,7 +87,15 @@ const MINUTES_KEYS = [
 
 /* ── Helpers ── */
 
-function extractStat(
+function readStat(stats: Record<string, string> | null, key: string): number {
+  if (!stats) return 0;
+  const v = stats[key];
+  if (v == null) return 0;
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function readStatMulti(
   stats: Record<string, string> | null,
   keys: string[]
 ): number {
@@ -120,27 +110,32 @@ function extractStat(
   return 0;
 }
 
+function resolveOptaKey(statKey: string): string {
+  return STAT_KEY_REMAP[statKey] ?? statKey;
+}
+
 function scorePlayer(
   stats: Record<string, string> | null,
   position: string | null,
   rules: ScoringRule[]
 ): { points: number; minutes: number } {
-  const minutes = extractStat(stats, MINUTES_KEYS);
+  const minutes = readStatMulti(stats, MINUTES_KEYS);
 
   let points = 0;
   if (minutes > 0) points += 2;
   if (minutes >= 60) points += 2;
 
-  const playerGroup = position ? (OPTA_POS_TO_GROUP[position] ?? null) : null;
+  const fantasyPos = position
+    ? (OPTA_TO_FANTASY_POS[position] ?? null)
+    : null;
 
   for (const rule of rules) {
-    const ruleGroup = rule.position_group ?? rule.applies_to ?? null;
-    if (ruleGroup && ruleGroup !== playerGroup) continue;
+    if (rule.applies_to && rule.applies_to.length > 0) {
+      if (!fantasyPos || !rule.applies_to.includes(fantasyPos)) continue;
+    }
 
-    const optaKeys = STAT_KEY_TO_OPTA[rule.stat_key];
-    if (!optaKeys) continue;
-
-    let count = extractStat(stats, optaKeys);
+    const optaKey = resolveOptaKey(rule.stat_key);
+    let count = readStat(stats, optaKey);
 
     if (rule.stat_key.startsWith("carry_metres")) {
       count = Math.floor(count / 10);
@@ -361,25 +356,10 @@ export async function GET(request: Request) {
       penalties: 0,
       drops: 0,
     };
-    tr.tries += extractStat(ps.stats, ["Tries", "tries"]);
-    tr.conversions += extractStat(ps.stats, [
-      "ConversionGoals",
-      "conversion_goals",
-      "Conversions",
-      "conversions",
-    ]);
-    tr.penalties += extractStat(ps.stats, [
-      "KickPenaltyGood",
-      "kick_penalty_good",
-      "PenaltyGoals",
-      "penalty_goals",
-    ]);
-    tr.drops += extractStat(ps.stats, [
-      "DropGoals",
-      "drop_goals",
-      "DropGoal",
-      "drop_goal",
-    ]);
+    tr.tries += readStat(ps.stats, "tries");
+    tr.conversions += readStat(ps.stats, "conversion_goals");
+    tr.penalties += readStat(ps.stats, "penalty_goals");
+    tr.drops += readStat(ps.stats, "drop_goals_converted");
     tm.set(ps.opta_team_id, tr);
   }
 
