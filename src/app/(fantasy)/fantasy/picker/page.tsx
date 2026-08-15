@@ -375,14 +375,26 @@ export default async function FantasyPickerPage() {
             data: SavedSquadPick[] | null;
           };
 
+          const activePicks = (prevPicks ?? []).filter(
+            (pick) => poolByPlayerId.has(pick.player_id)
+          );
+          const carriedCaptain =
+            prevSquad.captain_player_id && poolByPlayerId.has(prevSquad.captain_player_id)
+              ? prevSquad.captain_player_id
+              : null;
+          const carriedVc =
+            prevSquad.vice_captain_player_id && poolByPlayerId.has(prevSquad.vice_captain_player_id)
+              ? prevSquad.vice_captain_player_id
+              : null;
+
           savedSquad = {
             id: "",
             gameweekId: currentGw.id,
             gameweekLabel: currentGw.label,
-            captainId: prevSquad.captain_player_id,
-            viceCaptainId: prevSquad.vice_captain_player_id,
+            captainId: carriedCaptain,
+            viceCaptainId: carriedVc,
             isLocked: false,
-            picks: prevPicks ?? [],
+            picks: activePicks,
           };
         }
       }
