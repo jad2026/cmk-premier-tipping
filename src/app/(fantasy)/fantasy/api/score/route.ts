@@ -475,10 +475,10 @@ export async function GET(request: Request) {
         if (pick.player_id === squad.captain_player_id) captainMinutes = mins;
       }
 
-      let squadTotal = 0;
+      let squadTotal = 0; console.log("[fantasy] captain_id:", squad.captain_player_id, "vice:", squad.vice_captain_player_id, "picks:", pickScores.map(p => p.playerId));
       for (const ps of pickScores) {
         let mult = 1;
-        if (ps.playerId === squad.captain_player_id) {
+        if (ps.playerId === squad.captain_player_id) { console.log("[fantasy] CAPTAIN MATCH", ps.playerId);
           mult = 2;
         } else if (ps.playerId === squad.vice_captain_player_id) {
           mult = captainMinutes === 0 ? 1.5 : 1;
