@@ -141,7 +141,7 @@ function scorePlayer(
       count = Math.floor(count / 10);
     }
 
-    points += count * rule.points;
+    points += count * rule.points_per;
   }
 
   return { points: Math.round(points * 100) / 100, minutes };
