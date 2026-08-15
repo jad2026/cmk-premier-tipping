@@ -6,9 +6,6 @@ export const maxDuration = 300;
 
 const FANTASY_COMP_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyTable = any;
-
 /* ── Types ── */
 
 type ScoringRule = {
@@ -299,9 +296,9 @@ export async function GET(request: Request) {
 
   /* ── 6. Score each player per fixture ── */
 
-  const matchStatsTable = admin.from(
+  const matchStatsTable = (admin as any).from(
     "fantasy_player_match_stats"
-  ) as unknown as AnyTable;
+  );
 
   const upsertRows: {
     fixture_id: string;
@@ -414,9 +411,8 @@ export async function GET(request: Request) {
 
   /* ── 9. Score squads ── */
 
-  const { data: squads, error: squadErr } = (await (
-    admin.from("fantasy_squads") as unknown as AnyTable
-  )
+  const { data: squads, error: squadErr } = (await (admin as any)
+    .from("fantasy_squads")
     .select("id, captain_player_id, vice_captain_player_id")
     .eq("gameweek_id", gameweekId)
     .eq("competition_id", FANTASY_COMP_ID)
@@ -428,21 +424,28 @@ export async function GET(request: Request) {
           vice_captain_player_id: string | null;
         }[]
       | null;
+    error: { message: string } | null;
   };
 
-  if (squadErr) console.error("[fantasy] squad query error:", squadErr);
   let squadsUpdated = 0;
-  console.log("[fantasy] squads query result:", squads?.length ?? "null", "for gameweek:", gameweekId, "comp:", FANTASY_COMP_ID);
+  if (squadErr) {
+    console.error("[fantasy-score] squad query error:", squadErr.message);
+  }
+  console.log("[fantasy-score] squads found:", squads?.length ?? 0, "gameweek:", gameweekId, "comp:", FANTASY_COMP_ID);
 
   if (squads?.length) {
     const squadIds = squads.map((s) => s.id);
-    const { data: allPicks } = (await (
-      admin.from("fantasy_squad_picks") as unknown as AnyTable
-    )
+    const { data: allPicks, error: picksErr } = (await (admin as any)
+      .from("fantasy_squad_picks")
       .select("id, squad_id, player_id")
       .in("squad_id", squadIds)) as {
       data: { id: string; squad_id: string; player_id: string }[] | null;
+      error: { message: string } | null;
     };
+    if (picksErr) {
+      console.error("[fantasy-score] picks query error:", picksErr.message);
+    }
+    console.log("[fantasy-score] picks found:", allPicks?.length ?? 0, "for", squadIds.length, "squads");
 
     const picksBySquad = new Map<
       string,
@@ -489,9 +492,8 @@ export async function GET(request: Request) {
         const finalPts = Math.round(ps.raw * mult * 100) / 100;
         squadTotal += finalPts;
 
-        const { error: pickUpErr } = await (
-          admin.from("fantasy_squad_picks") as unknown as AnyTable
-        )
+        const { error: pickUpErr } = await (admin as any)
+          .from("fantasy_squad_picks")
           .update({ points: finalPts })
           .eq("id", ps.pickId);
         if (pickUpErr) {
@@ -503,9 +505,8 @@ export async function GET(request: Request) {
       }
 
       const squadPts = Math.round(squadTotal * 100) / 100;
-      const { error: squadUpErr } = await (
-        admin.from("fantasy_squads") as unknown as AnyTable
-      )
+      const { error: squadUpErr } = await (admin as any)
+        .from("fantasy_squads")
         .update({ points: squadPts })
         .eq("id", squad.id);
       if (squadUpErr) {
@@ -515,10 +516,8 @@ export async function GET(request: Request) {
         );
       }
 
-      // Verify the update persisted
-      const { data: verify } = (await (
-        admin.from("fantasy_squads") as unknown as AnyTable
-      )
+      const { data: verify } = (await (admin as any)
+        .from("fantasy_squads")
         .select("points")
         .eq("id", squad.id)
         .single()) as { data: { points: number } | null };
@@ -537,9 +536,9 @@ export async function GET(request: Request) {
   let avgPointsUpdated = 0;
 
   try {
-    const { data: avgRows, error: avgErr } = (await (
-      admin.from("fantasy_player_match_stats") as unknown as AnyTable
-    ).select("player_id, fantasy_points")) as {
+    const { data: avgRows, error: avgErr } = (await (admin as any)
+      .from("fantasy_player_match_stats")
+      .select("player_id, fantasy_points")) as {
       data: { player_id: string; fantasy_points: number }[] | null;
       error: { message: string } | null;
     };
@@ -557,9 +556,8 @@ export async function GET(request: Request) {
 
       for (const [playerId, { total, count }] of Array.from(sumByPlayer.entries())) {
         const avg = Math.round((total / count) * 10) / 10;
-        const { error: updErr } = await (
-          admin.from("fantasy_player_pool") as unknown as AnyTable
-        )
+        const { error: updErr } = await (admin as any)
+          .from("fantasy_player_pool")
           .update({ avg_points: avg })
           .eq("player_id", playerId)
           .eq("competition_id", FANTASY_COMP_ID)
