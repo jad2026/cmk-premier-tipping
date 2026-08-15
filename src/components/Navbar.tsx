@@ -123,7 +123,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
             <Link
               key={href}
               href={href}
-              className="relative flex items-center gap-1.5 px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150 outline-none"
+              className="relative flex items-center gap-1.5 px-[10px] py-[9px] rounded-[9px] text-[13px] font-medium transition-all duration-150 outline-none"
               style={{
                 color: isActive(href) ? "#FFFFFF" : "#99A0AC",
                 background: isActive(href) ? "transparent" : "transparent",
