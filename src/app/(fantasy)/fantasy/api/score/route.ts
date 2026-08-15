@@ -414,7 +414,7 @@ export async function GET(request: Request) {
 
   /* ── 9. Score squads ── */
 
-  const { data: squads } = (await (
+  const { data: squads, error: squadErr } = (await (
     admin.from("fantasy_squads") as unknown as AnyTable
   )
     .select("id, captain_player_id, vice_captain_player_id")
@@ -430,7 +430,9 @@ export async function GET(request: Request) {
       | null;
   };
 
+  if (squadErr) console.error("[fantasy] squad query error:", squadErr);
   let squadsUpdated = 0;
+  console.log("[fantasy] squads query result:", squads?.length ?? "null", "for gameweek:", gameweekId, "comp:", FANTASY_COMP_ID);
 
   if (squads?.length) {
     const squadIds = squads.map((s) => s.id);
