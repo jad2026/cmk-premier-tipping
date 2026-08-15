@@ -13,7 +13,7 @@ type AnyTable = any;
 
 type ScoringRule = {
   stat_key: string;
-  points: number;
+  points_per: number;
   applies_to: string[] | null;
 };
 
