@@ -75,9 +75,11 @@ type AggPlayer = {
 type Props = {
   players: StatPlayer[];
   gameweeks: GameweekInfo[];
+  liveGwIds: string[];
 };
 
-export default function StatsView({ players, gameweeks }: Props) {
+export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
+  const liveSet = useMemo(() => new Set(liveGwIds), [liveGwIds]);
   const [selectedGw, setSelectedGw] = useState<string>("overall");
   const [sortKey, setSortKey] = useState<SortKey>("points");
   const [sortAsc, setSortAsc] = useState(false);
@@ -319,6 +321,20 @@ export default function StatsView({ players, gameweeks }: Props) {
                 }}
               >
                 {gw.label}
+                {liveSet.has(gw.id) && (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "#E53E3E",
+                      marginLeft: 6,
+                      verticalAlign: "middle",
+                      boxShadow: "0 0 4px #E53E3E",
+                    }}
+                  />
+                )}
               </button>
             ))}
           </div>
