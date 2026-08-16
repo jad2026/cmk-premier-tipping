@@ -409,127 +409,13 @@ export async function GET(request: Request) {
     }
   }
 
-  /* ── 9. Score squads ── */
+  /* ── 9. Score squads via DB function ── */
 
-  const { data: squads, error: squadErr } = (await (admin as any)
-    .from("fantasy_squads")
-    .select("id, captain_player_id, vice_captain_player_id")
-    .eq("gameweek_id", gameweekId)
-    .eq("competition_id", FANTASY_COMP_ID)
-    .eq("is_complete", true)) as {
-    data:
-      | {
-          id: string;
-          captain_player_id: string | null;
-          vice_captain_player_id: string | null;
-        }[]
-      | null;
-    error: { message: string } | null;
-  };
-
-  let squadsUpdated = 0;
-  if (squadErr) {
-    console.error("[fantasy-score] squad query error:", squadErr.message);
-  }
-  console.log("[fantasy-score] squads found:", squads?.length ?? 0, "gameweek:", gameweekId, "comp:", FANTASY_COMP_ID);
-
-  if (squads?.length) {
-    const squadIds = squads.map((s) => s.id);
-    const { data: allPicks, error: picksErr } = (await (admin as any)
-      .from("fantasy_squad_picks")
-      .select("id, squad_id, player_id")
-      .in("squad_id", squadIds)) as {
-      data: { id: string; squad_id: string; player_id: string }[] | null;
-      error: { message: string } | null;
-    };
-    if (picksErr) {
-      console.error("[fantasy-score] picks query error:", picksErr.message);
-    }
-    console.log("[fantasy-score] picks found:", allPicks?.length ?? 0, "for", squadIds.length, "squads");
-
-    const picksBySquad = new Map<
-      string,
-      { id: string; player_id: string }[]
-    >();
-    for (const p of allPicks ?? []) {
-      const arr = picksBySquad.get(p.squad_id) ?? [];
-      arr.push({ id: p.id, player_id: p.player_id });
-      picksBySquad.set(p.squad_id, arr);
-    }
-
-    for (const squad of squads) {
-      const picks = picksBySquad.get(squad.id) ?? [];
-
-      let captainMinutes = 0;
-      const pickScores: {
-        pickId: string;
-        playerId: string;
-        raw: number;
-      }[] = [];
-
-      for (const pick of picks) {
-        let raw = 0;
-        let mins = 0;
-        for (const fId of fixtureIds) {
-          const mp = playerMatchPts.get(`${fId}:${pick.player_id}`);
-          if (mp) {
-            raw += mp.points;
-            mins += mp.minutes;
-          }
-        }
-        pickScores.push({ pickId: pick.id, playerId: pick.player_id, raw });
-        if (pick.player_id === squad.captain_player_id) captainMinutes = mins;
-      }
-
-      let squadTotal = 0;
-      for (const ps of pickScores) {
-        let mult = 1;
-        if (ps.playerId === squad.captain_player_id) {
-          mult = 2;
-        } else if (ps.playerId === squad.vice_captain_player_id) {
-          mult = captainMinutes === 0 ? 1.5 : 1;
-        }
-        const finalPts = Math.round(ps.raw * mult * 100) / 100;
-        squadTotal += finalPts;
-
-        const { error: pickUpErr } = await (admin as any)
-          .from("fantasy_squad_picks")
-          .update({ points: finalPts })
-          .eq("id", ps.pickId);
-        if (pickUpErr) {
-          console.error(
-            `[fantasy-score] pick update failed id=${ps.pickId}:`,
-            pickUpErr.message
-          );
-        }
-      }
-
-      const squadPts = Math.round(squadTotal * 100) / 100;
-      const { error: squadUpErr } = await (admin as any)
-        .from("fantasy_squads")
-        .update({ points: squadPts })
-        .eq("id", squad.id);
-      if (squadUpErr) {
-        console.error(
-          `[fantasy-score] squad update failed id=${squad.id}:`,
-          squadUpErr.message
-        );
-      }
-
-      const { data: verify } = (await (admin as any)
-        .from("fantasy_squads")
-        .select("points")
-        .eq("id", squad.id)
-        .single()) as { data: { points: number } | null };
-      if (verify && verify.points !== squadPts) {
-        console.error(
-          `[fantasy-score] squad ${squad.id} verify mismatch: expected=${squadPts} got=${verify.points}`
-        );
-      }
-
-      squadsUpdated++;
-    }
-  }
+  const { data: squadResult } = await (admin as any).rpc('score_fantasy_squads', {
+    p_gameweek_id: gameweekId,
+    p_comp_id: FANTASY_COMP_ID,
+  });
+  const squadsUpdated = (squadResult as { squadsUpdated?: number } | null)?.squadsUpdated ?? 0;
 
   /* ── 10. Refresh avg_points in fantasy_player_pool ── */
 
