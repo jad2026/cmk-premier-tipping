@@ -162,7 +162,7 @@ export default async function TipsPage() {
 
   return (
     <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
-      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} timezone={tzLocale.timezone} locale={tzLocale.locale} marginPicking={marginPicking} />
+      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} timezone={tzLocale.timezone} locale={tzLocale.locale} marginPicking={marginPicking} competitionId={compId} />
     </div>
   );
 }

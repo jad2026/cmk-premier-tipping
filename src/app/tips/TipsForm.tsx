@@ -7,6 +7,8 @@ import TeamBadge from "@/components/TeamBadge";
 import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
 import { hapticImpact, hapticNotification } from "@/lib/native/haptics";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { initPushNotifications } from "@/lib/pushNotifications";
 
 // ── Mobile scroll-snap margin picker ────────────────────────────────────────
 
@@ -236,6 +238,7 @@ type Props = {
   timezone: string;
   locale: string;
   marginPicking?: boolean;
+  competitionId: string;
 };
 
 function useCountdown(deadline: string) {
@@ -271,9 +274,21 @@ function useIsMobile() {
   return mobile;
 }
 
-export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false }: Props) {
+export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false, competitionId }: Props) {
   const supabase = createClient();
   const isMobile = useIsMobile();
+  const { status: pushStatus, busy: pushBusy, subscribe: pushSubscribe } = usePushNotifications(competitionId);
+  const [promptDismissed, setPromptDismissed] = useState(true);
+
+  useEffect(() => {
+    setPromptDismissed(localStorage.getItem("notification_prompt_dismissed") === "true");
+  }, []);
+
+  useEffect(() => {
+    if (pushStatus === "subscribed") {
+      localStorage.setItem("notification_prompt_dismissed", "true");
+    }
+  }, [pushStatus]);
 
   const [picks, setPicks] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -369,6 +384,13 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       }
       setSaved(true);
       hapticNotification("success");
+
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          initPushNotifications(supabase, currentUser.id).catch(() => {});
+        }
+      } catch {}
     });
   }
 
@@ -499,6 +521,53 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
           );
         })}
       </section>
+
+      {/* ── Push notification opt-in banner ──────────────────────────────── */}
+      {saved && pushStatus === "unsubscribed" && !promptDismissed && (
+        <div
+          style={{
+            background: "rgba(13,16,22,.96)",
+            backdropFilter: "blur(12px)",
+            borderTop: "1px solid rgba(255,255,255,.1)",
+            padding: "16px 32px",
+          }}
+        >
+          <div className="max-w-content-inner mx-auto flex items-center justify-between gap-4">
+            <div className="text-white min-w-0">
+              <div className="font-display text-[16px] uppercase leading-tight">
+                Never miss a deadline
+              </div>
+              <div className="text-[13px] text-[#8C93A0] mt-1">
+                Get a reminder before tips close each round
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => { await pushSubscribe(); }}
+                disabled={pushBusy}
+                className="inline-flex items-center rounded-[10px] text-[14px] font-extrabold uppercase tracking-[.02em] transition-all duration-150"
+                style={{
+                  padding: "12px 20px",
+                  background: "var(--accent)",
+                  color: "var(--accent-text)",
+                }}
+              >
+                {pushBusy ? "Enabling…" : "Turn on"}
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem("notification_prompt_dismissed", "true");
+                  setPromptDismissed(true);
+                }}
+                className="w-10 h-10 flex items-center justify-center rounded-[9px] text-[#8C93A0] hover:text-white hover:bg-white/[.06] transition-colors"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Sticky bottom action bar ────────────────────────────────────── */}
       {hasAnyPickable && (
