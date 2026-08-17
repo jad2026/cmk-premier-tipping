@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
@@ -197,9 +197,32 @@ export default function LeaderboardContent({
   const [joinFeedback, setJoinFeedback] = useState("");
   const [sponsorLogos, setSponsorLogos] = useState<{id: string; name: string; logo_url: string; display_order: number}[]>([]);
 
-  // Reset round selection when league changes
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const setRowRef = useCallback((userId: string, el: HTMLDivElement | null) => {
+    if (el) rowRefs.current.set(userId, el);
+    else rowRefs.current.delete(userId);
+  }, []);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    if (searchQuery.length < 2) {
+      setDebouncedQuery("");
+      return;
+    }
+    debounceRef.current = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery]);
+
   useEffect(() => {
     setSelectedRound("total");
+    setSearchQuery("");
+    setDebouncedQuery("");
+    setHighlightedIds(new Set());
   }, [selectedLeague]);
 
   const selectedLeagueInfo = leagues.find((l) => l.id === selectedLeague);
@@ -267,6 +290,30 @@ export default function LeaderboardContent({
   const gridCls = marginPicking
     ? "grid-cols-[22px_1fr_28px_28px_32px_28px_32px] sm:grid-cols-[54px_1fr_64px_64px_68px_56px_68px]"
     : "grid-cols-[22px_1fr_24px_32px_28px_32px] sm:grid-cols-[54px_1fr_76px_68px_56px_68px]";
+
+  const matchedUserIds = debouncedQuery
+    ? sorted
+        .filter((e) => e.displayName.toLowerCase().includes(debouncedQuery.toLowerCase()))
+        .map((e) => e.user_id)
+    : [];
+
+  const noMatch = debouncedQuery.length >= 2 && matchedUserIds.length === 0;
+
+  const matchKey = matchedUserIds.join(",");
+  useEffect(() => {
+    if (!matchKey) {
+      setHighlightedIds(new Set());
+      return;
+    }
+    const ids = matchKey.split(",");
+    setHighlightedIds(new Set(ids));
+    requestAnimationFrame(() => {
+      const el = rowRefs.current.get(ids[0]);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const timer = setTimeout(() => setHighlightedIds(new Set()), 2000);
+    return () => clearTimeout(timer);
+  }, [matchKey]);
 
   function copyCode(code: string, leagueId: string) {
     navigator.clipboard.writeText(code);
@@ -511,6 +558,77 @@ export default function LeaderboardContent({
 
       {/* Full table */}
       <section className="mx-auto px-3 sm:px-8 pt-[18px] pb-10" style={{ maxWidth: 1100 }}>
+        {/* Search input */}
+        {sorted.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ position: "relative" }}>
+              <svg
+                style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+                width="16" height="16" viewBox="0 0 16 16" fill="none"
+              >
+                <circle cx="7" cy="7" r="4.5" stroke="#8B8676" strokeWidth="1.5" />
+                <path d="M10.5 10.5L14 14" stroke="#8B8676" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for a tipper..."
+                style={{
+                  width: "100%",
+                  border: "1px solid #E4E1D8",
+                  borderRadius: 12,
+                  padding: "11px 40px 11px 40px",
+                  fontSize: 14,
+                  fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
+                  background: "#fff",
+                  color: "#11151C",
+                  outline: "none",
+                  transition: "border-color .15s, box-shadow .15s",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent)";
+                  e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#E4E1D8";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(""); setDebouncedQuery(""); setHighlightedIds(new Set()); }}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#8B8676",
+                    fontSize: 16,
+                    padding: "4px 6px",
+                    lineHeight: 1,
+                    borderRadius: 6,
+                    transition: "color .15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#11151C"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#8B8676"; }}
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {noMatch && (
+              <p style={{ fontSize: 13, color: "#8B8676", margin: "8px 0 0 4px" }}>
+                No tipper found
+              </p>
+            )}
+          </div>
+        )}
+
         {(noRoundsPlayed || (selectedRoundData && sorted.every((e) => e.totalScore === 0))) && (
           <div
             className="flex items-center gap-3"
@@ -593,21 +711,29 @@ export default function LeaderboardContent({
               </span>
             </div>
 
-            <LeaderboardTable totalCount={sorted.length}>
+            <LeaderboardTable totalCount={sorted.length} forceExpanded={debouncedQuery.length >= 2}>
               {sorted.map((entry, idx) => {
                 const isYou = currentUserId === entry.user_id;
                 const displayRank = ranks[idx];
                 const colorIdx = entry.displayName.charCodeAt(0) % AVATAR_COLORS.length;
+                const isHighlighted = highlightedIds.has(entry.user_id);
 
                 return (
                   <div
                     key={entry.user_id}
-                    className={`grid gap-x-1 sm:gap-x-2 ${gridCls} px-3 py-2.5 sm:px-[22px] sm:py-[15px]`}
+                    ref={(el) => setRowRef(entry.user_id, el)}
+                    data-user-id={entry.user_id}
+                    className={`grid gap-x-1 sm:gap-x-2 ${gridCls} px-3 py-2.5 sm:px-[22px] sm:py-[15px]${isHighlighted ? " leaderboard-highlight" : ""}`}
                     style={{
                       alignItems: "center",
                       borderTop: "1px solid #EFEDE6",
-                      background: isYou ? "var(--accent-wash, rgba(217,165,33,.10))" : "#fff",
+                      background: isHighlighted
+                        ? "rgba(44,159,212,.15)"
+                        : isYou
+                        ? "var(--accent-wash, rgba(217,165,33,.10))"
+                        : "#fff",
                       borderLeft: isYou ? "3px solid var(--accent)" : "3px solid transparent",
+                      transition: "background .3s ease-out",
                     }}
                   >
                     <span
@@ -698,6 +824,16 @@ export default function LeaderboardContent({
           </div>
         )}
       </section>
+
+      <style>{`
+        @keyframes leaderboardPulse {
+          0% { background-color: rgba(44,159,212,.25); }
+          100% { background-color: transparent; }
+        }
+        .leaderboard-highlight {
+          animation: leaderboardPulse 2s ease-out forwards;
+        }
+      `}</style>
 
       {/* League management */}
       {currentUserId && (

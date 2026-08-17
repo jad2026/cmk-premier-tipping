@@ -5,11 +5,14 @@ import { useState } from "react";
 export default function LeaderboardTable({
   children,
   totalCount,
+  forceExpanded = false,
 }: {
   children: React.ReactNode;
   totalCount: number;
+  forceExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const isExpanded = expanded || forceExpanded;
   const collapsible = totalCount > 8;
 
   return (
@@ -17,13 +20,13 @@ export default function LeaderboardTable({
       <div style={{ position: "relative" }}>
         <div
           style={{
-            maxHeight: collapsible && !expanded ? 520 : undefined,
-            overflowY: collapsible && !expanded ? "auto" : undefined,
+            maxHeight: collapsible && !isExpanded ? 520 : undefined,
+            overflowY: collapsible && !isExpanded ? "auto" : undefined,
           }}
         >
           {children}
         </div>
-        {collapsible && !expanded && (
+        {collapsible && !isExpanded && (
           <div
             style={{
               position: "absolute",
