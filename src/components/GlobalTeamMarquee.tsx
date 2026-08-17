@@ -21,7 +21,7 @@ export default async function GlobalTeamMarquee() {
   if (!teams || teams.length === 0) return null;
 
   return (
-    <div className="max-w-content mx-auto px-4 sm:px-8 pt-6">
+    <div className="md:hidden max-w-content mx-auto px-4 sm:px-8 pt-6">
       <TeamMarquee teams={teams} />
     </div>
   );
