@@ -279,6 +279,31 @@ export type Database = {
         Args: { p_fixture_id: string; p_result_team_id?: string | null; p_is_draw?: boolean };
         Returns: number;
       };
+      get_leaderboard_scores: {
+        Args: { comp_id: string };
+        Returns: {
+          user_id: string;
+          correct: number;
+          total: number;
+          manual_correct: number;
+          manual_total: number;
+          manual_resulted: number;
+          margins_correct: number;
+          margin_bonus: number;
+          total_points: number;
+        }[];
+      };
+      get_round_scores: {
+        Args: { comp_id: string };
+        Returns: {
+          user_id: string;
+          gameweek_id: string;
+          correct: number;
+          total: number;
+          score: number;
+          margin_bonus: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

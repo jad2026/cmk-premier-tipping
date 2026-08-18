@@ -352,10 +352,11 @@ export default async function LeaderboardPage() {
       { data: openGameweek },
       { data: closedGameweeks },
       { data: fixturesWithResults },
-      { data: compFixtureRows },
       { data: allGwsForRounds },
     ],
     userLeagues,
+    { data: lbScores },
+    { data: roundScoresRaw },
   ] = await Promise.all([
     Promise.all([
       admin
@@ -377,9 +378,6 @@ export default async function LeaderboardPage() {
             .or("result_team_id.not.is.null,is_draw.eq.true")
             .in("gameweek_id", compGwIds)
         : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
-      compGwIds.length > 0
-        ? admin.from("fixtures").select("id, gameweek_id").in("gameweek_id", compGwIds)
-        : Promise.resolve({ data: [] as { id: string; gameweek_id: string }[], error: null }),
       admin
         .from("gameweeks")
         .select("id, number, label, deadline, is_open")
@@ -387,31 +385,11 @@ export default async function LeaderboardPage() {
         .order("number"),
     ]),
     fetchUserLeagues(),
+    admin.rpc("get_leaderboard_scores", { comp_id: compId }),
+    admin.rpc("get_round_scores", { comp_id: compId }),
   ]);
 
-  const participantIds = new Set<string>();
-
-  const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
-
-  // Build fixture → gameweek mapping for per-round scoring
-  const fixtureToGameweek = new Map<string, string>();
-  for (const f of compFixtureRows ?? []) {
-    fixtureToGameweek.set(f.id, f.gameweek_id);
-  }
-
-  const allPicksRaw: { user_id: string; fixture_id: string; is_correct: boolean | null; margin_correct: boolean | null; margin_bonus: number; auto_picked: boolean; points: number }[] = [];
-  if (compFixtureIds.length > 0) {
-    for (let from = 0; ; from += 1000) {
-      const { data } = await admin.from("picks").select("user_id, fixture_id, is_correct, margin_correct, margin_bonus, auto_picked, points").in("fixture_id", compFixtureIds).order("id").range(from, from + 999);
-      if (!data || data.length === 0) break;
-      allPicksRaw.push(...data);
-      if (data.length < 1000) break;
-    }
-  }
-
-  for (const pick of allPicksRaw) {
-    participantIds.add(pick.user_id);
-  }
+  const participantIds = new Set((lbScores ?? []).map((r) => r.user_id));
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
 
@@ -472,33 +450,20 @@ export default async function LeaderboardPage() {
     }
   }
 
-  const lbMap = new Map<string, { correct: number; total: number; manualCorrect: number; manualTotal: number; manualResulted: number; marginsCorrect: number; marginBonus: number; totalPoints: number }>(
-    Array.from(participantIds).map((id) => [id, { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, manualResulted: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 }])
-  );
-  for (const pick of allPicksRaw ?? []) {
-    if (!participantIds.has(pick.user_id)) continue;
-    const e = lbMap.get(pick.user_id) ?? { correct: 0, total: 0, manualCorrect: 0, manualTotal: 0, manualResulted: 0, marginsCorrect: 0, marginBonus: 0, totalPoints: 0 };
-    e.total += 1;
-    if (pick.is_correct) e.correct += 1;
-    if (pick.margin_correct) e.marginsCorrect += 1;
-    e.marginBonus += pick.margin_bonus ?? 0;
-    e.totalPoints += pick.points ?? 0;
-    if (!pick.auto_picked) {
-      e.manualTotal += 1;
-      if (pick.is_correct !== null) e.manualResulted += 1;
-      if (pick.is_correct) e.manualCorrect += 1;
-    }
-    lbMap.set(pick.user_id, e);
-  }
-
-  const leaderboard: LeaderboardEntry[] = Array.from(lbMap.entries())
-    .map(([user_id, stats]) => ({
-      user_id,
-      displayName: resolveDisplayName(user_id, profileMap),
-      avatarUrl: avatarMap.get(user_id) ?? null,
-      supportedTeamId: supportedTeamMap.get(user_id) ?? null,
-      ...stats,
-      totalScore: stats.totalPoints,
+  const leaderboard: LeaderboardEntry[] = (lbScores ?? [])
+    .map((row) => ({
+      user_id: row.user_id,
+      displayName: resolveDisplayName(row.user_id, profileMap),
+      avatarUrl: avatarMap.get(row.user_id) ?? null,
+      supportedTeamId: supportedTeamMap.get(row.user_id) ?? null,
+      correct: Number(row.correct),
+      total: Number(row.total),
+      manualCorrect: Number(row.manual_correct),
+      manualTotal: Number(row.manual_total),
+      manualResulted: Number(row.manual_resulted),
+      marginsCorrect: Number(row.margins_correct),
+      marginBonus: Number(row.margin_bonus),
+      totalScore: Number(row.total_points),
     }))
     .sort(
       (a, b) =>
@@ -523,22 +488,16 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // ── Per-round scores (for round-by-round winner feature) ────────────────
-  // Build a map of gameweekId → userId → { score, correct, total, marginBonus }
+  // ── Per-round scores (from database aggregation) ───────────────────────
   const roundScoreMap = new Map<string, Map<string, { score: number; correct: number; total: number; marginBonus: number }>>();
-  for (const pick of allPicksRaw) {
-    if (!participantIds.has(pick.user_id)) continue;
-    const gwId = fixtureToGameweek.get(pick.fixture_id);
-    if (!gwId) continue;
-
-    if (!roundScoreMap.has(gwId)) roundScoreMap.set(gwId, new Map());
-    const gwScores = roundScoreMap.get(gwId)!;
-    const entry = gwScores.get(pick.user_id) ?? { score: 0, correct: 0, total: 0, marginBonus: 0 };
-    if (pick.is_correct !== null) entry.total++;
-    if (pick.is_correct) entry.correct++;
-    entry.score += pick.points ?? 0;
-    entry.marginBonus += pick.margin_bonus ?? 0;
-    gwScores.set(pick.user_id, entry);
+  for (const row of roundScoresRaw ?? []) {
+    if (!roundScoreMap.has(row.gameweek_id)) roundScoreMap.set(row.gameweek_id, new Map());
+    roundScoreMap.get(row.gameweek_id)!.set(row.user_id, {
+      score: Number(row.score),
+      correct: Number(row.correct),
+      total: Number(row.total),
+      marginBonus: Number(row.margin_bonus),
+    });
   }
 
   const allGameweeksForRounds = (allGwsForRounds ?? []) as Pick<Gameweek, "id" | "number" | "label" | "deadline" | "is_open">[];
