@@ -265,13 +265,18 @@ export default async function LeaderboardPage() {
   const supabase = await createClient();
   const admin = createAdminClient();
   const compId = await getCurrentCompetitionId();
-  const tz = await getCompetitionTimezone(compId);
 
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const currentUserId = user?.id ?? null;
+  // ── Batch 1: all independent queries that only need compId ────────────
+  async function fetchAllProfiles(): Promise<Profile[]> {
+    const all: Profile[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data } = await admin.from("profiles").select("id, display_name, avatar_url, supported_team_id").order("id").range(from, from + 999);
+      if (!data || data.length === 0) break;
+      all.push(...(data as Profile[]));
+      if (data.length < 1000) break;
+    }
+    return all;
+  }
 
   const [
     { data: compGwRows },
@@ -279,103 +284,112 @@ export default async function LeaderboardPage() {
     seasonConfig,
     { data: matchResultsRaw },
     compFeatures,
+    { data: { user } },
+    tz,
+    allProfiles,
   ] = await Promise.all([
     admin.from("gameweeks").select("id").eq("competition_id", compId),
     getCachedTeams(compId),
     getCachedSeasonConfig(compId),
     admin.from("match_results").select("home_team, away_team, home_score, away_score").eq("result_status", "final"),
     getCachedCompetitionFeatures(compId),
+    supabase.auth.getUser(),
+    getCompetitionTimezone(compId),
+    fetchAllProfiles(),
   ]);
 
-  // Fetch all profiles (Supabase default limit is 1000 rows)
-  const allProfiles: Profile[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data } = await admin.from("profiles").select("id, display_name, avatar_url, supported_team_id").order("id").range(from, from + 999);
-    if (!data || data.length === 0) break;
-    allProfiles.push(...(data as Profile[]));
-    if (data.length < 1000) break;
-  }
+  const currentUserId = user?.id ?? null;
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
 
-  const participantIds = new Set<string>();
-  let userLeagues: LeagueInfo[] = [];
-  if (currentUserId) {
+  // ── Batch 2: league chain + gameweek/fixture queries run concurrently ──
+  const compGwIds = (compGwRows ?? []).map((g) => g.id);
+
+  async function fetchUserLeagues(): Promise<LeagueInfo[]> {
+    if (!currentUserId) return [];
     const { data: memberships } = await admin
       .from("league_members")
       .select("league_id")
       .eq("user_id", currentUserId);
+    if (!memberships?.length) return [];
 
-    if (memberships?.length) {
-      const leagueIds = memberships.map((m) => m.league_id);
+    const leagueIds = memberships.map((m) => m.league_id);
+    const { data: leagues } = await admin
+      .from("leagues")
+      .select("*")
+      .in("id", leagueIds)
+      .eq("competition_id", compId);
+    if (!leagues?.length) return [];
 
-      const { data: leagues } = await admin
-        .from("leagues")
-        .select("*")
-        .in("id", leagueIds)
-        .eq("competition_id", compId);
+    const filteredIds = leagues.map((l) => l.id);
+    const { data: allMembers } = await admin
+      .from("league_members")
+      .select("league_id, user_id")
+      .in("league_id", filteredIds);
 
-      if (leagues?.length) {
-        const filteredIds = leagues.map((l) => l.id);
-
-        const { data: allMembers } = await admin
-          .from("league_members")
-          .select("league_id, user_id")
-          .in("league_id", filteredIds);
-
-        const memberMap = new Map<string, string[]>();
-        const countMap = new Map<string, number>();
-        for (const m of allMembers ?? []) {
-          const list = memberMap.get(m.league_id) ?? [];
-          list.push(m.user_id);
-          memberMap.set(m.league_id, list);
-          countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
-        }
-
-        userLeagues = leagues.map((l) => ({
-          id: l.id,
-          name: l.name,
-          invite_code: l.invite_code,
-          member_count: countMap.get(l.id) ?? 0,
-          memberUserIds: memberMap.get(l.id) ?? [],
-          created_by: l.created_by,
-          is_sponsored: (l as Record<string, unknown>).is_sponsored === true,
-        }));
-      }
+    const memberMap = new Map<string, string[]>();
+    const countMap = new Map<string, number>();
+    for (const m of allMembers ?? []) {
+      const list = memberMap.get(m.league_id) ?? [];
+      list.push(m.user_id);
+      memberMap.set(m.league_id, list);
+      countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
     }
+
+    return leagues.map((l) => ({
+      id: l.id,
+      name: l.name,
+      invite_code: l.invite_code,
+      member_count: countMap.get(l.id) ?? 0,
+      memberUserIds: memberMap.get(l.id) ?? [],
+      created_by: l.created_by,
+      is_sponsored: (l as Record<string, unknown>).is_sponsored === true,
+    }));
   }
 
-  const compGwIds = (compGwRows ?? []).map((g) => g.id);
-
   const [
-    { data: openGameweek },
-    { data: closedGameweeks },
-    { data: fixturesWithResults },
-    { data: compFixtureRows },
+    [
+      { data: openGameweek },
+      { data: closedGameweeks },
+      { data: fixturesWithResults },
+      { data: compFixtureRows },
+      { data: allGwsForRounds },
+    ],
+    userLeagues,
   ] = await Promise.all([
-    admin
-      .from("gameweeks")
-      .select("id, number, label, deadline, is_open")
-      .eq("competition_id", compId)
-      .eq("is_open", true)
-      .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
-    admin
-      .from("gameweeks")
-      .select("id, number, label, deadline, is_open")
-      .eq("competition_id", compId)
-      .eq("is_open", false)
-      .order("number"),
-    compGwIds.length > 0
-      ? admin
-          .from("fixtures")
-          .select("gameweek_id")
-          .or("result_team_id.not.is.null,is_draw.eq.true")
-          .in("gameweek_id", compGwIds)
-      : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
-    compGwIds.length > 0
-      ? admin.from("fixtures").select("id, gameweek_id").in("gameweek_id", compGwIds)
-      : Promise.resolve({ data: [] as { id: string; gameweek_id: string }[], error: null }),
+    Promise.all([
+      admin
+        .from("gameweeks")
+        .select("id, number, label, deadline, is_open")
+        .eq("competition_id", compId)
+        .eq("is_open", true)
+        .maybeSingle() as unknown as Promise<{ data: Gameweek | null }>,
+      admin
+        .from("gameweeks")
+        .select("id, number, label, deadline, is_open")
+        .eq("competition_id", compId)
+        .eq("is_open", false)
+        .order("number"),
+      compGwIds.length > 0
+        ? admin
+            .from("fixtures")
+            .select("gameweek_id")
+            .or("result_team_id.not.is.null,is_draw.eq.true")
+            .in("gameweek_id", compGwIds)
+        : Promise.resolve({ data: [] as { gameweek_id: string }[], error: null }),
+      compGwIds.length > 0
+        ? admin.from("fixtures").select("id, gameweek_id").in("gameweek_id", compGwIds)
+        : Promise.resolve({ data: [] as { id: string; gameweek_id: string }[], error: null }),
+      admin
+        .from("gameweeks")
+        .select("id, number, label, deadline, is_open")
+        .eq("competition_id", compId)
+        .order("number"),
+    ]),
+    fetchUserLeagues(),
   ]);
+
+  const participantIds = new Set<string>();
 
   const compFixtureIds = (compFixtureRows ?? []).map((f) => f.id);
 
@@ -527,13 +541,6 @@ export default async function LeaderboardPage() {
     gwScores.set(pick.user_id, entry);
   }
 
-  // Get ALL gameweeks for the round selector (not just closed + single open,
-  // because multiple gameweeks can be open at once and .maybeSingle() drops extras)
-  const { data: allGwsForRounds } = await admin
-    .from("gameweeks")
-    .select("id, number, label, deadline, is_open")
-    .eq("competition_id", compId)
-    .order("number");
   const allGameweeksForRounds = (allGwsForRounds ?? []) as Pick<Gameweek, "id" | "number" | "label" | "deadline" | "is_open">[];
 
   type RoundScoreEntry = {
@@ -591,19 +598,20 @@ export default async function LeaderboardPage() {
   const summaryPicksByFixture = new Map<string, RichPick[]>();
 
   if (seasonComplete) {
-    const { data: allGws } = await admin
-      .from("gameweeks")
-      .select("id, number, label, deadline, is_open")
-      .eq("competition_id", compId)
-      .order("number");
+    const [{ data: allGws }, { data: allFixturesRich }] = await Promise.all([
+      admin
+        .from("gameweeks")
+        .select("id, number, label, deadline, is_open")
+        .eq("competition_id", compId)
+        .order("number"),
+      admin
+        .from("fixtures")
+        .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
+        .in("gameweek_id", compGwIds)
+        .order("match_date"),
+    ]);
 
     summaryGameweeks = allGws ?? [];
-
-    const { data: allFixturesRich } = await admin
-      .from("fixtures")
-      .select(`*, home_team:teams!fixtures_home_team_id_fkey(*), away_team:teams!fixtures_away_team_id_fkey(*)`)
-      .in("gameweek_id", compGwIds)
-      .order("match_date");
 
     const richFixtures = (allFixturesRich ?? []) as RichFixture[];
     for (const f of richFixtures) {
