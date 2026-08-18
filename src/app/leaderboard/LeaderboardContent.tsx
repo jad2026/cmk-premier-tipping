@@ -202,6 +202,8 @@ export default function LeaderboardContent({
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const searchScrolledRef = useRef(false);
 
   const setRowRef = useCallback((userId: string, el: HTMLDivElement | null) => {
     if (el) rowRefs.current.set(userId, el);
@@ -224,6 +226,19 @@ export default function LeaderboardContent({
     setDebouncedQuery("");
     setHighlightedIds(new Set());
   }, [selectedLeague]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
+        searchScrolledRef.current = false;
+      } else if (!searchScrolledRef.current) {
+        setShowBackToTop(false);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const selectedLeagueInfo = leagues.find((l) => l.id === selectedLeague);
   const isSponsored = selectedLeagueInfo?.is_sponsored ?? false;
@@ -309,7 +324,11 @@ export default function LeaderboardContent({
     setHighlightedIds(new Set(ids));
     requestAnimationFrame(() => {
       const el = rowRefs.current.get(ids[0]);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        searchScrolledRef.current = true;
+        setShowBackToTop(true);
+      }
     });
     const timer = setTimeout(() => setHighlightedIds(new Set()), 2000);
     return () => clearTimeout(timer);
@@ -1023,6 +1042,40 @@ export default function LeaderboardContent({
           )}
         </section>
       )}
+
+      {/* Back to top */}
+      <button
+        onClick={() => {
+          searchScrolledRef.current = false;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        aria-label="Back to top"
+        style={{
+          position: "fixed",
+          bottom: 88,
+          right: 24,
+          zIndex: 50,
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          background: "#0D1016",
+          border: "2px solid #2C9FD4",
+          color: "#fff",
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,.25)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: showBackToTop ? 1 : 0,
+          transform: showBackToTop ? "scale(1)" : "scale(0.6)",
+          transition: "opacity .25s ease, transform .25s ease",
+          pointerEvents: showBackToTop ? "auto" : "none",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 16V4M10 4l5 5M10 4L5 9" stroke="#2C9FD4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </>
   );
 }
