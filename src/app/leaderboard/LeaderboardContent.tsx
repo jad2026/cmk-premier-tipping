@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
 import TeamBadge from "@/components/TeamBadge";
 import LeaderboardTable from "./LeaderboardTable";
+import LeaguePicks from "./LeaguePicks";
 import { createLeague, joinLeague, leaveLeague } from "../leagues/actions";
 import { rankByScore } from "@/lib/ranking";
 
@@ -552,6 +553,13 @@ export default function LeaderboardContent({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* League Picks — only for user-created (non-sponsored) leagues */}
+      {selectedLeague !== "overall" && selectedLeagueInfo && !isSponsored && (
+        <div className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px" }}>
+          <LeaguePicks leagueId={selectedLeague} roundsData={roundsData} />
         </div>
       )}
 
