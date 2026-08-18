@@ -557,7 +557,7 @@ export default function LeaderboardContent({
       )}
 
       {/* League Picks — only for user-created (non-sponsored) leagues */}
-      {selectedLeague !== "overall" && selectedLeagueInfo && !isSponsored && (
+      {selectedLeague !== "overall" && selectedLeagueInfo && (
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px" }}>
           <LeaguePicks leagueId={selectedLeague} roundsData={roundsData} />
         </div>

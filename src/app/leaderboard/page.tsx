@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
 import type { TzLocale } from "@/lib/datetime";
@@ -705,62 +704,6 @@ export default async function LeaderboardPage() {
                   score={findScore(fixture, matchResults)}
                   tz={tz}
                 />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Past Rounds ──────────────────────────────────────────────── */}
-      {!seasonComplete && pastRounds.length > 0 && (
-        <section style={{ background: "#F2F0EA" }}>
-          <div className="mx-auto" style={{ maxWidth: 1100, padding: "0 32px 50px" }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
-              <h2 className="font-display uppercase" style={{ fontSize: 22, margin: 0, color: "#11151C" }}>
-                Past Rounds
-              </h2>
-              <span style={{ fontSize: 12, color: "#8B8676", fontWeight: 600 }}>
-                {pastRounds.length} round{pastRounds.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, overflow: "hidden" }}>
-              {pastRounds.map((gw, i) => (
-                <Link
-                  key={gw.id}
-                  href={`/leaderboard/round/${gw.number}`}
-                  className="flex items-center justify-between group"
-                  style={{
-                    padding: "14px 22px",
-                    borderTop: i > 0 ? "1px solid #EFEDE6" : "none",
-                    textDecoration: "none",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex items-center justify-center shrink-0"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "rgba(var(--accent-rgb,217,165,33),.12)",
-                        color: "var(--accent)",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        fontFeatureSettings: "'tnum'",
-                      }}
-                    >
-                      {gw.number}
-                    </span>
-                    <span style={{ fontWeight: 600, color: "#11151C", fontSize: 14 }}>{gw.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2" style={{ color: "#8B8676" }}>
-                    <span style={{ fontSize: 12 }}>View results</span>
-                    <svg className="group-hover:translate-x-0.5 transition-transform" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                </Link>
               ))}
             </div>
           </div>

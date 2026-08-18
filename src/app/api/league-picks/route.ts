@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     .eq("id", leagueId)
     .maybeSingle();
 
-  if (!league || (league as Record<string, unknown>).is_sponsored === true) {
+  if (!league) {
     return NextResponse.json({ error: "League not found" }, { status: 404 });
   }
 
