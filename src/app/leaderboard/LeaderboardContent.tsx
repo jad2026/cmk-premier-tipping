@@ -1080,9 +1080,15 @@ export default function LeaderboardContent({
           pointerEvents: showBackToTop ? "auto" : "none",
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 16V4M10 4l5 5M10 4L5 9" stroke="#2C9FD4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: ".06em",
+          color: "#2C9FD4",
+          fontFamily: "var(--font-archivo-black), 'Archivo Black', sans-serif",
+        }}>
+          HOME
+        </span>
       </button>
     </>
   );

@@ -299,18 +299,7 @@ export default async function LeaderboardPage() {
   const marginPicking = compFeatures?.margin_picking === true;
   const showSupportedTeam = compFeatures?.show_supported_team === true;
 
-  const allParticipantIds: string[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data } = await admin.from("competition_participants").select("user_id").eq("competition_id", compId).order("user_id").range(from, from + 999);
-    if (!data || data.length === 0) break;
-    allParticipantIds.push(...data.map((p) => p.user_id));
-    if (data.length < 1000) break;
-  }
-  const participantIds = new Set(allParticipantIds);
-
-  // Fetch user's leagues + member lists early so league members are
-  // included in the main leaderboard array (the league tab filters it
-  // client-side and can only show entries that exist in the array).
+  const participantIds = new Set<string>();
   let userLeagues: LeagueInfo[] = [];
   if (currentUserId) {
     const { data: memberships } = await admin
@@ -342,7 +331,6 @@ export default async function LeaderboardPage() {
           list.push(m.user_id);
           memberMap.set(m.league_id, list);
           countMap.set(m.league_id, (countMap.get(m.league_id) ?? 0) + 1);
-          participantIds.add(m.user_id);
         }
 
         userLeagues = leagues.map((l) => ({
@@ -406,6 +394,10 @@ export default async function LeaderboardPage() {
       allPicksRaw.push(...data);
       if (data.length < 1000) break;
     }
+  }
+
+  for (const pick of allPicksRaw) {
+    participantIds.add(pick.user_id);
   }
 
   const matchResults = (matchResultsRaw ?? []) as RawMatchResult[];
