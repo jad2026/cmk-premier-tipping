@@ -105,11 +105,20 @@ function buildHtml(p: ResultsEmailPayload): string {
     .join("");
 
   const scorePct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const ordinal = (n: number): string => {
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+    const mod10 = n % 10;
+    if (mod10 === 1) return `${n}st`;
+    if (mod10 === 2) return `${n}nd`;
+    if (mod10 === 3) return `${n}rd`;
+    return `${n}th`;
+  };
   const positionLabel =
     leaderboardPosition === 1 ? "1st 🥇"
     : leaderboardPosition === 2 ? "2nd 🥈"
     : leaderboardPosition === 3 ? "3rd 🥉"
-    : `${leaderboardPosition}th`;
+    : ordinal(leaderboardPosition);
 
   return `<!DOCTYPE html>
 <html lang="en">
