@@ -355,8 +355,8 @@ export default async function LeaderboardPage() {
       { data: allGwsForRounds },
     ],
     userLeagues,
-    { data: lbScores },
-    { data: roundScoresRaw },
+    lbScores,
+    roundScoresRaw,
   ] = await Promise.all([
     Promise.all([
       admin
@@ -385,8 +385,26 @@ export default async function LeaderboardPage() {
         .order("number"),
     ]),
     fetchUserLeagues(),
-    admin.rpc("get_leaderboard_scores", { comp_id: compId }),
-    admin.rpc("get_round_scores", { comp_id: compId }),
+    (async () => {
+      const rows: { user_id: string; correct: number; total: number; manual_correct: number; manual_total: number; manual_resulted: number; margins_correct: number; margin_bonus: number; total_points: number }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await admin.rpc("get_leaderboard_scores", { comp_id: compId }).select("*").order("user_id").range(from, from + 999);
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    })(),
+    (async () => {
+      const rows: { user_id: string; gameweek_id: string; correct: number; total: number; score: number; margin_bonus: number }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await admin.rpc("get_round_scores", { comp_id: compId }).select("*").order("user_id").order("gameweek_id").range(from, from + 999);
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    })(),
   ]);
 
   const participantIds = new Set((lbScores ?? []).map((r) => r.user_id));
