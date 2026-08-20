@@ -100,6 +100,22 @@ export async function POST(request: Request) {
   else if (rawXml.includes("<RU13LINEUP")) feedType = "RU13";
   else if (rawXml.includes("<table") && rawXml.includes("<comp")) feedType = "RU31";
 
+  // --- Rate limit: skip if we already stored this feed type in the last 10s ---
+  const rateLimitCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: recentFeed, error: rateLimitError } = await admin
+    .from("opta_raw_feed")
+    .select("id")
+    .eq("feed_type", feedType)
+    .gte("received_at", rateLimitCutoff)
+    .limit(1);
+  if (rateLimitError) {
+    // Fail open — a broken rate-limit lookup must not block ingest.
+    console.error("[opta] Rate limit check failed:", rateLimitError.message);
+  } else if (recentFeed && recentFeed.length > 0) {
+    console.warn(`[opta] Rate limited ${feedType} — another feed stored within 10s`);
+    return NextResponse.json({ skipped: true, reason: "rate limited" }, { status: 200 });
+  }
+
   // --- Capture raw XML first ---
   const { error: rawError } = await admin.from("opta_raw_feed").insert({
     feed_type: feedType,
@@ -720,13 +736,14 @@ async function processRU7(
 
   console.log(`[opta/RU7] Done: processed=${processed}, errors=${errors}`);
 
-  if (processed > 0) {
-    try {
-      await admin.rpc('refresh_season_stats');
-    } catch (err) {
-      console.error("[opta/RU7] Failed to refresh season stats matviews:", err);
-    }
-  }
+  // Disabled during live games — run manually or via cron instead
+  // if (processed > 0) {
+  //   try {
+  //     await admin.rpc('refresh_season_stats');
+  //   } catch (err) {
+  //     console.error("[opta/RU7] Failed to refresh season stats matviews:", err);
+  //   }
+  // }
 
   return { processed, errors };
 }
