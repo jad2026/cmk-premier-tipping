@@ -56,6 +56,7 @@ function createAdmin() {
 }
 
 export async function POST(request: Request) {
+  return NextResponse.json({ paused: true, reason: "Emergency pause - Supabase overload" }, { status: 200 });
   // --- Auth: token check ---
   const expectedToken = process.env.OPTA_INGEST_TOKEN;
   if (!expectedToken) {
