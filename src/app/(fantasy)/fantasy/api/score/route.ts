@@ -185,13 +185,14 @@ export async function GET(request: Request) {
     const { data: gameweeks } = (await admin
       .from("gameweeks")
       .select("id, number, label")
+      .eq("competition_id", FANTASY_COMP_ID)
       .order("number", { ascending: false })) as unknown as {
       data: GameweekRow[] | null;
     };
 
     if (!gameweeks?.length) {
       return NextResponse.json(
-        { error: "No gameweeks found" },
+        { error: "No gameweeks found for the fantasy competition" },
         { status: 404 }
       );
     }
@@ -223,7 +224,7 @@ export async function GET(request: Request) {
 
     if (!gameweekId) {
       return NextResponse.json(
-        { error: "No fully completed gameweek found" },
+        { error: "No fully completed fantasy gameweek found" },
         { status: 404 }
       );
     }
