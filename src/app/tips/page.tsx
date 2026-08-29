@@ -112,9 +112,16 @@ export default async function TipsPage() {
     )
   );
 
+  const now = Date.now();
+
   const gameweeks = (openGameweeks ?? []).filter((_, i) => {
     const fixtures = fixtureResults[i].data ?? [];
-    return fixtures.length > 0 && fixtures.some((f) => f.result_team_id === null && !f.is_draw);
+    if (fixtures.length === 0) return false;
+    if (!fixtures.some((f) => f.result_team_id === null && !f.is_draw)) return false;
+    // Tips lock at the first kickoff of the round, so a round that has already
+    // started is read-only — don't surface it on the tipping page.
+    const earliestKickoff = Math.min(...fixtures.map((f) => new Date(f.match_date).getTime()));
+    return earliestKickoff > now;
   });
 
   if (gameweeks.length === 0) {
@@ -122,9 +129,14 @@ export default async function TipsPage() {
       <div className="card px-8 py-16 text-center max-w-lg mx-auto mt-8">
         <h1 className="text-xl font-display uppercase text-md-text mb-2">No Rounds Open for Tipping</h1>
         <p className="text-md-text-secondary text-sm mb-6">
-          There are no rounds currently open. Check back soon for the next round!
+          No rounds open for tipping right now.
         </p>
-        <Link href="/leaderboard" className="btn-primary inline-flex">View Leaderboard</Link>
+        <div className="flex flex-col items-center gap-3">
+          <Link href="/my-picks" className="btn-primary inline-flex">View My Picks</Link>
+          <Link href="/leaderboard" className="text-sm text-md-text-secondary underline underline-offset-4 hover:text-md-text">
+            Leaderboard
+          </Link>
+        </div>
       </div>
     );
   }
