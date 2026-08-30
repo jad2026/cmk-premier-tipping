@@ -7,9 +7,10 @@ import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import SignupBanner from "@/components/SignupBanner";
+import PushPromptBanner from "@/components/PushPromptBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
 import { getAccentForCompetition, getAccentCSSVars } from "@/lib/theme";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -71,13 +72,23 @@ export default async function RootLayout({
   const isLoggedOut = !user;
 
   let isAdmin = false;
+  // Anyone already registered for push never sees the opt-in prompt, on any
+  // device — the remaining "don't show" rules live in localStorage. Read with
+  // the admin client because push_subscriptions is written service-side and
+  // exposes no SELECT policy to the signed-in user; the filter is still pinned
+  // to their own id.
+  let hasPushSubscription = true;
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
+    const [{ data: profile }, { count: pushCount }] = await Promise.all([
+      supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+      createAdminClient()
+        .from("push_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("competition_id", compId),
+    ]);
     isAdmin = profile?.is_admin ?? false;
+    hasPushSubscription = (pushCount ?? 0) > 0;
   }
 
   return (
@@ -139,6 +150,7 @@ export default async function RootLayout({
         </main>
         <GlobalSponsorBanner />
         {isLoggedOut && <SignupBanner siteName={siteName} />}
+        {user && !hasPushSubscription && <PushPromptBanner competitionId={compId} />}
         <footer className="bg-ink border-t border-white/[.06]">
           <div className="max-w-content mx-auto px-4 sm:px-8 py-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
