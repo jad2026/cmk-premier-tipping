@@ -163,30 +163,30 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const warnings: string[] = [];
 
-  /* ── 1. Resolve gameweek ── */
+  /* ── 1. Resolve which gameweeks to score ── */
 
-  let gameweekId = url.searchParams.get("gameweek_id");
-  let gameweekLabel = "";
+  const requestedGwId = url.searchParams.get("gameweek_id");
+  let targetGameweeks: GameweekRow[] = [];
 
-  if (gameweekId) {
+  if (requestedGwId) {
     const { data: gw } = (await admin
       .from("gameweeks")
       .select("id, number, label")
-      .eq("id", gameweekId)
+      .eq("id", requestedGwId)
       .single()) as unknown as { data: GameweekRow | null };
     if (!gw) {
       return NextResponse.json(
-        { error: `Gameweek ${gameweekId} not found` },
+        { error: `Gameweek ${requestedGwId} not found` },
         { status: 404 }
       );
     }
-    gameweekLabel = gw.label;
+    targetGameweeks = [gw];
   } else {
     const { data: gameweeks } = (await admin
       .from("gameweeks")
       .select("id, number, label")
       .eq("competition_id", FANTASY_COMP_ID)
-      .order("number", { ascending: false })) as unknown as {
+      .order("number")) as unknown as {
       data: GameweekRow[] | null;
     };
 
@@ -205,32 +205,29 @@ export async function GET(request: Request) {
       data: { gameweek_id: string; home_score: number | null }[] | null;
     };
 
-    const byGw = new Map<string, { total: number; scored: number }>();
+    // A gameweek is worth scoring as soon as ONE of its fixtures has a result,
+    // so a round that is half played has its finished games reflected in squad
+    // scores right away rather than waiting for the whole round to complete.
+    const scoredByGw = new Map<string, number>();
     for (const f of allFix ?? []) {
-      const e = byGw.get(f.gameweek_id) ?? { total: 0, scored: 0 };
-      e.total++;
-      if (f.home_score !== null) e.scored++;
-      byGw.set(f.gameweek_id, e);
-    }
-
-    for (const gw of gameweeks) {
-      const s = byGw.get(gw.id);
-      if (s && s.total > 0 && s.total === s.scored) {
-        gameweekId = gw.id;
-        gameweekLabel = gw.label;
-        break;
+      if (f.home_score !== null) {
+        scoredByGw.set(f.gameweek_id, (scoredByGw.get(f.gameweek_id) ?? 0) + 1);
       }
     }
 
-    if (!gameweekId) {
-      return NextResponse.json(
-        { error: "No fully completed fantasy gameweek found" },
-        { status: 404 }
-      );
-    }
+    targetGameweeks = gameweeks.filter((g) => (scoredByGw.get(g.id) ?? 0) > 0);
   }
 
-  /* ── 2. Load scoring rules ── */
+  // Nothing has been played yet — the common case for a cron on a short cycle.
+  if (!targetGameweeks.length) {
+    return NextResponse.json({
+      gameweeksScored: 0,
+      results: [],
+      message: "No gameweeks with completed fixtures",
+    });
+  }
+
+  /* ── 2. Load scoring rules (shared across gameweeks) ── */
 
   const { data: rules } = (await admin
     .from("fantasy_scoring_rules")
@@ -246,43 +243,7 @@ export async function GET(request: Request) {
     );
   }
 
-  /* ── 3. Load scored fixtures for this gameweek ── */
-
-  const { data: fixtures } = (await admin
-    .from("fixtures")
-    .select("id, home_team_id, away_team_id, home_score, away_score")
-    .eq("gameweek_id", gameweekId)
-    .not("home_score", "is", null)) as unknown as {
-    data: FixtureRow[] | null;
-  };
-
-  if (!fixtures?.length) {
-    return NextResponse.json(
-      { error: "No scored fixtures in this gameweek" },
-      { status: 404 }
-    );
-  }
-
-  /* ── 4. Load opta player stats for those fixtures ── */
-
-  const fixtureIds = fixtures.map((f) => f.id);
-  const { data: playerStats } = (await admin
-    .from("opta_player_stats")
-    .select(
-      "opta_player_id, opta_team_id, player_name, position, stats, fixture_id"
-    )
-    .in("fixture_id", fixtureIds)) as unknown as {
-    data: PlayerStatRow[] | null;
-  };
-
-  if (!playerStats?.length) {
-    return NextResponse.json(
-      { error: "No player stats found for scored fixtures" },
-      { status: 404 }
-    );
-  }
-
-  /* ── 5. Load player ID mapping (opta_player_id → UUID) ── */
+  /* ── 3. Load player ID mapping (opta_player_id → UUID) ── */
 
   const { data: playerIdRows } = (await admin
     .from("players")
@@ -295,89 +256,7 @@ export async function GET(request: Request) {
     if (row.opta_player_id) optaToUuid.set(row.opta_player_id, row.id);
   }
 
-  /* ── 6. Score each player per fixture ── */
-
-  const matchStatsTable = (admin as any).from(
-    "fantasy_player_match_stats"
-  );
-
-  const upsertRows: {
-    fixture_id: string;
-    player_id: string;
-    minutes_played: number;
-    stats: Record<string, string> | null;
-    fantasy_points: number;
-  }[] = [];
-
-  // In-memory lookup for squad scoring: `fixtureId:playerUuid` → { points, minutes }
-  const playerMatchPts = new Map<
-    string,
-    { points: number; minutes: number }
-  >();
-
-  // Reconciliation accumulators per fixture per opta team
-  type TeamRecon = {
-    tries: number;
-    conversions: number;
-    penalties: number;
-    drops: number;
-  };
-  const reconMap = new Map<string, Map<number, TeamRecon>>();
-
-  let playersScored = 0;
-
-  for (const ps of playerStats) {
-    if (!ps.fixture_id) continue;
-    const uuid = optaToUuid.get(ps.opta_player_id);
-    if (!uuid) continue;
-
-    const { points, minutes } = scorePlayer(ps.stats, ps.position, rules);
-
-    upsertRows.push({
-      fixture_id: ps.fixture_id,
-      player_id: uuid,
-      minutes_played: minutes,
-      stats: ps.stats,
-      fantasy_points: points,
-    });
-
-    playerMatchPts.set(`${ps.fixture_id}:${uuid}`, { points, minutes });
-    playersScored++;
-
-    // Reconciliation tracking
-    if (!reconMap.has(ps.fixture_id))
-      reconMap.set(ps.fixture_id, new Map<number, TeamRecon>());
-    const tm = reconMap.get(ps.fixture_id)!;
-    const tr = tm.get(ps.opta_team_id) ?? {
-      tries: 0,
-      conversions: 0,
-      penalties: 0,
-      drops: 0,
-    };
-    tr.tries += readStat(ps.stats, "tries");
-    tr.conversions += readStat(ps.stats, "conversion_goals");
-    tr.penalties += readStat(ps.stats, "penalty_goals");
-    tr.drops += readStat(ps.stats, "drop_goals_converted");
-    tm.set(ps.opta_team_id, tr);
-  }
-
-  /* ── 7. Upsert fantasy_player_match_stats ── */
-
-  const BATCH = 500;
-  for (let i = 0; i < upsertRows.length; i += BATCH) {
-    const batch = upsertRows.slice(i, i + BATCH);
-    const { error } = await matchStatsTable.upsert(batch, {
-      onConflict: "fixture_id,player_id",
-    });
-    if (error) {
-      return NextResponse.json(
-        { error: `Match stats upsert failed: ${error.message}` },
-        { status: 500 }
-      );
-    }
-  }
-
-  /* ── 8. Reconciliation check ── */
+  /* ── 4. Load team mapping (for reconciliation) ── */
 
   const { data: teamMappings } = (await admin
     .from("opta_team_mapping")
@@ -389,36 +268,196 @@ export async function GET(request: Request) {
   for (const m of teamMappings ?? [])
     optaTeamToUuid.set(String(m.opta_team_id), m.team_id);
 
-  for (const fix of fixtures) {
-    const tm = reconMap.get(fix.id);
-    if (!tm) continue;
+  const matchStatsTable = (admin as any).from("fantasy_player_match_stats");
 
-    for (const [otId, rc] of Array.from(tm.entries())) {
-      const computed =
-        rc.tries * 5 + rc.conversions * 2 + rc.penalties * 3 + rc.drops * 3;
-      const teamUuid = optaTeamToUuid.get(String(otId));
+  /* ── 5. Score each gameweek that has completed fixtures ── */
 
-      let actual: number | null = null;
-      if (teamUuid === fix.home_team_id) actual = fix.home_score;
-      else if (teamUuid === fix.away_team_id) actual = fix.away_score;
+  type GameweekResult = {
+    gameweek: { id: string; number: number; label: string };
+    fixturesScored: number;
+    playersScored: number;
+    squadsUpdated: number;
+    skipped?: string;
+  };
 
-      if (actual !== null && computed !== actual) {
-        warnings.push(
-          `Fixture ${fix.id}: team ${otId} computed=${computed} actual=${actual}`
+  const results: GameweekResult[] = [];
+
+  for (const gw of targetGameweeks) {
+    const gameweekId = gw.id;
+
+    /* ── 5a. Load scored fixtures for this gameweek ── */
+
+    const { data: fixtures } = (await admin
+      .from("fixtures")
+      .select("id, home_team_id, away_team_id, home_score, away_score")
+      .eq("gameweek_id", gameweekId)
+      .not("home_score", "is", null)) as unknown as {
+      data: FixtureRow[] | null;
+    };
+
+    if (!fixtures?.length) {
+      if (requestedGwId) {
+        return NextResponse.json(
+          { error: "No scored fixtures in this gameweek" },
+          { status: 404 }
+        );
+      }
+      results.push({
+        gameweek: { id: gw.id, number: gw.number, label: gw.label },
+        fixturesScored: 0,
+        playersScored: 0,
+        squadsUpdated: 0,
+        skipped: "No scored fixtures",
+      });
+      continue;
+    }
+
+    /* ── 5b. Load opta player stats for those fixtures ── */
+
+    const fixtureIds = fixtures.map((f) => f.id);
+    const { data: playerStats } = (await admin
+      .from("opta_player_stats")
+      .select(
+        "opta_player_id, opta_team_id, player_name, position, stats, fixture_id"
+      )
+      .in("fixture_id", fixtureIds)) as unknown as {
+      data: PlayerStatRow[] | null;
+    };
+
+    if (!playerStats?.length) {
+      if (requestedGwId) {
+        return NextResponse.json(
+          { error: "No player stats found for scored fixtures" },
+          { status: 404 }
+        );
+      }
+      results.push({
+        gameweek: { id: gw.id, number: gw.number, label: gw.label },
+        fixturesScored: fixtures.length,
+        playersScored: 0,
+        squadsUpdated: 0,
+        skipped: "No player stats yet",
+      });
+      continue;
+    }
+
+    /* ── 5c. Score each player per fixture ── */
+
+    const upsertRows: {
+      fixture_id: string;
+      player_id: string;
+      minutes_played: number;
+      stats: Record<string, string> | null;
+      fantasy_points: number;
+    }[] = [];
+
+    // Reconciliation accumulators per fixture per opta team
+    type TeamRecon = {
+      tries: number;
+      conversions: number;
+      penalties: number;
+      drops: number;
+    };
+    const reconMap = new Map<string, Map<number, TeamRecon>>();
+
+    let playersScored = 0;
+
+    for (const ps of playerStats) {
+      if (!ps.fixture_id) continue;
+      const uuid = optaToUuid.get(ps.opta_player_id);
+      if (!uuid) continue;
+
+      const { points, minutes } = scorePlayer(ps.stats, ps.position, rules);
+
+      upsertRows.push({
+        fixture_id: ps.fixture_id,
+        player_id: uuid,
+        minutes_played: minutes,
+        stats: ps.stats,
+        fantasy_points: points,
+      });
+
+      playersScored++;
+
+      // Reconciliation tracking
+      if (!reconMap.has(ps.fixture_id))
+        reconMap.set(ps.fixture_id, new Map<number, TeamRecon>());
+      const tm = reconMap.get(ps.fixture_id)!;
+      const tr = tm.get(ps.opta_team_id) ?? {
+        tries: 0,
+        conversions: 0,
+        penalties: 0,
+        drops: 0,
+      };
+      tr.tries += readStat(ps.stats, "tries");
+      tr.conversions += readStat(ps.stats, "conversion_goals");
+      tr.penalties += readStat(ps.stats, "penalty_goals");
+      tr.drops += readStat(ps.stats, "drop_goals_converted");
+      tm.set(ps.opta_team_id, tr);
+    }
+
+    /* ── 5d. Upsert fantasy_player_match_stats ── */
+
+    const BATCH = 500;
+    for (let i = 0; i < upsertRows.length; i += BATCH) {
+      const batch = upsertRows.slice(i, i + BATCH);
+      const { error } = await matchStatsTable.upsert(batch, {
+        onConflict: "fixture_id,player_id",
+      });
+      if (error) {
+        return NextResponse.json(
+          { error: `Match stats upsert failed: ${error.message}` },
+          { status: 500 }
         );
       }
     }
+
+    /* ── 5e. Reconciliation check ── */
+
+    for (const fix of fixtures) {
+      const tm = reconMap.get(fix.id);
+      if (!tm) continue;
+
+      for (const [otId, rc] of Array.from(tm.entries())) {
+        const computed =
+          rc.tries * 5 + rc.conversions * 2 + rc.penalties * 3 + rc.drops * 3;
+        const teamUuid = optaTeamToUuid.get(String(otId));
+
+        let actual: number | null = null;
+        if (teamUuid === fix.home_team_id) actual = fix.home_score;
+        else if (teamUuid === fix.away_team_id) actual = fix.away_score;
+
+        if (actual !== null && computed !== actual) {
+          warnings.push(
+            `Fixture ${fix.id}: team ${otId} computed=${computed} actual=${actual}`
+          );
+        }
+      }
+    }
+
+    /* ── 5f. Score squads via DB function ── */
+
+    const { data: squadResult } = await (admin as any).rpc(
+      "score_fantasy_squads",
+      {
+        p_gameweek_id: gameweekId,
+        p_comp_id: FANTASY_COMP_ID,
+      }
+    );
+    const squadsUpdated =
+      (squadResult as { squadsUpdated?: number } | null)?.squadsUpdated ?? 0;
+
+    results.push({
+      gameweek: { id: gw.id, number: gw.number, label: gw.label },
+      fixturesScored: fixtures.length,
+      playersScored,
+      squadsUpdated,
+    });
   }
 
-  /* ── 9. Score squads via DB function ── */
-
-  const { data: squadResult } = await (admin as any).rpc('score_fantasy_squads', {
-    p_gameweek_id: gameweekId,
-    p_comp_id: FANTASY_COMP_ID,
-  });
-  const squadsUpdated = (squadResult as { squadsUpdated?: number } | null)?.squadsUpdated ?? 0;
-
-  /* ── 10. Refresh avg_points in fantasy_player_pool ── */
+  /* ── 6. Refresh avg_points in fantasy_player_pool ──
+     Averages span every gameweek, so this runs once per invocation rather than
+     once per gameweek — it is a full recompute either way. */
 
   let avgPointsUpdated = 0;
 
@@ -464,13 +503,11 @@ export async function GET(request: Request) {
     console.error("[fantasy-score] avg_points refresh failed:", err);
   }
 
-  /* ── 11. Return summary ── */
+  /* ── 7. Return summary ── */
 
   return NextResponse.json({
-    gameweek: { id: gameweekId, label: gameweekLabel },
-    fixturesScored: fixtures.length,
-    playersScored,
-    squadsUpdated,
+    gameweeksScored: results.filter((r) => !r.skipped).length,
+    results,
     avgPointsUpdated,
     warnings: warnings.length ? warnings : undefined,
   });
