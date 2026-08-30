@@ -314,6 +314,7 @@ async function processRU1(
         away_team_id: awayTeamId,
         venue: fix["@_venue"] ?? null,
         match_date: fix["@_datetime"] ?? null,
+        opta_status: status ?? null,
       };
 
       if (isResult) {

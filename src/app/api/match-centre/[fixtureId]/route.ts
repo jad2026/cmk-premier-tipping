@@ -300,6 +300,7 @@ export async function GET(
     }),
     minute: maxMinute,
     markers,
+    optaStatus: (fixture as Record<string, unknown>).opta_status as string | null,
   });
 
   const commentary: CommentaryEntry[] = (commentaryRows ?? [])

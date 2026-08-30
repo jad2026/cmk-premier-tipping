@@ -1,15 +1,15 @@
 import type { MatchStatus, MatchPhase } from "./matchCentreTypes";
 
 /**
- * Opta never gives us one tidy "status" field on a fixture — the match state is
- * spread across three feeds, none of which is persisted on `fixtures`:
+ * Opta reports match state in three places:
  *
  *   RU1/RU5 game @_status  "Fixture" | "First half" | "Half time" | "Second half" | "Result"
+ *                          — the RU1 value is persisted as fixtures.opta_status
  *   opta_match_events      START / END rows carrying period "First Half" | "Second Half"
  *   opta_commentary        "Start Of First Half" … "End Of Second Half"
  *
- * So we reconstruct the phase from whichever of those we have, and fall back to
- * the result flags plus the kickoff time.
+ * opta_status is preferred when present; otherwise the phase is reconstructed
+ * from the period markers, falling back to the result flags and kickoff time.
  */
 
 export type Phase = "pre" | MatchPhase | "fulltime";
@@ -100,8 +100,21 @@ export function deriveMatchStatus({
   markers,
   optaStatus,
 }: DeriveOptions): MatchStatus {
-  const phase =
-    phaseFromMarkers(markers ?? []) ?? normalisePhase(optaStatus) ?? null;
+  const fromStatus = normalisePhase(optaStatus);
+  const fromMarkers = phaseFromMarkers(markers ?? []);
+
+  // fixtures.opta_status is the authoritative field, so it is checked first.
+  // The one exception: RU1 only ever reports "Fixture" or "Result", so it still
+  // reads "Fixture" while a match is being played. Never let a status that lags
+  // behind walk the match backwards past markers that prove play has started.
+  let phase = fromStatus ?? fromMarkers;
+  if (
+    fromStatus &&
+    fromMarkers &&
+    PHASE_ORDER.indexOf(fromMarkers) > PHASE_ORDER.indexOf(fromStatus)
+  ) {
+    phase = fromMarkers;
+  }
 
   if (hasResult || phase === "fulltime") return { type: "fulltime" };
 
