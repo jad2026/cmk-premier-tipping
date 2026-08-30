@@ -399,6 +399,7 @@ async function processRU5(
       const updateData: Record<string, unknown> = {
         home_score: homeScore,
         away_score: awayScore,
+        opta_status: status ?? null,
       };
 
       const isResult = status === "Result" || status === "FullTime";
