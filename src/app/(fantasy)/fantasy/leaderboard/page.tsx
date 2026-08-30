@@ -23,10 +23,11 @@ type ProfileRow = {
   display_name: string | null;
 };
 
-type GameweekRow = {
+type GameweekWithFixtures = {
   id: string;
   number: number;
   label: string;
+  fixtures: { match_date: string | null }[] | null;
 };
 
 export type LeaderboardEntry = {
@@ -45,36 +46,43 @@ export type GameweekInfo = {
 export default async function FantasyLeaderboardPage() {
   const admin = createAdminClient();
 
-  const { data: squads } = (await (
-    admin.from("fantasy_squads") as unknown as AnyTable
-  )
-    .select("user_id, gameweek_id, points")
-    .eq("competition_id", FANTASY_COMP_ID)
-    .eq("is_complete", true)
-    .not("points", "is", null)) as { data: SquadRow[] | null };
+  const [squadRes, gwRes] = await Promise.all([
+    (admin.from("fantasy_squads") as unknown as AnyTable)
+      .select("user_id, gameweek_id, points")
+      .eq("competition_id", FANTASY_COMP_ID)
+      .eq("is_complete", true)
+      .not("points", "is", null),
+    (admin.from("gameweeks") as unknown as AnyTable)
+      .select("id, number, label, fixtures(match_date)")
+      .eq("competition_id", FANTASY_COMP_ID)
+      .order("number"),
+  ]);
+
+  const squads = (squadRes as { data: SquadRow[] | null }).data;
+  const gwRows = (gwRes as { data: GameweekWithFixtures[] | null }).data;
+
+  // A round is available as soon as it kicks off — i.e. its earliest fixture is
+  // in the past — so the pills don't wait on the scoring cron to run.
+  const now = Date.now();
+  const startedGameweeks: GameweekInfo[] = (gwRows ?? [])
+    .filter((gw) => {
+      const kickoffs = (gw.fixtures ?? [])
+        .map((f) => (f.match_date ? new Date(f.match_date).getTime() : NaN))
+        .filter((t) => !Number.isNaN(t));
+      return kickoffs.length > 0 && Math.min(...kickoffs) <= now;
+    })
+    .map((gw) => ({ id: gw.id, number: gw.number, label: gw.label }));
 
   if (!squads?.length) {
-    return <LeaderboardView entries={[]} gameweeks={[]} />;
+    return <LeaderboardView entries={[]} gameweeks={startedGameweeks} />;
   }
 
   const userIds = Array.from(new Set(squads.map((s) => s.user_id)));
-  const gwIds = Array.from(new Set(squads.map((s) => s.gameweek_id)));
 
-  const [{ data: profiles }, { data: gameweeks }] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", userIds) as unknown as Promise<{
-      data: ProfileRow[] | null;
-    }>,
-    admin
-      .from("gameweeks")
-      .select("id, number, label")
-      .in("id", gwIds)
-      .order("number") as unknown as Promise<{
-      data: GameweekRow[] | null;
-    }>,
-  ]);
+  const { data: profiles } = (await admin
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", userIds)) as unknown as { data: ProfileRow[] | null };
 
   const profileMap = new Map<string, string>();
   for (const p of profiles ?? []) {
@@ -104,11 +112,5 @@ export default async function FantasyLeaderboardPage() {
     })
   );
 
-  const gwInfo: GameweekInfo[] = (gameweeks ?? []).map((g) => ({
-    id: g.id,
-    number: g.number,
-    label: g.label,
-  }));
-
-  return <LeaderboardView entries={entries} gameweeks={gwInfo} />;
+  return <LeaderboardView entries={entries} gameweeks={startedGameweeks} />;
 }

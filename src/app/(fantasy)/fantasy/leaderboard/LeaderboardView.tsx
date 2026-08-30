@@ -10,8 +10,13 @@ type Props = {
 
 export default function LeaderboardView({ entries, gameweeks }: Props) {
   const [tab, setTab] = useState<"overall" | "round">("overall");
+  // Rounds arrive ascending; default the By Round tab to the latest started one.
+  const latestStarted = gameweeks.reduce<GameweekInfo | null>(
+    (latest, gw) => (latest === null || gw.number > latest.number ? gw : latest),
+    null
+  );
   const [selectedGw, setSelectedGw] = useState<string>(
-    gameweeks[0]?.id ?? ""
+    latestStarted?.id ?? ""
   );
 
   const overallRanked = [...entries].sort(
@@ -146,25 +151,27 @@ export default function LeaderboardView({ entries, gameweeks }: Props) {
           className="mx-auto"
           style={{ maxWidth: 760, padding: "24px 24px 80px" }}
         >
-          {isEmpty ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "60px 20px",
-                color: "#5A6371",
-                fontSize: 15,
-              }}
-            >
-              No scores yet. Points are updated after each round.
-            </div>
-          ) : tab === "overall" ? (
-            <RankingTable
-              rows={overallRanked.map((e, i) => ({
-                rank: i + 1,
-                name: e.displayName,
-                points: e.totalPoints,
-              }))}
-            />
+          {tab === "overall" ? (
+            isEmpty ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "60px 20px",
+                  color: "#5A6371",
+                  fontSize: 15,
+                }}
+              >
+                No scores yet. Points are updated after each round.
+              </div>
+            ) : (
+              <RankingTable
+                rows={overallRanked.map((e, i) => ({
+                  rank: i + 1,
+                  name: e.displayName,
+                  points: e.totalPoints,
+                }))}
+              />
+            )
           ) : (
             <>
               {/* ── Round selector ── */}
@@ -209,7 +216,9 @@ export default function LeaderboardView({ entries, gameweeks }: Props) {
                     fontSize: 14,
                   }}
                 >
-                  No scores for this round.
+                  {gameweeks.length === 0
+                    ? "No rounds have started yet."
+                    : "Scores pending — updated after matches complete"}
                 </div>
               ) : (
                 <RankingTable
