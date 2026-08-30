@@ -49,6 +49,7 @@ type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   home_team: Team;
   away_team: Team;
   opta_fixture_id?: string | null;
+  opta_status?: string | null;
 };
 
 function numStat(v: unknown): number {
@@ -119,12 +120,14 @@ async function buildLiveFixtures(
 
     // Scores alone don't mean the match is over — a live match has points on the
     // board too. Only the result flags (written when Opta reports a Result) do.
-    // The half-by-half phase comes from the match-centre API once expanded.
+    // opta_status keeps this badge in step with the expanded Match Centre, which
+    // additionally refines the phase from the period markers it loads.
     const status: MatchFixture["status"] = deriveMatchStatus({
       hasResult: f.result_team_id != null || f.is_draw,
       kickoff: matchDate,
       now,
       kickoffLabel: kickoffStr,
+      optaStatus: f.opta_status ?? null,
     });
 
     return {
