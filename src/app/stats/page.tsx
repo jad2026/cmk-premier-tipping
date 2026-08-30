@@ -4,6 +4,7 @@ import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team, Fixture } from "@/lib/supabase/types";
 import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats } from "./matchCentreTypes";
+import { deriveMatchStatus } from "./matchStatus";
 import { getCachedAllTeams } from "@/lib/cached-queries";
 import type { TeamAgg, PlayerAgg } from "./StatsLeaders";
 import StatsSection from "./StatsSection";
@@ -115,17 +116,16 @@ async function buildLiveFixtures(
     const kickoffStr = new Date(f.match_date).toLocaleTimeString(tz.locale, { timeZone: tz.timezone, hour: "numeric", minute: "2-digit" });
     const matchDate = new Date(f.match_date);
     const now = new Date();
-    const hasResult = f.result_team_id != null || f.is_draw;
-    const hasScores = f.home_score != null && f.away_score != null;
 
-    let status: MatchFixture["status"];
-    if (hasResult || (hasScores && (f.home_score! > 0 || f.away_score! > 0))) {
-      status = { type: "fulltime" };
-    } else if (now >= matchDate && hasScores) {
-      status = { type: "live", minute: 0 };
-    } else {
-      status = { type: "pre", kickoff: kickoffStr };
-    }
+    // Scores alone don't mean the match is over — a live match has points on the
+    // board too. Only the result flags (written when Opta reports a Result) do.
+    // The half-by-half phase comes from the match-centre API once expanded.
+    const status: MatchFixture["status"] = deriveMatchStatus({
+      hasResult: f.result_team_id != null || f.is_draw,
+      kickoff: matchDate,
+      now,
+      kickoffLabel: kickoffStr,
+    });
 
     return {
       id: f.id,

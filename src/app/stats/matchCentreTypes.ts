@@ -39,7 +39,12 @@ export type MatchEvent = {
   scoreAtTime?: string;
 };
 
-export type MatchStatus = { type: "pre"; kickoff: string } | { type: "live"; minute: number } | { type: "fulltime" };
+export type MatchPhase = "first_half" | "half_time" | "second_half";
+
+export type MatchStatus =
+  | { type: "pre"; kickoff: string }
+  | { type: "live"; minute: number; phase?: MatchPhase }
+  | { type: "fulltime" };
 
 export type CommentaryEntry = {
   minute: number | null;

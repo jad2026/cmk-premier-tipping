@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import TeamBadge from "@/components/TeamBadge";
-import type { MatchStats, MatchStatus, MatchFixture, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
+import type { MatchStats, MatchFixture, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
+import { statusLabel, isLiveStatus } from "./matchStatus";
 
 const POLL_INTERVAL = 30_000;
 
@@ -71,6 +72,7 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
   const hasLiveOrFinished = fixtures.some(
     (f) => f.status.type === "live" || f.status.type === "fulltime",
   );
+  const anyLive = fixtures.some((f) => isLiveStatus(f.status));
   const allPre = fixtures.every((f) => f.status.type === "pre");
 
   const fetchFixtureDetail = useCallback(async (fixtureId: string) => {
@@ -157,12 +159,6 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
     { key: "turnoversWon", label: "Turnovers Won" },
   ];
 
-  function statusLabel(s: MatchStatus): string {
-    if (s.type === "live") return `LIVE ${s.minute}'`;
-    if (s.type === "fulltime") return "FULL TIME";
-    return `KO ${s.kickoff}`;
-  }
-
   function statBar(home: number, away: number, suffix?: string) {
     const total = home + away || 1;
     const homePct = (home / total) * 100;
@@ -204,6 +200,10 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: .5; transform: scale(1.4); }
         }
+        @keyframes status-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: .55; }
+        }
       `}</style>
 
       <div
@@ -230,18 +230,20 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span
-                  style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: "#EF4444", display: "inline-block",
-                    animation: "live-pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#EF4444" }}>
-                  Live
-                </span>
-              </div>
+              {anyLive && (
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{
+                      width: 8, height: 8, borderRadius: "50%",
+                      background: "#EF4444", display: "inline-block",
+                      animation: "live-pulse 2s ease-in-out infinite",
+                    }}
+                  />
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: "#EF4444" }}>
+                    Live
+                  </span>
+                </div>
+              )}
               <svg
                 width="16" height="16" viewBox="0 0 16 16" fill="none"
                 style={{ color: "rgba(255,255,255,.4)", transition: "transform .3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
@@ -251,7 +253,9 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
             </div>
           </div>
 
-          {/* Match preview */}
+          {/* Match preview — hidden while expanded: the Match Centre below renders
+              this same fixture's header, and showing both duplicates the game. */}
+          {!expanded && (
           <div className="px-4 sm:px-6 pt-5 sm:pt-7 pb-4 sm:pb-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
@@ -272,9 +276,10 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
                 </div>
                 <span style={{
                   fontSize: 10, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase",
-                  color: fixture.status.type === "live" ? "#EF4444" : "rgba(var(--accent-rgb,217,165,33),.5)",
+                  color: isLiveStatus(fixture.status) ? "#EF4444" : "rgba(var(--accent-rgb,217,165,33),.5)",
                   padding: "3px 10px", borderRadius: 999,
-                  background: fixture.status.type === "live" ? "rgba(239,68,68,.1)" : "rgba(var(--accent-rgb,217,165,33),.08)",
+                  background: isLiveStatus(fixture.status) ? "rgba(239,68,68,.1)" : "rgba(var(--accent-rgb,217,165,33),.08)",
+                  animation: isLiveStatus(fixture.status) ? "status-pulse 1.6s ease-in-out infinite" : undefined,
                 }}>
                   {statusLabel(fixture.status)}
                 </span>
@@ -305,6 +310,7 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
               ))}
             </div>
           </div>
+          )}
         </button>
 
         {/* ── Expandable Match Centre ───────────────────────────────── */}
@@ -371,7 +377,8 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
                   </div>
                   <span style={{
                     fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase",
-                    color: fixture.status.type === "live" ? "#EF4444" : "rgba(255,255,255,.4)",
+                    color: isLiveStatus(fixture.status) ? "#EF4444" : "rgba(255,255,255,.4)",
+                    animation: isLiveStatus(fixture.status) ? "status-pulse 1.6s ease-in-out infinite" : undefined,
                   }}>
                     {statusLabel(fixture.status)}
                   </span>

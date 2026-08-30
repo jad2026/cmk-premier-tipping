@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { MatchFixture, MatchStats, MatchEvent, MatchEventType, PlayerMatchStats, CommentaryEntry } from "@/app/stats/matchCentreTypes";
+import { deriveMatchStatus } from "@/app/stats/matchStatus";
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -128,7 +129,7 @@ export async function GET(
       .eq("opta_game_id", optaGameId),
     supabase
       .from("opta_match_events")
-      .select("event_id, event_type, minute, player_name, opta_team_id")
+      .select("event_id, event_type, minute, period, player_name, opta_team_id")
       .eq("opta_game_id", optaGameId)
       .order("minute", { ascending: true }),
     supabase
@@ -276,27 +277,30 @@ export async function GET(
     }
   }
 
-  const hasScores = fixture.home_score != null && fixture.away_score != null;
   const matchDate = new Date(fixture.match_date);
   const now = new Date();
-  const kickedOff = now >= matchDate;
 
-  const hasResult = fixture.result_team_id != null || fixture.is_draw;
-  let status: MatchFixture["status"];
-  if (hasResult || (hasScores && (fixture.home_score! > 0 || fixture.away_score! > 0))) {
-    status = { type: "fulltime" };
-  } else if (kickedOff && (teamStats?.length ?? 0) > 0) {
-    const maxMinute = Math.max(0, ...events.map((e) => e.minute));
-    status = { type: "live", minute: maxMinute };
-  } else {
-    status = {
-      type: "pre",
-      kickoff: matchDate.toLocaleTimeString("en-NZ", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    };
-  }
+  // Which half we're in comes from Opta's period markers: the START/END rows in
+  // opta_match_events carry a period, and the commentary spells them out in full
+  // ("End Of First Half"). Scores are deliberately not used to decide full time —
+  // a live match has points on the board too.
+  const markers = [
+    ...(matchEvents ?? []).map((e) => ({ type: e.event_type, period: e.period })),
+    ...(commentaryRows ?? []).map((c) => ({ type: c.event_type })),
+  ];
+  const maxMinute = Math.max(0, ...events.map((e) => e.minute));
+
+  const status: MatchFixture["status"] = deriveMatchStatus({
+    hasResult: fixture.result_team_id != null || fixture.is_draw,
+    kickoff: matchDate,
+    now,
+    kickoffLabel: matchDate.toLocaleTimeString("en-NZ", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    minute: maxMinute,
+    markers,
+  });
 
   const commentary: CommentaryEntry[] = (commentaryRows ?? [])
     .filter((r) => r.comment)
