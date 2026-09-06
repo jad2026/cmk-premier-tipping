@@ -13,6 +13,10 @@
 }
 
 :root {
+  /* Nav height — kept in sync by Navbar.tsx (Android adds status-bar padding).
+     Sticky page elements offset by this so they never overlap the header. */
+  --nav-h: calc(74px + env(safe-area-inset-top, 0px));
+
   /* ── Accent system (set per-competition in layout.tsx) ─────────────────── */
   --accent: #D9A521;
   --accent-text: #11151C;

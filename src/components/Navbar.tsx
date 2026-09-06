@@ -56,6 +56,18 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
     if (Capacitor.isNativePlatform()) setIsNative(true);
   }, []);
 
+  // Publish the nav height on the document root. A custom property set on
+  // <header> only reaches its own descendants, so sticky elements elsewhere in
+  // the page (e.g. the tips progress bar) were falling back to the 74px web
+  // height and parking on top of the Android status-bar padding, clipping the
+  // header as you scrolled.
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--nav-h",
+      androidPad ? `${74 + androidPad}px` : "calc(74px + env(safe-area-inset-top, 0px))",
+    );
+  }, [androidPad]);
+
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -79,7 +91,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   return (
     <header
       ref={menuRef}
-      className="sticky top-0 z-40"
+      className="sticky top-0 z-50"
       style={{
         background: "rgba(13,16,22,.94)",
         backdropFilter: "blur(12px)",

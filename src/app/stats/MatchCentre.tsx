@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import TeamBadge from "@/components/TeamBadge";
-import type { MatchStats, MatchFixture, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
+import type { MatchStats, MatchFixture, MatchEvent, MatchEventType, PlayerMatchStats, CommentaryEntry } from "./matchCentreTypes";
 import { statusLabel, isLiveStatus } from "./matchStatus";
 
 const POLL_INTERVAL = 30_000;
@@ -27,6 +27,14 @@ const EVENT_LABELS: Record<MatchEventType, string> = {
   try: "Try", conversion: "Conversion", penalty: "Penalty Goal", drop_goal: "Drop Goal",
   yellow_card: "Yellow Card", red_card: "Red Card", substitution: "Substitution",
 };
+
+// Opta sometimes sends a substitution without the player it involves, which
+// surfaced as a "Unknown — Substitution" row. Drop those rather than show them.
+function isDisplayableEvent(evt: MatchEvent): boolean {
+  if (evt.type !== "substitution") return true;
+  const name = evt.playerName?.trim();
+  return !!name && name.toLowerCase() !== "unknown";
+}
 
 function countEvents(fixture: MatchFixture, type: MatchEventType): number {
   return fixture.events.filter((e) => e.type === type).length;
@@ -134,6 +142,7 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
   if (!fixture) return null;
 
   const isFixtureLoading = loadingId === fixture.id;
+  const visibleEvents = fixture.events.filter(isDisplayableEvent);
   const fixtureHasDetail = hasDetailData(fixture);
 
   const hasRealData =
@@ -532,14 +541,14 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
               {/* TAB 3: Events */}
               {activeTab === "events" && !isFixtureLoading && (
                 <div>
-                  {fixture.events.length === 0 ? (
+                  {visibleEvents.length === 0 ? (
                     <div className="text-center" style={{ padding: "32px 0", color: "rgba(255,255,255,.25)" }}>
                       <span style={{ fontSize: 28, display: "block", marginBottom: 8 }}>📋</span>
                       <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>No match events yet</p>
                     </div>
                   ) : (
                     <div className="flex flex-col" style={{ gap: 0 }}>
-                      {[...fixture.events].reverse().map((evt) => {
+                      {[...visibleEvents].reverse().map((evt) => {
                         const isHome = evt.teamId === fixture.homeTeam.id;
                         const evtTeam = isHome ? fixture.homeTeam : fixture.awayTeam;
                         return (

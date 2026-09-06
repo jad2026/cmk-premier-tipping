@@ -430,7 +430,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
 
       {/* ── Sticky progress bar ─────────────────────────────────────────── */}
       <div
-        className="sticky z-40"
+        className="sticky z-30"
         style={{
           top: "var(--nav-h, 74px)",
           background: "rgba(242,240,234,.92)",
