@@ -30,6 +30,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
   const [isNative, setIsNative] = useState(false);
+  const [isIPad, setIsIPad] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
 
   // Close on outside click or Escape
@@ -54,6 +55,10 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
     const isCapacitor = !!(window as /* eslint-disable-line */ any).Capacitor || /CapacitorHttp/i.test(ua);
     if (isAndroid && isCapacitor) setAndroidPad(36);
     if (Capacitor.isNativePlatform()) setIsNative(true);
+    // The share sheet has crashed the app on iPad during App Review, so the
+    // button is iPhone-only. iPadOS 13+ reports a desktop Safari UA, hence the
+    // touch-point check alongside the plain "iPad" match.
+    if (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) setIsIPad(true);
   }, []);
 
   // Publish the nav height on the document root. A custom property set on
@@ -203,7 +208,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               Sign in
             </Link>
           )}
-          {isNative && (
+          {isNative && !isIPad && (
             <button
               onClick={() => nativeShare(window.location.href)}
               aria-label="Share"
