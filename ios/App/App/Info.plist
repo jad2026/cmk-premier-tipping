@@ -46,8 +46,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app does not use the camera.</string>
+	<string>Used to take a profile photo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photo library access is not used by this app.</string>
+	<string>Used to choose a profile photo.</string>
 </dict>
 </plist>
