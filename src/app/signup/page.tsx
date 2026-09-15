@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import PasswordToggle from "@/components/PasswordToggle";
 
 function useSiteName() {
   const [name, setName] = useState("Club Rugby Tipping");
@@ -15,6 +16,8 @@ function useSiteName() {
 }
 import { triggerWelcomeEmail, getSignupConfig, joinLeagueByCode, checkTeamNameAvailable } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
+
+const MIN_PASSWORD_LENGTH = 8;
 
 type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
@@ -57,6 +60,7 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState(codeParam);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -124,6 +128,13 @@ export default function SignupPage() {
       setFieldErrors({ email: "Please enter a valid email address." });
       setLoading(false);
       scrollToError(emailRef);
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFieldErrors({ password: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+      setLoading(false);
+      scrollToError(passwordRef);
       return;
     }
 
@@ -302,13 +313,21 @@ export default function SignupPage() {
 
             <div>
               <label style={labelStyle}>Password</label>
-              <input ref={passwordRef} type="password" name="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const { password: _, ...rest } = p; return rest; }); }} placeholder="Min. 6 characters"
-                aria-invalid={!!fieldErrors.password}
-                style={fieldErrors.password ? inputErrorStyle : inputStyle}
-                onFocus={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
-                onBlur={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; } }}
-              />
-              {fieldErrors.password && <p style={{ fontSize: 12, color: "#B23A48", margin: "6px 0 0", cursor: "default" }}>{fieldErrors.password}</p>}
+              <div style={{ position: "relative" }}>
+                <input ref={passwordRef} type={showPassword ? "text" : "password"} name="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={password} onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const { password: _, ...rest } = p; return rest; }); }} placeholder="Choose a password"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby="password-hint"
+                  style={{ ...(fieldErrors.password ? inputErrorStyle : inputStyle), paddingRight: 44 }}
+                  onFocus={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--accent-wash, rgba(217,165,33,.15))"; } }}
+                  onBlur={(e) => { if (!fieldErrors.password) { e.currentTarget.style.borderColor = "#E4E1D8"; e.currentTarget.style.boxShadow = "none"; } }}
+                />
+                <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+              </div>
+              {fieldErrors.password ? (
+                <p style={{ fontSize: 12, color: "#B23A48", margin: "6px 0 0", cursor: "default" }}>{fieldErrors.password}</p>
+              ) : (
+                <p id="password-hint" style={{ fontSize: 12, color: "#8B8676", margin: "6px 0 0" }}>At least {MIN_PASSWORD_LENGTH} characters.</p>
+              )}
             </div>
 
             <div>
