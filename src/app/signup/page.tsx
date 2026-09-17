@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/authErrors";
 import PasswordToggle from "@/components/PasswordToggle";
 
 function useSiteName() {
@@ -106,8 +107,9 @@ export default function SignupPage() {
     ref?.current?.focus();
   }
 
-  function classifyAuthError(message: string): { field: string; ref: React.RefObject<HTMLInputElement | null> | null; text: string } {
-    const lower = message.toLowerCase();
+  function classifyAuthError(rawMessage: string): { field: string; ref: React.RefObject<HTMLInputElement | null> | null; text: string } {
+    const lower = rawMessage.toLowerCase();
+    const message = friendlyAuthError(rawMessage);
     if (lower.includes("email") || lower.includes("already registered") || lower.includes("already been registered")) {
       return { field: "email", ref: emailRef, text: message };
     }

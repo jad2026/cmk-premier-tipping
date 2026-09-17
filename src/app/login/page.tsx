@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/authErrors";
 import PasswordToggle from "@/components/PasswordToggle";
 
 function useSiteName() {
@@ -45,7 +46,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // /auth/callback sends users here with ?error=auth when a link can't be exchanged for a session.
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") ? "That sign-in link is invalid or has expired. Please sign in with your email and password, or request a new link." : null
+  );
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -58,7 +62,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(friendlyAuthError(error));
     } else {
       window.location.href = redirectTo || "/tips";
     }
@@ -79,7 +83,7 @@ export default function LoginPage() {
     });
     setResetting(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error));
     } else {
       setResetSent(true);
     }

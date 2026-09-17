@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -116,7 +117,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error));
     } else {
       setDone(true);
       setTimeout(() => router.push("/tips"), 2500);

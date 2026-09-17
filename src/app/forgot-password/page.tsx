@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -95,7 +96,7 @@ export default function ForgotPasswordPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error));
     } else {
       setDone(true);
     }
