@@ -41,3 +41,30 @@ export function getAccentCSSVars(name: AccentName = "Amber"): Record<string, str
     "--accent-wash": a.wash,
   };
 }
+
+function hexToRgba(hex: string, alpha: number): string | null {
+  const m = hex.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return null;
+  const h = m[1].length === 3 ? m[1].split("").map((c) => c + c).join("") : m[1];
+  const n = parseInt(h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+// NPC and CMK keep their hardcoded accents. Any other competition uses its
+// own accent_color / accent_text_color from the competitions table when set.
+export function getCompetitionAccentCSSVars(
+  compId: string,
+  accentColor: string | null | undefined,
+  accentTextColor: string | null | undefined,
+): Record<string, string> {
+  const isBuiltIn = compId === NPC_COMPETITION_ID || compId === CMK_COMPETITION_ID;
+  const wash = accentColor ? hexToRgba(accentColor, 0.12) : null;
+  if (isBuiltIn || !accentColor || !wash) {
+    return getAccentCSSVars(getAccentForCompetition(compId));
+  }
+  return {
+    "--accent": accentColor,
+    "--accent-text": accentTextColor ?? "#11151C",
+    "--accent-wash": wash,
+  };
+}

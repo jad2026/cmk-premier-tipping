@@ -9,7 +9,7 @@ import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import SignupBanner from "@/components/SignupBanner";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
-import { getAccentForCompetition, getAccentCSSVars } from "@/lib/theme";
+import { getCompetitionAccentCSSVars } from "@/lib/theme";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 const archivo = Archivo({
@@ -56,15 +56,15 @@ export default async function RootLayout({
   const isNpc = compId === NPC_COMPETITION_ID;
   const themeClass = isNpc ? "theme-npc" : "";
   const siteName = isNpc ? "Club Rugby Tipping" : "Club Rugby Tipping";
-  const accentName = getAccentForCompetition(compId);
-  const accentVars = getAccentCSSVars(accentName);
 
   const supabase = await createClient();
   const { data: compFeatures } = await supabase
     .from("competitions")
-    .select("features")
+    .select("features, accent_color, accent_text_color, logo_url")
     .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
+    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null } | null };
+  const accentVars = getCompetitionAccentCSSVars(compId, compFeatures?.accent_color, compFeatures?.accent_text_color);
+  const logoUrl = compFeatures?.logo_url ?? null;
   const showSquads = compFeatures?.features?.show_squads === true;
   const showFantasy = compFeatures?.features?.fantasy_enabled === true;
 
@@ -143,7 +143,7 @@ export default async function RootLayout({
           />
         </noscript>
         <Analytics />
-        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} user={user} isAdmin={isAdmin} competitionId={compId} />
+        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}

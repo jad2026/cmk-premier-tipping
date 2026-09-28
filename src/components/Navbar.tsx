@@ -25,7 +25,7 @@ function NavIcon({ name }: { name: string }) {
   return <span className="shrink-0 w-[18px] h-[18px] flex items-center justify-center">{icons[name] ?? null}</span>;
 }
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, user = null, isAdmin = false, competitionId = "" }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
@@ -114,6 +114,10 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
             className="block w-[26px] h-[3px] rounded-full shrink-0"
             style={{ background: "var(--accent)" }}
           />
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="" className="h-[28px] w-auto shrink-0" />
+          )}
           <span className="font-display text-[17px] uppercase tracking-[.06em] text-white lg:truncate">
             {siteName}
           </span>

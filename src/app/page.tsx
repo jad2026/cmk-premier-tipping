@@ -153,15 +153,17 @@ export default async function HomePage() {
   let scoringConfig: Record<string, number> | null = null;
   let shortLabel: string | null = null;
   let regionLabelDb: string | null = null;
+  let heroImage: string | null = null;
   {
     const { data: scoringRow } = await supabase
       .from("competitions")
-      .select("scoring, short_label, region_label")
+      .select("scoring, short_label, region_label, hero_image")
       .eq("id", compId)
-      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null } | null };
+      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null; hero_image: string | null } | null };
     scoringConfig = scoringRow?.scoring ?? null;
     shortLabel = scoringRow?.short_label ?? null;
     regionLabelDb = scoringRow?.region_label ?? null;
+    heroImage = scoringRow?.hero_image ?? null;
   }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
@@ -266,7 +268,7 @@ export default async function HomePage() {
       {/* ── 1. Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden text-white" style={{ background: "#0B0E13" }}>
         <Image
-          src={isNpc ? "/hero-provincial.jpg" : "/hero.jpg"}
+          src={isNpc ? "/hero-provincial.jpg" : (heroImage ?? "/hero.jpg")}
           alt=""
           fill
           priority
