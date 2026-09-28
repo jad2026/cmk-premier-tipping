@@ -126,8 +126,8 @@ export default function LeaguePicks({ leagueId, roundsData }: Props) {
           alignItems: "center",
           gap: 8,
           padding: "10px 18px",
-          background: showPicks ? "#0D1016" : "#fff",
-          border: `1px solid ${showPicks ? "#0D1016" : "#E4E1D8"}`,
+          background: showPicks ? "var(--surface-alt, #0D1016)" : "#fff",
+          border: `1px solid ${showPicks ? "var(--surface-alt, #0D1016)" : "#E4E1D8"}`,
           borderRadius: 12,
           cursor: "pointer",
           fontSize: 13,
@@ -167,7 +167,7 @@ export default function LeaguePicks({ leagueId, roundsData }: Props) {
                     fontWeight: 700,
                     fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
                     transition: "all .15s",
-                    background: selectedRound === round.gameweekId ? "#0D1016" : "#F2F0EA",
+                    background: selectedRound === round.gameweekId ? "var(--surface-alt, #0D1016)" : "#F2F0EA",
                     color: selectedRound === round.gameweekId ? "#fff" : "#8B8676",
                     whiteSpace: "nowrap",
                   }}
@@ -351,7 +351,7 @@ export default function LeaguePicks({ leagueId, roundsData }: Props) {
                                 height: isCurrent ? 10 : 8,
                                 borderRadius: "50%",
                                 background: correct ? "#1F9E5A" : wrong ? "#B23A48" : "#E4E1D8",
-                                border: isCurrent ? "2px solid #0D1016" : "none",
+                                border: isCurrent ? "2px solid var(--surface-alt, #0D1016)" : "none",
                                 transition: "all .15s",
                               }}
                             />

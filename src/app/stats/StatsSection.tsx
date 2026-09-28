@@ -159,7 +159,7 @@ export default function StatsSection({
 
       {/* Stats Leaders */}
       {(statsData.season2025 || statsData.season2026) && (
-        <div style={{ background: "#0D1117" }}>
+        <div style={{ background: "var(--surface-alt, #0D1117)" }}>
           <StatsLeaders
             season2025={statsData.season2025}
             season2026={statsData.season2026}

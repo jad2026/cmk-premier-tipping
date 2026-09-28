@@ -217,7 +217,7 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
 
       <div
         style={{
-          background: "#0B0E13",
+          background: "var(--surface, #0B0E13)",
           borderRadius: 20,
           overflow: "hidden",
           animation: "accent-glow 3s ease-in-out infinite",
@@ -436,7 +436,7 @@ export default function MatchCentre({ fixtures: initialFixtures, roundLabel, rou
               {isPlaceholder && !isFixtureLoading && (
                 <div style={{
                   position: "absolute", inset: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(11,14,19,.7)", backdropFilter: "blur(2px)",
+                  background: "rgba(var(--surface-rgb, 11,14,19), .7)", backdropFilter: "blur(2px)",
                   borderRadius: "0 0 20px 20px",
                 }}>
                   <div className="text-center" style={{ padding: "24px 32px" }}>

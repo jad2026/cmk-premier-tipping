@@ -22,7 +22,7 @@ function BellIcon({ active }: { active: boolean }) {
         strokeLinejoin="round"
       />
       {active && (
-        <circle cx="15" cy="5" r="2.6" fill="var(--accent)" stroke="#0D1016" strokeWidth="1.4" />
+        <circle cx="15" cy="5" r="2.6" fill="var(--accent)" stroke="var(--surface-alt, #0D1016)" strokeWidth="1.4" />
       )}
     </svg>
   );

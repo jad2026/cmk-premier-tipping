@@ -52,14 +52,14 @@ export default async function HowToPlayPage() {
       style={{
         width: "100vw",
         marginLeft: "calc(50% - 50vw)",
-        background: "#0B0E13",
+        background: "var(--surface, #0B0E13)",
         minHeight: "100vh",
         color: "#fff",
         paddingBottom: 1,
       }}
     >
       {/* ── Hero ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div className="mx-auto" style={{ maxWidth: 760, padding: "48px 24px 32px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "#2C9FD4" }} />
@@ -78,7 +78,7 @@ export default async function HowToPlayPage() {
       </section>
 
       {/* ── Content ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
       <div className="mx-auto" style={{ maxWidth: 760, padding: "0 24px 80px" }}>
 
         {/* 1. Build your squad */}

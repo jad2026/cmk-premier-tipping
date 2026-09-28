@@ -122,7 +122,7 @@ function AggregatePickBar({
   const drawPct = drawCount > 0 ? 100 - homePct - awayPct : 0;
 
   const homeColour = fixture.home_team.colour || "#2C9FD4";
-  const awayColour = fixture.away_team.colour || "#1A1E27";
+  const awayColour = fixture.away_team.colour || "var(--surface-raised, #1A1E27)";
 
   return (
     <div>
@@ -628,7 +628,7 @@ export default async function LeaderboardPage() {
     >
 
       {/* ── Dark header ──────────────────────────────────────────────── */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />

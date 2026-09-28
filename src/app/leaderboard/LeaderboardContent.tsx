@@ -81,8 +81,8 @@ function PodiumCard({ entry, rank, isFirst }: { entry: LeaderboardRow; rank: num
     <div
       className="relative overflow-hidden p-3 sm:p-[22px]"
       style={{
-        background: isFirst ? "#0D1016" : "#fff",
-        border: `1px solid ${isFirst ? "#0D1016" : "#E4E1D8"}`,
+        background: isFirst ? "var(--surface-alt, #0D1016)" : "#fff",
+        border: `1px solid ${isFirst ? "var(--surface-alt, #0D1016)" : "#E4E1D8"}`,
         borderRadius: 18,
         ...(isFirst ? { transform: "translateY(-14px)" } : {}),
       }}
@@ -446,7 +446,7 @@ export default function LeaderboardContent({
           </div>
 
           {sponsorLogos.length > 0 && (
-            <div style={{ background: '#0B0E13', borderRadius: 12, padding: '16px 20px', marginTop: 16, marginBottom: 8 }}>
+            <div style={{ background: 'var(--surface, #0B0E13)', borderRadius: 12, padding: '16px 20px', marginTop: 16, marginBottom: 8 }}>
               <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: '#C7CCD4', marginBottom: 12, textAlign: 'center' as const }}>Proudly supported by</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
                 {sponsorLogos.map((logo, i) => (
@@ -500,7 +500,7 @@ export default function LeaderboardContent({
                 fontWeight: 700,
                 fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
                 transition: 'all .15s',
-                background: selectedRound === "total" ? '#0D1016' : 'transparent',
+                background: selectedRound === "total" ? 'var(--surface-alt, #0D1016)' : 'transparent',
                 color: selectedRound === "total" ? '#fff' : '#8B8676',
               }}
             >
@@ -519,7 +519,7 @@ export default function LeaderboardContent({
                   fontWeight: 700,
                   fontFamily: "var(--font-archivo), 'Archivo', sans-serif",
                   transition: 'all .15s',
-                  background: selectedRound === round.gameweekId ? '#0D1016' : 'transparent',
+                  background: selectedRound === round.gameweekId ? 'var(--surface-alt, #0D1016)' : 'transparent',
                   color: selectedRound === round.gameweekId ? '#fff' : '#8B8676',
                   whiteSpace: 'nowrap',
                 }}
@@ -698,7 +698,7 @@ export default function LeaderboardContent({
             <div
               className={`grid gap-x-1 sm:gap-x-2 ${gridCls} px-3 py-3 sm:px-[22px] sm:py-[15px] text-[10px] sm:text-[11px]`}
               style={{
-                background: "#0D1016",
+                background: "var(--surface-alt, #0D1016)",
                 color: "#9AA1AD",
                 fontWeight: 800,
                 letterSpacing: ".08em",
@@ -1066,7 +1066,7 @@ export default function LeaderboardContent({
           width: 48,
           height: 48,
           borderRadius: "50%",
-          background: "#0D1016",
+          background: "var(--surface-alt, #0D1016)",
           border: "2px solid #2C9FD4",
           color: "#fff",
           cursor: "pointer",

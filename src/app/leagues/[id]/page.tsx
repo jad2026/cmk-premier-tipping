@@ -26,7 +26,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
         className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
         style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
       >
-        <section style={{ background: "#0B0E13", color: "#fff" }}>
+        <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
           <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
             <h1 className="font-display uppercase" style={{ fontSize: 48, lineHeight: 0.86, margin: 0 }}>
               League Not Found<span style={{ color: "var(--accent)" }}>.</span>
@@ -60,7 +60,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
     >
       {/* Dark header */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
@@ -111,7 +111,7 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
                   display: "grid",
                   gridTemplateColumns: "46px 1fr 64px 72px 64px 56px",
                   padding: "12px 20px",
-                  background: "#0D1016",
+                  background: "var(--surface-alt, #0D1016)",
                   color: "#8B8E94",
                   fontSize: 10,
                   fontWeight: 800,

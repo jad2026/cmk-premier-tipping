@@ -54,7 +54,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
     >
       {/* Dark header */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />

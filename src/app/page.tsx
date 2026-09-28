@@ -266,7 +266,7 @@ export default async function HomePage() {
     <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
 
       {/* ── 1. Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden text-white" style={{ background: "#0B0E13" }}>
+      <section className="relative overflow-hidden text-white" style={{ background: "var(--surface, #0B0E13)" }}>
         <Image
           src={isNpc ? "/hero-provincial.jpg" : (heroImage ?? "/hero.jpg")}
           alt=""
@@ -279,7 +279,7 @@ export default async function HomePage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "linear-gradient(98deg, rgba(11,14,19,.97) 0%, rgba(11,14,19,.86) 40%, rgba(11,14,19,.45) 78%, rgba(11,14,19,.25) 100%)",
+            background: "linear-gradient(98deg, rgba(var(--surface-rgb, 11,14,19), .97) 0%, rgba(var(--surface-rgb, 11,14,19), .86) 40%, rgba(var(--surface-rgb, 11,14,19), .45) 78%, rgba(var(--surface-rgb, 11,14,19), .25) 100%)",
           }}
         />
         <div className="relative z-[2] max-w-content mx-auto" style={{ padding: "88px 32px 96px" }}>
@@ -355,7 +355,7 @@ export default async function HomePage() {
 
       {/* ── 2. Clubs rail ────────────────────────────────────────────────────── */}
       {teamCount > 0 && (
-        <section style={{ background: "#0D1016", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+        <section style={{ background: "var(--surface-alt, #0D1016)", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
           <div className="max-w-content mx-auto flex items-center gap-[30px]" style={{ padding: "20px 32px" }}>
             <div className="shrink-0">
               <div className="text-[12px] font-extrabold tracking-[.16em] uppercase" style={{ color: "var(--accent)" }}>{isNpc ? "The provinces" : "The clubs"}</div>
@@ -392,7 +392,7 @@ export default async function HomePage() {
 
           {/* Season complete */}
           {activeMode === "season-complete" && (
-            <div className="relative overflow-hidden rounded-[22px] text-white text-center" style={{ background: "#0D1016", padding: "48px 40px" }}>
+            <div className="relative overflow-hidden rounded-[22px] text-white text-center" style={{ background: "var(--surface-alt, #0D1016)", padding: "48px 40px" }}>
               <div className="text-7xl mb-6 select-none">🏆</div>
               <p className="text-xs font-extrabold uppercase tracking-[.3em] mb-3" style={{ color: "var(--accent)" }}>Season Complete</p>
               <h2 className="font-display text-[28px] uppercase mb-4">{seasonName}</h2>
@@ -423,7 +423,7 @@ export default async function HomePage() {
           {activeRound && (activeMode === "open" || activeMode === "picks-closed" || activeMode === "coming-soon") && (
             <div
               className="relative overflow-hidden rounded-[22px] text-white flex items-center justify-between gap-[30px] flex-wrap"
-              style={{ background: "#0D1016", padding: "36px 40px" }}
+              style={{ background: "var(--surface-alt, #0D1016)", padding: "36px 40px" }}
             >
               <div className="relative z-[2]">
                 <div className="flex items-center gap-[9px] mb-[14px]">
@@ -570,7 +570,7 @@ export default async function HomePage() {
           <div className="max-w-content mx-auto" style={{ padding: "10px 32px 40px" }}>
             <div
               className="relative overflow-hidden rounded-[20px] text-white flex items-center justify-between gap-[26px] flex-wrap"
-              style={{ background: "#161B24", border: "1px solid rgba(255,255,255,.08)", padding: "32px 38px" }}
+              style={{ background: "var(--surface-raised, #161B24)", border: "1px solid rgba(255,255,255,.08)", padding: "32px 38px" }}
             >
               <div className="relative z-[2]">
                 <div className="text-[12px] font-extrabold tracking-[.16em] uppercase mb-[10px]" style={{ color: "var(--accent)" }}>
@@ -597,7 +597,7 @@ export default async function HomePage() {
 
       {/* ── 6. NPC SEO content ─────────────────────────────────────────────── */}
       {isNpc && (
-        <section style={{ background: "#0D1016" }}>
+        <section style={{ background: "var(--surface-alt, #0D1016)" }}>
           <div className="max-w-content mx-auto" style={{ padding: "56px 32px 60px" }}>
             <h2 className="font-display text-[23px] uppercase tracking-[.02em] text-white mb-[20px]">
               The rugby tipping competition<span style={{ color: "var(--accent)" }}>.</span>
@@ -714,7 +714,7 @@ export default async function HomePage() {
                         display: "grid",
                         gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
                         padding: "15px 20px",
-                        background: "#0D1016",
+                        background: "var(--surface-alt, #0D1016)",
                         color: "#9AA1AD",
                         fontSize: 11,
                         fontWeight: 800,
@@ -807,7 +807,7 @@ export default async function HomePage() {
                         display: "grid",
                         gridTemplateColumns: "46px 1fr 42px 42px 42px 58px 58px 58px 56px",
                         padding: "15px 20px",
-                        background: "#0D1016",
+                        background: "var(--surface-alt, #0D1016)",
                         color: "#9AA1AD",
                         fontSize: 11,
                         fontWeight: 800,

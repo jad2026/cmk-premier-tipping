@@ -260,7 +260,7 @@ function DropdownPicker({
             top: "100%",
             left: 0,
             marginTop: 4,
-            background: "#1A1E27",
+            background: "var(--surface-raised, #1A1E27)",
             border: "1px solid rgba(255,255,255,.12)",
             borderRadius: 12,
             boxShadow: "0 8px 24px rgba(0,0,0,.4)",
@@ -362,7 +362,7 @@ function MiniLeaderCard({
   return (
     <div
       style={{
-        background: "#0B0E13",
+        background: "var(--surface, #0B0E13)",
         border: "1px solid rgba(255,255,255,.08)",
         borderRadius: 14,
         overflow: "hidden",
@@ -821,7 +821,7 @@ export default function StatsLeaders({
         {selectedTeam ? (
           <div
             style={{
-              background: "#0B0E13",
+              background: "var(--surface, #0B0E13)",
               border: "1px solid rgba(255,255,255,.08)",
               borderRadius: 16,
               padding: "20px 24px",
@@ -956,7 +956,7 @@ export default function StatsLeaders({
         {selectedPlayer ? (
           <div
             style={{
-              background: "#0B0E13",
+              background: "var(--surface, #0B0E13)",
               border: "1px solid rgba(255,255,255,.08)",
               borderRadius: 16,
               padding: "20px 24px",

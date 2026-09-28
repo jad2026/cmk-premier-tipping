@@ -37,14 +37,14 @@ export default function LeaderboardView({ entries, gameweeks }: Props) {
       style={{
         width: "100vw",
         marginLeft: "calc(50% - 50vw)",
-        background: "#0B0E13",
+        background: "var(--surface, #0B0E13)",
         minHeight: "100vh",
         color: "#fff",
         paddingBottom: 1,
       }}
     >
       {/* ── Hero ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 760, padding: "48px 24px 24px" }}
@@ -110,7 +110,7 @@ export default function LeaderboardView({ entries, gameweeks }: Props) {
       {/* ── Tabs ── */}
       <section
         style={{
-          background: "#0D1016",
+          background: "var(--surface-alt, #0D1016)",
           borderTop: "1px solid rgba(255,255,255,0.06)",
         }}
       >
@@ -146,7 +146,7 @@ export default function LeaderboardView({ entries, gameweeks }: Props) {
       </section>
 
       {/* ── Content ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 760, padding: "24px 24px 80px" }}

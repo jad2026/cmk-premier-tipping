@@ -98,7 +98,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
       ref={menuRef}
       className="sticky top-0 z-50"
       style={{
-        background: "rgba(13,16,22,.94)",
+        background: "rgba(var(--surface-alt-rgb, 13,16,22), .94)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(255,255,255,.08)",
@@ -259,7 +259,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
         style={{
           maxHeight: menuOpen ? "80vh" : "0",
           opacity: menuOpen ? 1 : 0,
-          background: "rgba(13,16,22,.98)",
+          background: "rgba(var(--surface-alt-rgb, 13,16,22), .98)",
           borderTop: menuOpen ? "1px solid rgba(255,255,255,.08)" : "1px solid transparent",
         }}
       >

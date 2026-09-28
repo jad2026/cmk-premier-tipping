@@ -8,7 +8,7 @@ import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import SignupBanner from "@/components/SignupBanner";
 import PushPromptBanner from "@/components/PushPromptBanner";
-import { getCurrentCompetitionId, NPC_COMPETITION_ID } from "@/lib/competition";
+import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import { getCompetitionAccentCSSVars } from "@/lib/theme";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
@@ -60,10 +60,31 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: compFeatures } = await supabase
     .from("competitions")
-    .select("features, accent_color, accent_text_color, logo_url")
+    .select("features, accent_color, accent_text_color, logo_url, surface_color")
     .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null } | null };
+    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null; surface_color: string | null } | null };
   const accentVars = getCompetitionAccentCSSVars(compId, compFeatures?.accent_color, compFeatures?.accent_text_color);
+  // NPC and CMK keep the default dark surface; other competitions may override it.
+  const surfaceColor = compFeatures?.surface_color?.trim();
+  const hasCustomSurface = !isNpc && compId !== CMK_COMPETITION_ID && !!surfaceColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(surfaceColor);
+  const surface = hasCustomSurface ? surfaceColor! : "#0B0E13";
+  // Derived shades are only set for custom surfaces so NPC/CMK hit the CSS fallbacks.
+  let surfaceVars: Record<string, string> = { "--surface": surface };
+  if (hasCustomSurface) {
+    const hex = surface.replace("#", "");
+    const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+    const rgb = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+    const alt = rgb.map((c) => Math.round(c * 0.88));
+    const raised = rgb.map((c) => Math.round(c * 0.85 + 255 * 0.15));
+    const toHex = (c: number[]) => "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+    surfaceVars = {
+      "--surface": surface,
+      "--surface-rgb": rgb.join(","),
+      "--surface-alt": toHex(alt),
+      "--surface-alt-rgb": alt.join(","),
+      "--surface-raised": toHex(raised),
+    };
+  }
   const logoUrl = compFeatures?.logo_url ?? null;
   const showSquads = compFeatures?.features?.show_squads === true;
   const showFantasy = compFeatures?.features?.fantasy_enabled === true;
@@ -95,7 +116,7 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${archivo.variable} ${archivoBlack.variable} ${themeClass}`}
-      style={accentVars as React.CSSProperties}
+      style={{ ...accentVars, ...surfaceVars } as React.CSSProperties}
     >
       <body className={`${archivo.className} min-h-screen`}>
         <Script id="meta-pixel" strategy="afterInteractive">{`

@@ -187,14 +187,14 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
       style={{
         width: "100vw",
         marginLeft: "calc(50% - 50vw)",
-        background: "#0B0E13",
+        background: "var(--surface, #0B0E13)",
         minHeight: "100vh",
         color: "#fff",
         paddingBottom: 1,
       }}
     >
       {/* ── Hero ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 1100, padding: "48px 24px 24px" }}
@@ -265,7 +265,7 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
       {/* ── Round chips ── */}
       <section
         style={{
-          background: "#0D1016",
+          background: "var(--surface-alt, #0D1016)",
           borderTop: "1px solid rgba(255,255,255,0.06)",
         }}
       >
@@ -342,7 +342,7 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
       </section>
 
       {/* ── Filters ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 1100, padding: "16px 24px 0" }}
@@ -358,7 +358,7 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
                 maxWidth: 320,
                 padding: "8px 14px",
                 fontSize: 13,
-                background: "#161B24",
+                background: "var(--surface-raised, #161B24)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 8,
                 color: "#fff",
@@ -371,7 +371,7 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
               style={{
                 padding: "8px 12px",
                 fontSize: 13,
-                background: "#161B24",
+                background: "var(--surface-raised, #161B24)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 8,
                 color: "#C7CCD4",
@@ -393,7 +393,7 @@ export default function StatsView({ players, gameweeks, liveGwIds }: Props) {
       </section>
 
       {/* ── Table ── */}
-      <section style={{ background: "#0B0E13" }}>
+      <section style={{ background: "var(--surface, #0B0E13)" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 1100, padding: "16px 24px 80px" }}

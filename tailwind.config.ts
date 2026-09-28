@@ -22,7 +22,7 @@ const config: Config = {
           wash: "var(--accent-wash)",
         },
         // Matchday design tokens
-        ink: "#0B0E13",
+        ink: "var(--surface, #0B0E13)",
         "panel-dark": "#0D1016",
         "panel-dark-2": "#161B24",
         canvas: "#F2F0EA",

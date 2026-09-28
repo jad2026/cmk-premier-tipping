@@ -259,7 +259,7 @@ export default function SquadDisplay({
   return (
     <div style={{ background: "#F2F0EA", minHeight: "100vh" }}>
       {/* Dark hero */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div
           className="mx-auto"
           style={{ maxWidth: 1100, padding: "32px 32px 36px" }}

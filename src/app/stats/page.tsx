@@ -478,7 +478,7 @@ export default async function LadderPage() {
     >
 
       {/* ── Dark header ──────────────────────────────────────────────── */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />
@@ -575,7 +575,7 @@ export default async function LadderPage() {
                         display: "grid",
                         paddingTop: 15,
                         paddingBottom: 15,
-                        background: "#0D1016",
+                        background: "var(--surface-alt, #0D1016)",
                         color: "#9AA1AD",
                         fontSize: 11,
                         fontWeight: 800,

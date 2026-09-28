@@ -94,7 +94,7 @@ function AggregatePickBar({
   const drawPct = drawCount > 0 ? 100 - homePct - awayPct : 0;
 
   const homeColour = fixture.home_team.colour || "#2C9FD4";
-  const awayColour = fixture.away_team.colour || "#1A1E27";
+  const awayColour = fixture.away_team.colour || "var(--surface-raised, #1A1E27)";
 
   return (
     <div className="px-5 py-3 bg-[#f8f9fb]">

@@ -526,7 +526,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       {saved && pushStatus === "unsubscribed" && !promptDismissed && (
         <div
           style={{
-            background: "rgba(13,16,22,.96)",
+            background: "rgba(var(--surface-alt-rgb, 13,16,22), .96)",
             backdropFilter: "blur(12px)",
             borderTop: "1px solid rgba(255,255,255,.1)",
             padding: "16px 32px",
@@ -574,7 +574,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
         <div
           className="sticky bottom-0 z-40"
           style={{
-            background: "rgba(13,16,22,.96)",
+            background: "rgba(var(--surface-alt-rgb, 13,16,22), .96)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
             borderTop: "1px solid rgba(255,255,255,.1)",

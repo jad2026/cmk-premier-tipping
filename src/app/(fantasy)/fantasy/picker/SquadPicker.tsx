@@ -119,7 +119,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
         top: 24,
         left: "50%",
         transform: "translateX(-50%)",
-        background: "#161B24",
+        background: "var(--surface-raised, #161B24)",
         border: "1px solid rgba(255,255,255,0.1)",
         borderRadius: 10,
         padding: "10px 20px",
@@ -415,7 +415,7 @@ export default function SquadPicker({
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", paddingBottom: 160 }}
     >
       {/* ── Hero ── */}
-      <section style={{ background: "#0B0E13", color: "#fff" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "36px 24px 20px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "#2C9FD4" }} />
@@ -455,7 +455,7 @@ export default function SquadPicker({
 
       {/* ── Locked / gameweek banner ── */}
       {(isLocked || gameweekLabel) && (
-        <div style={{ background: isLocked ? "#1a0808" : "#0D1016", borderTop: `1px solid ${isLocked ? "rgba(229,62,62,0.2)" : "rgba(255,255,255,0.06)"}` }}>
+        <div style={{ background: isLocked ? "#1a0808" : "var(--surface-alt, #0D1016)", borderTop: `1px solid ${isLocked ? "rgba(229,62,62,0.2)" : "rgba(255,255,255,0.06)"}` }}>
           <div className="mx-auto" style={{ maxWidth: 1100, padding: "10px 24px" }}>
             {isLocked ? (
               <>
@@ -484,7 +484,7 @@ export default function SquadPicker({
       )}
 
       {/* ── Tab toggle ── */}
-      <section style={{ background: "#0D1016", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <section style={{ background: "var(--surface-alt, #0D1016)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="mx-auto flex" style={{ maxWidth: 1100, padding: "0 24px" }}>
           {(["browse", "squad"] as const).map((t) => (
             <button
@@ -511,7 +511,7 @@ export default function SquadPicker({
       </section>
 
       {/* ── Content area ── */}
-      <section style={{ background: "#0B0E13", minHeight: "50vh" }}>
+      <section style={{ background: "var(--surface, #0B0E13)", minHeight: "50vh" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "16px 24px 0" }}>
           {tab === "browse" ? (
             <>
@@ -523,7 +523,7 @@ export default function SquadPicker({
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
                   width: "100%",
-                  background: "#161B24",
+                  background: "var(--surface-raised, #161B24)",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 8,
                   padding: "9px 14px",
@@ -545,7 +545,7 @@ export default function SquadPicker({
                       fontSize: 10,
                       padding: "5px 10px",
                       borderRadius: 6,
-                      background: (activeSlot === null && posFilter === i) ? "#2C9FD4" : "#161B24",
+                      background: (activeSlot === null && posFilter === i) ? "#2C9FD4" : "var(--surface-raised, #161B24)",
                       color: (activeSlot === null && posFilter === i) ? "#0B0E13" : "#8C93A0",
                       border: "none",
                       cursor: "pointer",
@@ -568,7 +568,7 @@ export default function SquadPicker({
                     fontWeight: 600,
                     padding: "5px 10px",
                     borderRadius: 6,
-                    background: teamFilter === null ? "#2C9FD4" : "#161B24",
+                    background: teamFilter === null ? "#2C9FD4" : "var(--surface-raised, #161B24)",
                     color: teamFilter === null ? "#0B0E13" : "#8C93A0",
                     border: "none",
                     cursor: "pointer",
@@ -590,7 +590,7 @@ export default function SquadPicker({
                         fontWeight: 600,
                         padding: "5px 10px",
                         borderRadius: 6,
-                        background: active ? "#2C9FD4" : "#161B24",
+                        background: active ? "#2C9FD4" : "var(--surface-raised, #161B24)",
                         color: active ? "#0B0E13" : full ? "#B23A48" : "#8C93A0",
                         border: "none",
                         cursor: "pointer",
@@ -675,7 +675,7 @@ export default function SquadPicker({
                           display: "flex",
                           alignItems: "center",
                           gap: 0,
-                          background: inSquad ? "rgba(44,159,212,0.06)" : "#161B24",
+                          background: inSquad ? "rgba(44,159,212,0.06)" : "var(--surface-raised, #161B24)",
                           borderRadius: 10,
                           overflow: "hidden",
                           opacity: dimmed ? 0.45 : 1,
@@ -766,7 +766,7 @@ export default function SquadPicker({
                       display: "flex",
                       alignItems: "center",
                       gap: 0,
-                      background: player ? "#161B24" : "rgba(255,255,255,0.02)",
+                      background: player ? "var(--surface-raised, #161B24)" : "rgba(255,255,255,0.02)",
                       borderRadius: 10,
                       overflow: "hidden",
                       border: player ? "none" : "1px dashed rgba(255,255,255,0.08)",
@@ -905,7 +905,7 @@ export default function SquadPicker({
           bottom: 0,
           left: 0,
           right: 0,
-          background: "#0D1016",
+          background: "var(--surface-alt, #0D1016)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
           zIndex: 50,
         }}

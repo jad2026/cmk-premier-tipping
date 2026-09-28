@@ -87,7 +87,7 @@ export default function PushPromptBanner({
         left: 0,
         right: 0,
         zIndex: 40,
-        background: "#0B0E13",
+        background: "var(--surface, #0B0E13)",
         borderTop: "1px solid rgba(255,255,255,.08)",
       }}
     >
