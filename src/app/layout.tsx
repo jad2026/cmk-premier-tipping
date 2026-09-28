@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import SponsorStrip from "@/components/SponsorStrip";
+import HeritageBackground from "@/components/HeritageBackground";
 import SignupBanner from "@/components/SignupBanner";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
@@ -92,6 +93,7 @@ export default async function RootLayout({
   const showStats = compFeatures?.features?.stats_enabled !== false;
   const showSponsorStrip = compFeatures?.features?.sponsor_strip === true;
   const showResults = compFeatures?.features?.results_page === true;
+  const heritageBg = compFeatures?.features?.heritage_bg === true;
   const heroImage = compFeatures?.hero_image?.trim();
   const headerPhoto = compFeatures?.features?.header_photo === true && !!heroImage;
 
@@ -128,8 +130,10 @@ export default async function RootLayout({
         ...(headerPhoto ? { "--header-image": `url(${JSON.stringify(heroImage)})` } : {}),
       } as React.CSSProperties}
       data-header-photo={headerPhoto ? "" : undefined}
+      data-heritage-bg={heritageBg ? "" : undefined}
     >
       <body className={`${archivo.className} min-h-screen`}>
+        {heritageBg && <HeritageBackground />}
         <Script id="meta-pixel" strategy="afterInteractive">{`
           !function(f,b,e,v,n,t,s)
           {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
