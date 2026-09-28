@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled").eq("id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled, timezone, locale").eq("id", compId).single(),
       (async () => {
         let all: { user_id: string }[] = [];
         let from = 0;
@@ -126,6 +126,8 @@ export async function GET(request: Request) {
     const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
     const accentColor = compConfig?.accent_color ?? "#D9A521";
     const accentTextColor = compConfig?.accent_text_color ?? "#11151C";
+    const timezone = compConfig?.timezone ?? "Pacific/Auckland";
+    const locale = compConfig?.locale ?? "en-NZ";
     const enrolledUserIds = new Set((participants ?? []).map((p: { user_id: string }) => p.user_id));
     const teamName = (id: string) => teams?.find((t: { id: string; name: string }) => t.id === id)?.name ?? "?";
 
@@ -179,7 +181,7 @@ export async function GET(request: Request) {
       const msg = prepareReminderEmail({
         to: email, firstName, teamName: teamName_, roundLabel: gw.label, deadline: gw.deadline,
         fixtures: fixtureList, sponsors: sponsors ?? [], variant: "wednesday",
-        picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor,
+        picksCount, totalFixtures, competitionName, siteUrl, accentColor, accentTextColor, timezone, locale,
       });
       if (msg) {
         messages.push(msg);
@@ -228,8 +230,8 @@ export async function GET(request: Request) {
       const nativeUserIds = incompleteUsers.map((u) => u.id);
       if (nativeUserIds.length > 0) {
         const deadlineDate = new Date(gw.deadline);
-        const deadlineStr = deadlineDate.toLocaleDateString("en-NZ", {
-          weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+        const deadlineStr = deadlineDate.toLocaleDateString(locale, {
+          timeZone: timezone, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
         });
         const nativeResult = await sendPushNotification({
           userIds: nativeUserIds,

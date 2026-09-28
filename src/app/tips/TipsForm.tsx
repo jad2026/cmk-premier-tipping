@@ -477,8 +477,8 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
                       style={{ color: "#8A8578" }}
                     >
                       Tips close:{" "}
-                      {new Date(round.deadline).toLocaleString("en-NZ", {
-                        timeZone: "Pacific/Auckland",
+                      {new Date(round.deadline).toLocaleString(locale, {
+                        timeZone: timezone,
                         weekday: "short",
                         day: "numeric",
                         month: "short",
