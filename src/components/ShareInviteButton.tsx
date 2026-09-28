@@ -46,7 +46,8 @@ export default function ShareInviteButton({
 
   async function handleShare() {
     try {
-      await navigator.share({ title: leagueName, text, url });
+      // URL goes inside text: Apple share targets drop text when a url field is present.
+      await navigator.share({ title: leagueName, text: `${text} ${url}` });
     } catch {
       // User cancelled the share sheet, or sharing failed; nothing to do.
     }
