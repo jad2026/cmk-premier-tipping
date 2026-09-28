@@ -338,7 +338,7 @@ export default function LeaderboardContent({
   }, [matchKey]);
 
   function copyCode(code: string, leagueId: string) {
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(`${window.location.origin}/join/${encodeURIComponent(code)}`);
     setCopiedId(leagueId);
     setTimeout(() => setCopiedId(null), 2000);
   }
@@ -978,30 +978,34 @@ export default function LeaderboardContent({
                                 padding: 0,
                                 fontSize: 12,
                               }}
-                              title="Copy invite code"
+                              title="Copy invite link"
                             >
                               {copiedId === league.id ? "Copied!" : league.invite_code}
                             </button>
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleLeave(league.id, league.name)}
-                          disabled={isPending}
-                          style={{
-                            background: "none",
-                            border: "1px solid #E4E1D8",
-                            borderRadius: 8,
-                            padding: "6px 14px",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "#8B8676",
-                            cursor: "pointer",
-                            transition: "all .15s",
-                            opacity: isPending ? 0.5 : 1,
-                          }}
-                        >
-                          Leave
-                        </button>
+                        {/* Kept together: one line beside the name when it fits, otherwise wraps below it. */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <ShareInviteButton leagueName={league.name} inviteCode={league.invite_code} />
+                          <button
+                            onClick={() => handleLeave(league.id, league.name)}
+                            disabled={isPending}
+                            style={{
+                              background: "none",
+                              border: "1px solid #E4E1D8",
+                              borderRadius: 8,
+                              padding: "6px 14px",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#8B8676",
+                              cursor: "pointer",
+                              transition: "all .15s",
+                              opacity: isPending ? 0.5 : 1,
+                            }}
+                          >
+                            Leave
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
