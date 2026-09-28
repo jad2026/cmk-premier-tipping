@@ -6,6 +6,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
+import SponsorStrip from "@/components/SponsorStrip";
 import SignupBanner from "@/components/SignupBanner";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
@@ -89,6 +90,7 @@ export default async function RootLayout({
   const showSquads = compFeatures?.features?.show_squads === true;
   const showFantasy = compFeatures?.features?.fantasy_enabled === true;
   const showStats = compFeatures?.features?.stats_enabled !== false;
+  const showSponsorStrip = compFeatures?.features?.sponsor_strip === true;
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedOut = !user;
@@ -166,6 +168,7 @@ export default async function RootLayout({
         </noscript>
         <Analytics />
         <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} />
+        {showSponsorStrip && <SponsorStrip />}
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}
