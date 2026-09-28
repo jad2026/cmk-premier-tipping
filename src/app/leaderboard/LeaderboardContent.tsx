@@ -986,7 +986,7 @@ export default function LeaderboardContent({
                         </div>
                         {/* Kept together: one line beside the name when it fits, otherwise wraps below it. */}
                         <div className="flex items-center gap-2 shrink-0">
-                          <ShareInviteButton leagueName={league.name} inviteCode={league.invite_code} />
+                          <ShareInviteButton leagueName={league.name} inviteCode={league.invite_code} compact />
                           <button
                             onClick={() => handleLeave(league.id, league.name)}
                             disabled={isPending}
