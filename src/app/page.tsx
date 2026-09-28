@@ -154,16 +154,18 @@ export default async function HomePage() {
   let shortLabel: string | null = null;
   let regionLabelDb: string | null = null;
   let heroImage: string | null = null;
+  let statsEnabled = true;
   {
     const { data: scoringRow } = await supabase
       .from("competitions")
-      .select("scoring, short_label, region_label, hero_image")
+      .select("scoring, short_label, region_label, hero_image, features")
       .eq("id", compId)
-      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null; hero_image: string | null } | null };
+      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null; hero_image: string | null; features: Record<string, boolean> | null } | null };
     scoringConfig = scoringRow?.scoring ?? null;
     shortLabel = scoringRow?.short_label ?? null;
     regionLabelDb = scoringRow?.region_label ?? null;
     heroImage = scoringRow?.hero_image ?? null;
+    statsEnabled = scoringRow?.features?.stats_enabled !== false;
   }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
@@ -697,13 +699,15 @@ export default async function HomePage() {
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
                   <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compId === CMK_COMPETITION_ID ? `${compLabel} Men` : compLabel}</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
-                  <Link
-                    href="/stats"
-                    className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Full standings →
-                  </Link>
+                  {statsEnabled && (
+                    <Link
+                      href="/stats"
+                      className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      Full standings →
+                    </Link>
+                  )}
                 </div>
 
                 <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8", fontFeatureSettings: "'tnum'" }}>
@@ -791,13 +795,15 @@ export default async function HomePage() {
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
                   <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compLabel} Women</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
-                  <Link
-                    href="/stats"
-                    className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Full standings →
-                  </Link>
+                  {statsEnabled && (
+                    <Link
+                      href="/stats"
+                      className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      Full standings →
+                    </Link>
+                  )}
                 </div>
 
                 <div className="rounded-[18px] overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E1D8", fontFeatureSettings: "'tnum'" }}>

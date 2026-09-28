@@ -88,6 +88,7 @@ export default async function RootLayout({
   const logoUrl = compFeatures?.logo_url ?? null;
   const showSquads = compFeatures?.features?.show_squads === true;
   const showFantasy = compFeatures?.features?.fantasy_enabled === true;
+  const showStats = compFeatures?.features?.stats_enabled !== false;
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedOut = !user;
@@ -164,7 +165,7 @@ export default async function RootLayout({
           />
         </noscript>
         <Analytics />
-        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} />
+        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} />
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {children}

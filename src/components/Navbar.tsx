@@ -25,7 +25,7 @@ function NavIcon({ name }: { name: string }) {
   return <span className="shrink-0 w-[18px] h-[18px] flex items-center justify-center">{icons[name] ?? null}</span>;
 }
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, showStats = true, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; showStats?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
@@ -81,7 +81,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
     { href: "/tips", label: "Tips" },
     ...(user ? [{ href: "/my-picks", label: "My Picks" }] : []),
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/stats", label: "Stats" },
+    ...(showStats ? [{ href: "/stats", label: "Stats" }] : []),
     ...(showFantasy ? [{ href: "/fantasy/picker", label: "Fantasy" }] : []),
     ...(showSquads ? [{ href: "/squads", label: "Squads" }] : []),
   ];

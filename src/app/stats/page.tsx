@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import type { TzLocale } from "@/lib/datetime";
@@ -294,6 +295,12 @@ export default async function LadderPage() {
 
   console.time("[stats] competition");
   const compId = await getCurrentCompetitionId();
+  const { data: compFlags } = await supabase
+    .from("competitions")
+    .select("features")
+    .eq("id", compId)
+    .maybeSingle() as { data: { features: Record<string, boolean> | null } | null };
+  if (compFlags?.features?.stats_enabled === false) redirect("/");
   const tz = await getCompetitionTimezone(compId);
   console.timeEnd("[stats] competition");
 
