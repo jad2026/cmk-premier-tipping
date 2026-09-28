@@ -10,6 +10,7 @@ import ClubsMarquee from "@/components/ClubsMarquee";
 import type { Gameweek, Fixture, Team } from "@/lib/supabase/types";
 import { HomeCountdown, FeaturedCountdown } from "./HomeCountdown";
 import { getCachedTeams, getCachedSeasonConfig } from "@/lib/cached-queries";
+import { manualLadderKey } from "@/lib/manualLadder";
 
 export const revalidate = 60;
 
@@ -156,18 +157,20 @@ export default async function HomePage() {
   let heroImage: string | null = null;
   let statsEnabled = true;
   let showNpcPromo = true;
+  let manualLadder = false;
   {
     const { data: scoringRow } = await supabase
       .from("competitions")
-      .select("scoring, short_label, region_label, hero_image, features")
+      .select("scoring, short_label, region_label, hero_image, features, ladder_source")
       .eq("id", compId)
-      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null; hero_image: string | null; features: Record<string, boolean> | null } | null };
+      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null; hero_image: string | null; features: Record<string, boolean> | null; ladder_source: string | null } | null };
     scoringConfig = scoringRow?.scoring ?? null;
     shortLabel = scoringRow?.short_label ?? null;
     regionLabelDb = scoringRow?.region_label ?? null;
     heroImage = scoringRow?.hero_image ?? null;
     statsEnabled = scoringRow?.features?.stats_enabled !== false;
     showNpcPromo = scoringRow?.features?.show_npc_promo !== false;
+    manualLadder = scoringRow?.ladder_source === "manual";
   }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
@@ -206,6 +209,17 @@ export default async function HomePage() {
       womenLadderRows = (data ?? []) as LadderRow[];
     }
 
+    // Competitions without a feed: the table pasted in by admins.
+    if (manualLadder) {
+      const { data } = await supabase
+        .from("ladder_standings")
+        .select(
+          "comp_id, team_id, team_name, position, matches_played, matches_won, matches_drawn, matches_lost, points_for, points_against, points_diff, bonus_points, match_points, crest"
+        )
+        .eq("comp_id", manualLadderKey(compId))
+        .order("position", { ascending: true });
+      ladderRows = (data ?? []) as LadderRow[];
+    }
   }
 
   // Build a map of team colours from the teams table (Men's + Women's)
@@ -699,9 +713,9 @@ export default async function HomePage() {
               <>
                 <div className="flex items-center gap-[13px] mb-[22px]">
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
-                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compId === CMK_COMPETITION_ID ? `${compLabel} Men` : compLabel}</h2>
+                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{manualLadder ? (regionLabelDb ?? compLabel) : compId === CMK_COMPETITION_ID ? `${compLabel} Men` : compLabel}</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
-                  {statsEnabled && (
+                  {statsEnabled && !manualLadder && (
                     <Link
                       href="/stats"
                       className="text-[14px] font-extrabold tracking-[.02em] no-underline hover:opacity-75 transition-opacity"

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competition";
 import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
+import LadderTable, { type LadderTableRow } from "@/components/LadderTable";
+import { manualLadderKey } from "@/lib/manualLadder";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,14 @@ export const dynamic = "force-dynamic";
 type RichFixture = Omit<Fixture, "home_team" | "away_team"> & {
   home_team: Team;
   away_team: Team;
+};
+
+type LeagueResult = {
+  gameweek_id: string;
+  home_team: string;
+  away_team: string;
+  home_score: number;
+  away_score: number;
 };
 
 type ResultPick = {
@@ -47,6 +57,17 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
+// Loose team-name match ("Bridlington" vs "Bridlington RUFC") so the fixture
+// already shown in the card isn't repeated under "Around the league".
+function normTeam(name: string) {
+  return name.toLowerCase().replace(/\b(rufc|rfc|rugby( union)?( football)? club)\b/g, "").replace(/[^a-z0-9]/g, "");
+}
+function sameTeam(a: string, b: string) {
+  const x = normTeam(a);
+  const y = normTeam(b);
+  return x.length > 0 && y.length > 0 && (x.includes(y) || y.includes(x));
+}
+
 function hasResult(f: Pick<Fixture, "result_team_id" | "is_draw">) {
   return f.result_team_id !== null || f.is_draw;
 }
@@ -69,13 +90,41 @@ export default async function ResultsPage() {
 
   const { data: comp } = await supabase
     .from("competitions")
-    .select("features")
+    .select("features, ladder_source, region_label, short_label, name")
     .eq("id", compId)
-    .maybeSingle() as { data: { features: Record<string, boolean> | null } | null };
+    .maybeSingle() as {
+      data: {
+        features: Record<string, boolean> | null;
+        ladder_source: string | null;
+        region_label: string | null;
+        short_label: string | null;
+        name: string | null;
+      } | null;
+    };
   if (comp?.features?.results_page !== true) redirect("/");
   const marginPicking = comp.features.margin_picking === true;
 
   const tz = await getCompetitionTimezone(compId);
+
+  // Competitions without a feed: the league table pasted in by admins.
+  let ladderRows: LadderTableRow[] = [];
+  const teamColours = new Map<string, string>();
+  let ownTeam: string | null = null;
+  if (comp.ladder_source === "manual") {
+    const [{ data: ladder }, { data: compTeams }] = await Promise.all([
+      supabase
+        .from("ladder_standings")
+        .select("team_id, team_name, position, matches_played, matches_won, matches_lost, points_for, points_against, points_diff, match_points, crest")
+        .eq("comp_id", manualLadderKey(compId))
+        .order("position", { ascending: true }),
+      supabase.from("teams").select("name, colour").eq("competition_id", compId),
+    ]);
+    ladderRows = (ladder ?? []) as LadderTableRow[];
+    for (const t of compTeams ?? []) teamColours.set(t.name, t.colour);
+    // Highlight the club this competition is for (e.g. Bridlington).
+    const clubName = comp.short_label ?? comp.name ?? "";
+    ownTeam = ladderRows.find((r) => sameTeam(r.team_name, clubName))?.team_name ?? null;
+  }
 
   const { data: gameweeksRaw } = await supabase
     .from("gameweeks")
@@ -143,6 +192,26 @@ export default async function ResultsPage() {
     }
   }
 
+  // Other results from the same league round (competitions without a feed).
+  const leagueResultsByRound = new Map<string, LeagueResult[]>();
+  for (const ids of chunk(rounds.map((r) => r.gw.id), ID_CHUNK)) {
+    const rows = await fetchAllRows<LeagueResult>((from, to) =>
+      supabase
+        .from("league_results")
+        .select("gameweek_id, home_team, away_team, home_score, away_score")
+        .eq("competition_id", compId)
+        .in("gameweek_id", ids)
+        .order("created_at")
+        .order("id")
+        .range(from, to) as unknown as PromiseLike<{ data: LeagueResult[] | null }>
+    );
+    for (const r of rows) {
+      const list = leagueResultsByRound.get(r.gameweek_id) ?? [];
+      list.push(r);
+      leagueResultsByRound.set(r.gameweek_id, list);
+    }
+  }
+
   // Per-round winners: highest total points across the round's fixtures.
   const roundWinners = new Map<string, { userIds: string[]; points: number }>();
   for (const { gw, fixtures: roundFixtures } of rounds) {
@@ -199,6 +268,16 @@ export default async function ResultsPage() {
       {/* Content */}
       <section style={{ background: "#F2F0EA" }}>
         <div className="mx-auto space-y-5" style={{ maxWidth: 800, padding: "28px 16px 60px" }}>
+          {ladderRows.length > 0 && (
+            <div className="pb-4">
+              <div className="flex items-center gap-[13px] mb-[22px]">
+                <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
+                <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{comp.region_label ?? "League table"}</h2>
+                <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
+              </div>
+              <LadderTable rows={ladderRows} teamColours={teamColours} highlightTeam={ownTeam} compactOnMobile />
+            </div>
+          )}
           {rounds.length === 0 ? (
             <div
               className="rounded-[18px] text-center text-[15px] text-[#5A6371]"
@@ -210,9 +289,17 @@ export default async function ResultsPage() {
             rounds.map(({ gw, fixtures: roundFixtures }) => {
               const winners = roundWinners.get(gw.id);
               const firstDate = roundFixtures[0]?.match_date ?? gw.deadline;
+              const aroundLeague = (leagueResultsByRound.get(gw.id) ?? []).filter(
+                (r) =>
+                  !roundFixtures.some(
+                    (f) =>
+                      (sameTeam(r.home_team, f.home_team.name) && sameTeam(r.away_team, f.away_team.name)) ||
+                      (sameTeam(r.home_team, f.away_team.name) && sameTeam(r.away_team, f.home_team.name))
+                  )
+              );
               return (
+                <div key={gw.id} className="space-y-2">
                 <Link
-                  key={gw.id}
                   href={`/leaderboard/round/${gw.number}`}
                   className="block rounded-[18px] overflow-hidden no-underline text-inherit hover:shadow-md transition-shadow"
                   style={{ background: "#fff", border: "1px solid #E4E1D8" }}
@@ -298,6 +385,30 @@ export default async function ResultsPage() {
                     </div>
                   )}
                 </Link>
+                {aroundLeague.length > 0 && (
+                  <div
+                    className="rounded-[14px]"
+                    style={{ background: "#fff", border: "1px solid #E4E1D8", padding: "12px 20px" }}
+                  >
+                    <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#8C93A0] mb-2">
+                      Around the league
+                    </div>
+                    <ul className="space-y-1.5">
+                      {aroundLeague.map((r, i) => {
+                        const homeWon = r.home_score > r.away_score;
+                        const awayWon = r.away_score > r.home_score;
+                        return (
+                          <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[13px]">
+                            <span className={`text-right truncate ${homeWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.home_team}</span>
+                            <span className="tabular-nums font-semibold text-[#11151C]">{r.home_score} – {r.away_score}</span>
+                            <span className={`truncate ${awayWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.away_team}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                </div>
               );
             })
           )}

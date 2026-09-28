@@ -15,8 +15,9 @@ import TryOfTheWeekPanel from "./TryOfTheWeekPanel";
 import SquadManagementPanel from "./SquadManagementPanel";
 import NotificationsPanel from "./NotificationsPanel";
 import SponsoredLeaguePanel from "./SponsoredLeaguePanel";
+import LeagueTablePanel from "./LeagueTablePanel";
 
-type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "squads" | "participants" | "history" | "season" | "sponsors" | "sponsored" | "try" | "notifications";
+type Tab = "add" | "bulk" | "results" | "rounds" | "teams" | "squads" | "participants" | "history" | "season" | "sponsors" | "sponsored" | "try" | "notifications" | "table";
 
 type Props = {
   teams: Team[];
@@ -27,9 +28,11 @@ type Props = {
   timezone: string;
   locale: string;
   showSquads?: boolean;
+  manualLadder?: boolean;
+  rounds?: { id: string; number: number; label: string }[];
 };
 
-export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId, timezone, locale, showSquads = false }: Props) {
+export default function AdminShell({ teams, pendingFixtures, seasonComplete, seasonName, compId, timezone, locale, showSquads = false, manualLadder = false, rounds = [] }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("add");
 
   const TABS: { id: Tab; label: string }[] = [
@@ -39,6 +42,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
     { id: "try", label: "Try of the Week" },
     { id: "rounds", label: "Manage Rounds" },
     { id: "teams", label: "Teams" },
+    ...(manualLadder ? [{ id: "table" as Tab, label: "League table" }] : []),
     ...(showSquads ? [{ id: "squads" as Tab, label: "Squads" }] : []),
     { id: "participants", label: "Participants" },
     { id: "history", label: "Results History" },
@@ -152,6 +156,7 @@ export default function AdminShell({ teams, pendingFixtures, seasonComplete, sea
           {activeTab === "try" && <TryOfTheWeekPanel compId={compId} />}
           {activeTab === "squads" && <SquadManagementPanel teams={teams} />}
           {activeTab === "notifications" && <NotificationsPanel />}
+          {activeTab === "table" && manualLadder && <LeagueTablePanel rounds={rounds} />}
         </div>
       </section>
     </div>
