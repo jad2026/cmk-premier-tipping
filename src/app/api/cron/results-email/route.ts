@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     let from = 0;
     const batchSize = 1000;
     while (true) {
-      const { data } = await admin.from("profiles").select("id, display_name, first_name, is_suspected_bot").range(from, from + batchSize - 1);
+      const { data } = await admin.from("profiles").select("id, display_name, first_name, is_suspected_bot, unsubscribed").range(from, from + batchSize - 1);
       profiles.push(...(data ?? []));
       if (!data || data.length < batchSize) break;
       from += batchSize;
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     if (batch.length < 1000) break;
     page++;
   }
-  const botUserIds = new Set(profiles.filter((p) => p.is_suspected_bot).map((p) => p.id));
+  const botUserIds = new Set(profiles.filter((p) => p.is_suspected_bot || p.unsubscribed).map((p) => p.id));
   const teamName = (id: string) => teams?.find((t) => t.id === id)?.name ?? "?";
 
   let totalSent = 0;
