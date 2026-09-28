@@ -17,6 +17,7 @@ function NavIcon({ name }: { name: string }) {
     Tips: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L11.1 6.3 16 6.9 12.5 10.3 13.3 15.2 9 12.9 4.7 15.2 5.5 10.3 2 6.9 6.9 6.3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
     "My Picks": <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 9l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><rect x="2.5" y="3" width="13" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>,
     Leaderboard: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="9" width="3.5" height="7" rx="0.5" stroke="currentColor" strokeWidth="1.5"/><rect x="7.25" y="4" width="3.5" height="12" rx="0.5" stroke="currentColor" strokeWidth="1.5"/><rect x="12.5" y="7" width="3.5" height="9" rx="0.5" stroke="currentColor" strokeWidth="1.5"/></svg>,
+    Results: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2.5" y="2.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
     Stats: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 14l4-5 3 3 5-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
     Squads: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M2.5 15c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="13" cy="7" r="2" stroke="currentColor" strokeWidth="1.5"/><path d="M13 10.5c1.7 0 3 1.3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
     Profile: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
@@ -25,7 +26,7 @@ function NavIcon({ name }: { name: string }) {
   return <span className="shrink-0 w-[18px] h-[18px] flex items-center justify-center">{icons[name] ?? null}</span>;
 }
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, showStats = true, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; showStats?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, showStats = true, showResults = false, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; showStats?: boolean; showResults?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
@@ -81,6 +82,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
     { href: "/tips", label: "Tips" },
     ...(user ? [{ href: "/my-picks", label: "My Picks" }] : []),
     { href: "/leaderboard", label: "Leaderboard" },
+    ...(showResults ? [{ href: "/results", label: "Results" }] : []),
     ...(showStats ? [{ href: "/stats", label: "Stats" }] : []),
     ...(showFantasy ? [{ href: "/fantasy/picker", label: "Fantasy" }] : []),
     ...(showSquads ? [{ href: "/squads", label: "Squads" }] : []),
