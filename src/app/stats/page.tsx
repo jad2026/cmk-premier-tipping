@@ -311,7 +311,7 @@ export default async function LadderPage() {
   ] = await Promise.all([
     supabase
       .from("competitions")
-      .select("comp_id")
+      .select("id, comp_id, short_label, region_label")
       .in("id", tenantIds)
       .eq("is_active", true),
     getCachedAllTeams(),
@@ -368,7 +368,8 @@ export default async function LadderPage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "Provincial" : "CMK Premier";
+  const currentComp = (activeComps as { id: string; short_label: string | null }[] | null)?.find((c) => c.id === compId);
+  const compLabel = isNpc ? "Provincial" : (currentComp?.short_label ?? "CMK Premier");
   const latestRoundFromGw = closedGameweeks?.[0]?.number ?? null;
 
   console.time("[stats] matchcentre");

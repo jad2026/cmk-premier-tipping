@@ -151,13 +151,17 @@ export default async function HomePage() {
   let ladderRows: LadderRow[] = [];
   let womenLadderRows: LadderRow[] = [];
   let scoringConfig: Record<string, number> | null = null;
+  let shortLabel: string | null = null;
+  let regionLabelDb: string | null = null;
   {
     const { data: scoringRow } = await supabase
       .from("competitions")
-      .select("scoring")
+      .select("scoring, short_label, region_label")
       .eq("id", compId)
-      .single() as { data: { scoring: Record<string, number> | null } | null };
+      .single() as { data: { scoring: Record<string, number> | null; short_label: string | null; region_label: string | null } | null };
     scoringConfig = scoringRow?.scoring ?? null;
+    shortLabel = scoringRow?.short_label ?? null;
+    regionLabelDb = scoringRow?.region_label ?? null;
   }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
@@ -229,8 +233,8 @@ export default async function HomePage() {
   }
 
   const isNpc = compId === NPC_COMPETITION_ID;
-  const compLabel = isNpc ? "Provincial" : "CMK Premier";
-  const regionLabel = isNpc ? "New Zealand" : "Taranaki";
+  const compLabel = isNpc ? "Provincial" : (shortLabel ?? "CMK Premier");
+  const regionLabel = isNpc ? "New Zealand" : (regionLabelDb ?? "Taranaki");
 
   // Filter out women's teams and deduplicate by name
   const dedupedTeams: Team[] = [];
@@ -689,7 +693,7 @@ export default async function HomePage() {
               <>
                 <div className="flex items-center gap-[13px] mb-[22px]">
                   <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
-                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{isNpc ? compLabel : `${compLabel} Men`}</h2>
+                  <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{compId === CMK_COMPETITION_ID ? `${compLabel} Men` : compLabel}</h2>
                   <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
                   <Link
                     href="/stats"

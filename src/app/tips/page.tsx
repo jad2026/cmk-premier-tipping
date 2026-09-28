@@ -21,7 +21,15 @@ export type RoundData = {
 export default async function TipsPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
-  const compLabel = compId === NPC_COMPETITION_ID ? "NPC" : "CMK Premier · Taranaki";
+  let compLabel = "NPC";
+  if (compId !== NPC_COMPETITION_ID) {
+    const { data: labels } = await supabase
+      .from("competitions")
+      .select("short_label, region_label")
+      .eq("id", compId)
+      .maybeSingle() as { data: { short_label: string | null; region_label: string | null } | null };
+    compLabel = `${labels?.short_label ?? "CMK Premier"} · ${labels?.region_label ?? "Taranaki"}`;
+  }
   const tzLocale = await getCompetitionTimezone(compId);
 
   const [compFeatures, { data: { user } }] = await Promise.all([
