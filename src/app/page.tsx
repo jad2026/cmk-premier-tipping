@@ -155,6 +155,7 @@ export default async function HomePage() {
   let regionLabelDb: string | null = null;
   let heroImage: string | null = null;
   let statsEnabled = true;
+  let showNpcPromo = true;
   {
     const { data: scoringRow } = await supabase
       .from("competitions")
@@ -166,6 +167,7 @@ export default async function HomePage() {
     regionLabelDb = scoringRow?.region_label ?? null;
     heroImage = scoringRow?.hero_image ?? null;
     statsEnabled = scoringRow?.features?.stats_enabled !== false;
+    showNpcPromo = scoringRow?.features?.show_npc_promo !== false;
   }
   {
     const tenantIds = compId === CMK_COMPETITION_ID
@@ -567,7 +569,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── 5. NPC banner ────────────────────────────────────────────────────── */}
-      {compId !== NPC_COMPETITION_ID && (
+      {compId !== NPC_COMPETITION_ID && showNpcPromo && (
         <section style={{ background: "#F2F0EA" }}>
           <div className="max-w-content mx-auto" style={{ padding: "10px 32px 40px" }}>
             <div
