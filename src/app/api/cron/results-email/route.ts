@@ -13,6 +13,23 @@ const COMPETITION_SITE_URLS: Record<string, string> = {
   "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
 };
 
+// Competitions with email_schedule set are emailed on their own local
+// timetable by the hourly ?mode=local cron; the default UTC cron skips them.
+type EmailSchedule = { weekly_day?: number; weekly_hour?: number; reminder_hour?: number; results_hour?: number };
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function localDayHour(timeZone: string, date = new Date()): { day: number; hour: number } | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", hour: "numeric", hourCycle: "h23" }).formatToParts(date);
+    const day = WEEKDAYS.indexOf(parts.find((p) => p.type === "weekday")?.value ?? "");
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "", 10);
+    return day >= 0 && !isNaN(hour) ? { day, hour } : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -39,12 +56,34 @@ export async function GET(request: Request) {
     }
   );
 
+  const localMode = new URL(request.url).searchParams.get("mode") === "local";
+  const { data: scheduleRows, error: scheduleError } = await admin
+    .from("competitions")
+    .select("id, timezone, email_schedule")
+    .not("email_schedule", "is", null);
+  if (scheduleError) console.error("[results-email] email_schedule lookup failed", scheduleError);
+  const scheduledCompIds = new Set((scheduleRows ?? []).map((r: { id: string }) => r.id));
+  const dueCompIds = new Set<string>();
+  if (localMode) {
+    for (const row of (scheduleRows ?? []) as { id: string; timezone: string | null; email_schedule: EmailSchedule }[]) {
+      const schedule = row.email_schedule;
+      const local = localDayHour(row.timezone ?? "Pacific/Auckland");
+      if (local && schedule.results_hour === local.hour) dueCompIds.add(row.id);
+    }
+    if (dueCompIds.size === 0) {
+      console.log("[results-email] mode=local — no competitions scheduled this hour");
+      return NextResponse.json({ skipped: "not scheduled now" });
+    }
+  }
+  const inScope = (compId: string) => (localMode ? dueCompIds.has(compId) : !scheduledCompIds.has(compId));
+
   // Find gameweeks that haven't had results emailed yet
-  const { data: candidateGws } = await admin
+  const { data: candidateGwsAll } = await admin
     .from("gameweeks")
     .select("id, label, number, competition_id")
     .eq("results_email_sent", false)
     .order("number");
+  const candidateGws = (candidateGwsAll ?? []).filter((gw) => inScope(gw.competition_id));
 
   console.log("[results-email] candidateGws:", JSON.stringify(candidateGws));
 

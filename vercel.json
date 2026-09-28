@@ -20,6 +20,18 @@
     {
       "path": "/api/cron/refresh-stats",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/wednesday-reminder?mode=local",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/reminder?mode=local",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/results-email?mode=local",
+      "schedule": "0 * * * *"
     }
   ]
 }

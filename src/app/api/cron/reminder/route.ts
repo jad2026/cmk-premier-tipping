@@ -17,6 +17,23 @@ const COMPETITION_SITE_URLS: Record<string, string> = {
   "24d98bce-ce4b-4411-be28-8af22f4663a7": "https://waikato.clubrugbytipping.com",
 };
 
+// Competitions with email_schedule set are emailed on their own local
+// timetable by the hourly ?mode=local cron; the default UTC cron skips them.
+type EmailSchedule = { weekly_day?: number; weekly_hour?: number; reminder_hour?: number; results_hour?: number };
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function localDayHour(timeZone: string, date = new Date()): { day: number; hour: number } | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", hour: "numeric", hourCycle: "h23" }).formatToParts(date);
+    const day = WEEKDAYS.indexOf(parts.find((p) => p.type === "weekday")?.value ?? "");
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "", 10);
+    return day >= 0 && !isNaN(hour) ? { day, hour } : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -54,13 +71,35 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 
-  const { data: gws } = await admin
+  const localMode = new URL(request.url).searchParams.get("mode") === "local";
+  const { data: scheduleRows, error: scheduleError } = await admin
+    .from("competitions")
+    .select("id, timezone, email_schedule")
+    .not("email_schedule", "is", null);
+  if (scheduleError) console.error("[reminder] email_schedule lookup failed", scheduleError);
+  const scheduledCompIds = new Set((scheduleRows ?? []).map((r: { id: string }) => r.id));
+  const dueCompIds = new Set<string>();
+  if (localMode) {
+    for (const row of (scheduleRows ?? []) as { id: string; timezone: string | null; email_schedule: EmailSchedule }[]) {
+      const schedule = row.email_schedule;
+      const local = localDayHour(row.timezone ?? "Pacific/Auckland");
+      if (local && schedule.reminder_hour === local.hour) dueCompIds.add(row.id);
+    }
+    if (dueCompIds.size === 0) {
+      console.log("[reminder] mode=local — no competitions scheduled this hour");
+      return NextResponse.json({ skipped: "not scheduled now" });
+    }
+  }
+  const inScope = (compId: string) => (localMode ? dueCompIds.has(compId) : !scheduledCompIds.has(compId));
+
+  const { data: gwsAll } = await admin
     .from("gameweeks")
     .select("id, label, deadline, competition_id")
     .eq("is_open", true)
     .gt("deadline", new Date().toISOString())
     .lt("deadline", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString())
     .order("deadline", { ascending: true });
+  const gws = (gwsAll ?? []).filter((gw) => inScope(gw.competition_id));
 
   if (!gws || gws.length === 0) {
     console.log("[reminder] No open gameweeks — skipping");
