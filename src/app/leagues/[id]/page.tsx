@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import { fetchLeagueLeaderboard } from "../actions";
+import ShareInviteButton from "@/components/ShareInviteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -76,9 +77,12 @@ export default async function LeagueLeaderboardPage({ params }: { params: { id: 
               >
                 {league.name}<span style={{ color: "var(--accent)" }}>.</span>
               </h1>
-              <p style={{ fontSize: 13, color: "#C7CCD4", marginTop: 12 }}>
-                Invite code: <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#fff" }}>{league.invite_code}</span>
-              </p>
+              <div className="flex items-center gap-3 flex-wrap" style={{ marginTop: 12 }}>
+                <p style={{ fontSize: 13, color: "#C7CCD4", margin: 0 }}>
+                  Invite code: <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#fff" }}>{league.invite_code}</span>
+                </p>
+                <ShareInviteButton leagueName={league.name} inviteCode={league.invite_code} />
+              </div>
             </div>
             <Link
               href="/leagues"

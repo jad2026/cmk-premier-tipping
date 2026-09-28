@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/authErrors";
 import PasswordToggle from "@/components/PasswordToggle";
 
+// Only same-site relative paths; "//" and "/\\" would leave the site.
+function safeRelativePath(path: string | null): string | null {
+  return path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\") ? path : null;
+}
+
 function useSiteName() {
   const [name, setName] = useState("Club Rugby Tipping");
   useEffect(() => {
@@ -40,7 +45,8 @@ const labelStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect");
+  const redirectTo = safeRelativePath(searchParams.get("redirect"));
+  const safeNext = safeRelativePath(searchParams.get("next"));
   const supabase = createClient();
   const siteName = useSiteName();
   const [email, setEmail] = useState("");
@@ -64,7 +70,7 @@ export default function LoginPage() {
       setLoading(false);
       setError(friendlyAuthError(error));
     } else {
-      window.location.href = redirectTo || "/tips";
+      window.location.href = safeNext || redirectTo || "/tips";
     }
   }
 

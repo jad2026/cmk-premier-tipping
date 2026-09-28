@@ -6,13 +6,18 @@ import LeaguesClient from "./LeaguesClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function LeaguesPage() {
+export default async function LeaguesPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const compId = await getCurrentCompetitionId();
   const { leagues } = await fetchMyLeagues(compId);
+  const { error } = searchParams;
 
   return (
     <div
@@ -40,6 +45,14 @@ export default async function LeaguesPage() {
       {/* Content */}
       <section style={{ background: "#F2F0EA" }}>
         <div className="mx-auto" style={{ maxWidth: 700, padding: "28px 32px 60px" }}>
+          {error === "invalid-code" && (
+            <p
+              role="alert"
+              style={{ fontSize: 14, fontWeight: 600, color: "#B23A48", background: "#fff", border: "1px solid rgba(178,58,72,.25)", borderRadius: 12, padding: "12px 16px", margin: "0 0 20px" }}
+            >
+              That invite code isn&apos;t valid for this competition
+            </p>
+          )}
           <LeaguesClient initialLeagues={leagues} />
         </div>
       </section>

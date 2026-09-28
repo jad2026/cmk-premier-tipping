@@ -8,6 +8,7 @@ import TeamBadge from "@/components/TeamBadge";
 import LeaderboardTable from "./LeaderboardTable";
 import LeaguePicks from "./LeaguePicks";
 import { createLeague, joinLeague, leaveLeague } from "../leagues/actions";
+import ShareInviteButton from "@/components/ShareInviteButton";
 import { rankByScore } from "@/lib/ranking";
 
 export type LeaderboardRow = {
@@ -193,6 +194,7 @@ export default function LeaderboardContent({
   const [createName, setCreateName] = useState("");
   const [createError, setCreateError] = useState("");
   const [createFeedback, setCreateFeedback] = useState("");
+  const [createdLeague, setCreatedLeague] = useState<{ name: string; invite_code: string } | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinFeedback, setJoinFeedback] = useState("");
@@ -346,12 +348,14 @@ export default function LeaderboardContent({
     if (!createName.trim()) return;
     setCreateError("");
     setCreateFeedback("");
+    setCreatedLeague(null);
     startTransition(async () => {
       const res = await createLeague(createName);
       if (res.error) {
         setCreateError(res.error);
       } else if (res.league) {
         setCreateFeedback(`League "${res.league.name}" created! Code: ${res.league.invite_code}`);
+        setCreatedLeague({ name: res.league.name, invite_code: res.league.invite_code });
         setCreateName("");
         router.refresh();
       }
@@ -895,6 +899,7 @@ export default function LeaderboardContent({
                   </button>
                   {createError && <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{createError}</p>}
                   {createFeedback && <p style={{ fontSize: 13, color: "#1F9E5A", fontWeight: 600, margin: 0 }}>{createFeedback}</p>}
+                  {createdLeague && <ShareInviteButton leagueName={createdLeague.name} inviteCode={createdLeague.invite_code} />}
                 </form>
                 <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <input
@@ -1022,6 +1027,7 @@ export default function LeaderboardContent({
                       </button>
                       {createError && <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{createError}</p>}
                       {createFeedback && <p style={{ fontSize: 13, color: "#1F9E5A", fontWeight: 600, margin: 0 }}>{createFeedback}</p>}
+                      {createdLeague && <ShareInviteButton leagueName={createdLeague.name} inviteCode={createdLeague.invite_code} />}
                     </form>
                     <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#8B8676" }}>

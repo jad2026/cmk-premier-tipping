@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { createLeague, joinLeague } from "./actions";
+import ShareInviteButton from "@/components/ShareInviteButton";
 import type { League } from "@/lib/supabase/types";
 
 type LeagueWithCount = League & { member_count: number };
@@ -42,6 +43,7 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
   const [createName, setCreateName] = useState("");
   const [createError, setCreateError] = useState("");
   const [createFeedback, setCreateFeedback] = useState("");
+  const [createdLeague, setCreatedLeague] = useState<League | null>(null);
 
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -52,12 +54,14 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
     if (!createName.trim()) return;
     setCreateError("");
     setCreateFeedback("");
+    setCreatedLeague(null);
     startTransition(async () => {
       const res = await createLeague(createName);
       if (res.error) {
         setCreateError(res.error);
       } else if (res.league) {
         setCreateFeedback(`League "${res.league.name}" created! Invite code: ${res.league.invite_code}`);
+        setCreatedLeague(res.league);
         setCreateName("");
         setLeagues((prev) => [...prev, { ...res.league!, member_count: 1 }]);
       }
@@ -99,27 +103,39 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
         ) : (
           <div>
             {leagues.map((league, i) => (
-              <Link
+              <div
                 key={league.id}
-                href={`/leagues/${league.id}`}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  gap: 12,
                   padding: "14px 0",
                   borderTop: i > 0 ? "1px solid #EFEDE6" : "none",
-                  textDecoration: "none",
-                  color: "inherit",
                 }}
               >
-                <div>
-                  <p style={{ fontWeight: 700, fontSize: 15, color: "#11151C", margin: 0 }}>{league.name}</p>
-                  <p style={{ fontSize: 12, color: "#8B8676", marginTop: 2, margin: 0 }}>
-                    {league.member_count} member{league.member_count !== 1 ? "s" : ""} · Code: <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{league.invite_code}</span>
-                  </p>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>View →</span>
-              </Link>
+                <Link
+                  href={`/leagues/${league.id}`}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                >
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: 15, color: "#11151C", margin: 0 }}>{league.name}</p>
+                    <p style={{ fontSize: 12, color: "#8B8676", marginTop: 2, margin: 0 }}>
+                      {league.member_count} member{league.member_count !== 1 ? "s" : ""} · Code: <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{league.invite_code}</span>
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>View →</span>
+                </Link>
+                <ShareInviteButton leagueName={league.name} inviteCode={league.invite_code} />
+              </div>
             ))}
           </div>
         )}
@@ -150,6 +166,7 @@ export default function LeaguesClient({ initialLeagues }: { initialLeagues: Leag
             </button>
             {createError && <p style={{ fontSize: 13, color: "#B23A48", margin: 0 }}>{createError}</p>}
             {createFeedback && <p style={{ fontSize: 13, color: "#1F9E5A", fontWeight: 600, margin: 0 }}>{createFeedback}</p>}
+            {createdLeague && <ShareInviteButton leagueName={createdLeague.name} inviteCode={createdLeague.invite_code} />}
           </form>
         </div>
 

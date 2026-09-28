@@ -461,7 +461,10 @@ export default function SignupPage() {
 
           <p style={{ marginTop: 24, textAlign: "center", fontSize: 14, color: "#8B8676" }}>
             Already have an account?{" "}
-            <Link href="/login" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
+            <Link
+              href={codeParam ? `/login?next=${encodeURIComponent(`/join/${codeParam}`)}` : "/login"}
+              style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}
+            >
               Sign in
             </Link>
           </p>
