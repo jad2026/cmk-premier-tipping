@@ -58,10 +58,11 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   .heritage-row { animation: none; }
 }
-/* Let the photos show through the full-width cream sections. White cards and
-   the dark sections keep their solid backgrounds. */
+/* Let the photos show through the full-width cream sections and the auth
+   pages' full-page cream wrapper. White cards and dark sections stay solid. */
 html[data-heritage-bg] section[style*="#F2F0EA" i],
-html[data-heritage-bg] section[style*="rgb(242, 240, 234)"] {
+html[data-heritage-bg] section[style*="rgb(242, 240, 234)"],
+html[data-heritage-bg] .auth-page-bg {
   background: transparent !important;
 }
 `;

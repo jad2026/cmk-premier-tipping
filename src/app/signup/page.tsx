@@ -17,6 +17,7 @@ function useSiteName() {
 }
 import { triggerWelcomeEmail, getSignupConfig, joinLeagueByCode, checkTeamNameAvailable } from "./actions";
 import { autoEnrollCurrentCompetition } from "@/app/competition-actions";
+import { BrandMark } from "@/components/CompetitionBrand";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -219,7 +220,7 @@ export default function SignupPage() {
 
   return (
     <div
-      className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
+      className="auth-page-bg -mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", background: "#F2F0EA", minHeight: "100vh" }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "40px 16px" }}>
@@ -227,10 +228,7 @@ export default function SignupPage() {
           {/* Wordmark */}
           <div style={{ textAlign: "center", marginBottom: 28 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <circle cx="9" cy="9" r="9" fill="var(--accent)" />
-                <path d="M7 9.5L8.5 11L11.5 7.5" stroke="var(--accent-text, #11151C)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <BrandMark />
               <span className="font-display" style={{ fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", color: "#11151C" }}>
                 {siteName}
               </span>

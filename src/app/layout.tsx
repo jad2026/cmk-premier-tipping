@@ -8,6 +8,7 @@ import GlobalTeamMarquee from "@/components/GlobalTeamMarquee";
 import GlobalSponsorBanner from "@/components/GlobalSponsorBanner";
 import SponsorStrip from "@/components/SponsorStrip";
 import HeritageBackground from "@/components/HeritageBackground";
+import { CompetitionBrandProvider } from "@/components/CompetitionBrand";
 import SignupBanner from "@/components/SignupBanner";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
@@ -183,7 +184,7 @@ export default async function RootLayout({
         {showSponsorStrip && <SponsorStrip />}
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">
-          {children}
+          <CompetitionBrandProvider logoUrl={logoUrl}>{children}</CompetitionBrandProvider>
         </main>
         <GlobalSponsorBanner />
         {isLoggedOut && <SignupBanner siteName={siteName} />}
