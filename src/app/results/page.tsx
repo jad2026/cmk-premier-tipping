@@ -245,6 +245,152 @@ export default async function ResultsPage() {
   const displayName = (id: string) =>
     profileMap.get(id)?.trim() || `Player ${id.slice(0, 5).toUpperCase()}`;
 
+  // One round card (fixture, tipping stats, round winner) plus "Around the league".
+  const renderRound = ({ gw, fixtures: roundFixtures }: (typeof rounds)[number]) => {
+    const winners = roundWinners.get(gw.id);
+    const firstDate = roundFixtures[0]?.match_date ?? gw.deadline;
+    const aroundLeague = (leagueResultsByRound.get(gw.id) ?? []).filter(
+      (r) =>
+        !roundFixtures.some(
+          (f) =>
+            (sameTeam(r.home_team, f.home_team.name) && sameTeam(r.away_team, f.away_team.name)) ||
+            (sameTeam(r.home_team, f.away_team.name) && sameTeam(r.away_team, f.home_team.name))
+        )
+    );
+    return (
+      <div key={gw.id} className="space-y-2">
+      <Link
+        href={`/leaderboard/round/${gw.number}`}
+        className="block rounded-[18px] overflow-hidden no-underline text-inherit hover:shadow-md transition-shadow"
+        style={{ background: "#fff", border: "1px solid #E4E1D8" }}
+      >
+        {/* Round header */}
+        <div
+          className="flex items-baseline justify-between gap-3 flex-wrap"
+          style={{ background: "var(--surface-alt, #0D1016)", color: "#fff", padding: "16px 20px" }}
+        >
+          <h2 className="font-display uppercase text-[20px] tracking-[.02em] m-0">{gw.label}</h2>
+          <span className="text-[12px] font-semibold text-[#C7CCD4]">{fmtDate(firstDate, tz)}</span>
+        </div>
+
+        {/* Fixtures */}
+        <div>
+          {roundFixtures.map((f) => {
+            const done = hasResult(f);
+            const picks = picksByFixture.get(f.id) ?? [];
+            const correct = picks.filter((p) => p.is_correct === true).length;
+            const pct = picks.length > 0 ? Math.round((correct / picks.length) * 100) : null;
+            const maxBonus = picks.reduce((m, p) => Math.max(m, p.margin_bonus ?? 0), 0);
+            const exactCount = maxBonus > 0 ? picks.filter((p) => p.margin_bonus === maxBonus).length : 0;
+            const hasScore = f.home_score !== null && f.away_score !== null;
+            const side = (team: Team, score: number | null) => {
+              const won = f.result_team_id === team.id;
+              return (
+                <div className="flex items-center gap-3 min-w-0">
+                  <TeamBadge team={team} size="sm" />
+                  <span className={`flex-1 min-w-0 truncate text-[15px] ${won ? "font-extrabold text-[#11151C]" : "text-[#5A6371]"}`}>
+                    {team.name}
+                  </span>
+                  {hasScore && (
+                    <span
+                      className={`text-[17px] tabular-nums ${won ? "font-extrabold text-[#11151C]" : "text-[#5A6371]"}`}
+                    >
+                      {score}
+                    </span>
+                  )}
+                </div>
+              );
+            };
+            return (
+              <div key={f.id} style={{ padding: "14px 20px", borderTop: "1px solid #EEEBE3" }}>
+                <div className="space-y-2">
+                  {side(f.home_team, f.home_score)}
+                  {side(f.away_team, f.away_score)}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-[#8C93A0]">
+                  {!done && <span>Result pending</span>}
+                  {f.is_draw && (
+                    <span className="font-extrabold uppercase tracking-[.08em]" style={{ color: "var(--accent)" }}>
+                      Draw
+                    </span>
+                  )}
+                  {done && pct !== null && (
+                    <span>
+                      {pct}% tipped correctly ({picks.length} {picks.length === 1 ? "tip" : "tips"})
+                    </span>
+                  )}
+                  {done && marginPicking && picks.length > 0 && <span>Exact margin: {exactCount}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Round winner(s) */}
+        {winners && (
+          <div
+            className="flex items-center gap-3 flex-wrap"
+            style={{ padding: "14px 20px", borderTop: "1px solid #E4E1D8", background: "#FAF9F5" }}
+          >
+            <span className="shrink-0" style={{ width: 18, height: 3, borderRadius: 2, background: "var(--accent)" }} />
+            <span className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#8C93A0]">
+              {winners.userIds.length > 1 ? "Joint winners" : "Round winner"}
+            </span>
+            <span className="text-[14px] font-bold text-[#11151C]">
+              {winners.userIds.map(displayName).join(", ")}
+            </span>
+            <span className="text-[13px] text-[#5A6371] tabular-nums">
+              {winners.points} {winners.points === 1 ? "pt" : "pts"}
+            </span>
+          </div>
+        )}
+      </Link>
+      {aroundLeague.length > 0 && (
+        <div
+          className="rounded-[14px]"
+          style={{ background: "#fff", border: "1px solid #E4E1D8", padding: "12px 20px" }}
+        >
+          <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#8C93A0] mb-2">
+            Around the league
+          </div>
+          <ul className="space-y-1.5">
+            {aroundLeague.map((r, i) => {
+              const homeWon = r.home_score > r.away_score;
+              const awayWon = r.away_score > r.home_score;
+              return (
+                <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[13px]">
+                  <span className={`text-right truncate ${homeWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.home_team}</span>
+                  <span className="tabular-nums font-semibold text-[#11151C]">{r.home_score} – {r.away_score}</span>
+                  <span className={`truncate ${awayWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.away_team}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      </div>
+    );
+  };
+
+  const manualLadder = comp.ladder_source === "manual";
+
+  const sectionHeading = (label: string, small = false) => (
+    <div className={`flex items-center gap-[13px] ${small ? "mb-[14px]" : "mb-[22px]"}`}>
+      <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
+      <h2 className={`font-display uppercase tracking-[.02em] ${small ? "text-[16px]" : "text-[23px]"}`}>{label}</h2>
+      <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
+    </div>
+  );
+
+  const emptyState = (
+    <div
+      className="rounded-[18px] text-center text-[15px] text-[#5A6371]"
+      style={{ background: "#fff", border: "1px solid #E4E1D8", padding: "48px 24px" }}
+    >
+      No results yet — check back after the first round.
+    </div>
+  );
+
   return (
     <div
       className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8"
@@ -268,149 +414,33 @@ export default async function ResultsPage() {
       {/* Content */}
       <section style={{ background: "#F2F0EA" }}>
         <div className="mx-auto space-y-5" style={{ maxWidth: 800, padding: "28px 16px 60px" }}>
-          {ladderRows.length > 0 && (
-            <div className="pb-4">
-              <div className="flex items-center gap-[13px] mb-[22px]">
-                <span className="block w-[26px] h-[3px] rounded-sm" style={{ background: "var(--accent)" }} />
-                <h2 className="font-display text-[23px] uppercase tracking-[.02em]">{comp.region_label ?? "League table"}</h2>
-                <div className="flex-1 h-px" style={{ background: "#DCD9CF" }} />
-              </div>
-              <LadderTable rows={ladderRows} teamColours={teamColours} highlightTeam={ownTeam} compactOnMobile />
-            </div>
-          )}
-          {rounds.length === 0 ? (
-            <div
-              className="rounded-[18px] text-center text-[15px] text-[#5A6371]"
-              style={{ background: "#fff", border: "1px solid #E4E1D8", padding: "48px 24px" }}
-            >
-              No results yet — check back after the first round.
-            </div>
-          ) : (
-            rounds.map(({ gw, fixtures: roundFixtures }) => {
-              const winners = roundWinners.get(gw.id);
-              const firstDate = roundFixtures[0]?.match_date ?? gw.deadline;
-              const aroundLeague = (leagueResultsByRound.get(gw.id) ?? []).filter(
-                (r) =>
-                  !roundFixtures.some(
-                    (f) =>
-                      (sameTeam(r.home_team, f.home_team.name) && sameTeam(r.away_team, f.away_team.name)) ||
-                      (sameTeam(r.home_team, f.away_team.name) && sameTeam(r.away_team, f.home_team.name))
-                  )
-              );
-              return (
-                <div key={gw.id} className="space-y-2">
-                <Link
-                  href={`/leaderboard/round/${gw.number}`}
-                  className="block rounded-[18px] overflow-hidden no-underline text-inherit hover:shadow-md transition-shadow"
-                  style={{ background: "#fff", border: "1px solid #E4E1D8" }}
-                >
-                  {/* Round header */}
-                  <div
-                    className="flex items-baseline justify-between gap-3 flex-wrap"
-                    style={{ background: "var(--surface-alt, #0D1016)", color: "#fff", padding: "16px 20px" }}
-                  >
-                    <h2 className="font-display uppercase text-[20px] tracking-[.02em] m-0">{gw.label}</h2>
-                    <span className="text-[12px] font-semibold text-[#C7CCD4]">{fmtDate(firstDate, tz)}</span>
-                  </div>
-
-                  {/* Fixtures */}
-                  <div>
-                    {roundFixtures.map((f) => {
-                      const done = hasResult(f);
-                      const picks = picksByFixture.get(f.id) ?? [];
-                      const correct = picks.filter((p) => p.is_correct === true).length;
-                      const pct = picks.length > 0 ? Math.round((correct / picks.length) * 100) : null;
-                      const maxBonus = picks.reduce((m, p) => Math.max(m, p.margin_bonus ?? 0), 0);
-                      const exactCount = maxBonus > 0 ? picks.filter((p) => p.margin_bonus === maxBonus).length : 0;
-                      const hasScore = f.home_score !== null && f.away_score !== null;
-                      const side = (team: Team, score: number | null) => {
-                        const won = f.result_team_id === team.id;
-                        return (
-                          <div className="flex items-center gap-3 min-w-0">
-                            <TeamBadge team={team} size="sm" />
-                            <span className={`flex-1 min-w-0 truncate text-[15px] ${won ? "font-extrabold text-[#11151C]" : "text-[#5A6371]"}`}>
-                              {team.name}
-                            </span>
-                            {hasScore && (
-                              <span
-                                className={`text-[17px] tabular-nums ${won ? "font-extrabold text-[#11151C]" : "text-[#5A6371]"}`}
-                              >
-                                {score}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      };
-                      return (
-                        <div key={f.id} style={{ padding: "14px 20px", borderTop: "1px solid #EEEBE3" }}>
-                          <div className="space-y-2">
-                            {side(f.home_team, f.home_score)}
-                            {side(f.away_team, f.away_score)}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-[#8C93A0]">
-                            {!done && <span>Result pending</span>}
-                            {f.is_draw && (
-                              <span className="font-extrabold uppercase tracking-[.08em]" style={{ color: "var(--accent)" }}>
-                                Draw
-                              </span>
-                            )}
-                            {done && pct !== null && (
-                              <span>
-                                {pct}% tipped correctly ({picks.length} {picks.length === 1 ? "tip" : "tips"})
-                              </span>
-                            )}
-                            {done && marginPicking && picks.length > 0 && <span>Exact margin: {exactCount}</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Round winner(s) */}
-                  {winners && (
-                    <div
-                      className="flex items-center gap-3 flex-wrap"
-                      style={{ padding: "14px 20px", borderTop: "1px solid #E4E1D8", background: "#FAF9F5" }}
-                    >
-                      <span className="shrink-0" style={{ width: 18, height: 3, borderRadius: 2, background: "var(--accent)" }} />
-                      <span className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#8C93A0]">
-                        {winners.userIds.length > 1 ? "Joint winners" : "Round winner"}
-                      </span>
-                      <span className="text-[14px] font-bold text-[#11151C]">
-                        {winners.userIds.map(displayName).join(", ")}
-                      </span>
-                      <span className="text-[13px] text-[#5A6371] tabular-nums">
-                        {winners.points} {winners.points === 1 ? "pt" : "pts"}
-                      </span>
-                    </div>
-                  )}
-                </Link>
-                {aroundLeague.length > 0 && (
-                  <div
-                    className="rounded-[14px]"
-                    style={{ background: "#fff", border: "1px solid #E4E1D8", padding: "12px 20px" }}
-                  >
-                    <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#8C93A0] mb-2">
-                      Around the league
-                    </div>
-                    <ul className="space-y-1.5">
-                      {aroundLeague.map((r, i) => {
-                        const homeWon = r.home_score > r.away_score;
-                        const awayWon = r.away_score > r.home_score;
-                        return (
-                          <li key={i} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[13px]">
-                            <span className={`text-right truncate ${homeWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.home_team}</span>
-                            <span className="tabular-nums font-semibold text-[#11151C]">{r.home_score} – {r.away_score}</span>
-                            <span className={`truncate ${awayWon ? "font-bold text-[#11151C]" : "text-[#5A6371]"}`}>{r.away_team}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
+          {manualLadder ? (
+            // Manual-ladder competitions: latest round, then the table, then earlier rounds.
+            <>
+              {rounds.length > 0 && (
+                <div className="pb-4">
+                  {sectionHeading("Latest results", true)}
+                  {renderRound(rounds[0])}
                 </div>
-              );
-            })
+              )}
+              {ladderRows.length > 0 && (
+                <div className="pb-4">
+                  {sectionHeading(comp.region_label ?? "League table")}
+                  <LadderTable rows={ladderRows} teamColours={teamColours} highlightTeam={ownTeam} compactOnMobile />
+                </div>
+              )}
+              {rounds.length === 0 && emptyState}
+              {rounds.length > 1 && (
+                <div className="space-y-5">
+                  {sectionHeading("Earlier rounds", true)}
+                  {rounds.slice(1).map(renderRound)}
+                </div>
+              )}
+            </>
+          ) : rounds.length === 0 ? (
+            emptyState
+          ) : (
+            rounds.map(renderRound)
           )}
         </div>
       </section>
