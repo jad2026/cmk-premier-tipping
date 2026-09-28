@@ -645,7 +645,7 @@ function TipsHeader({ rounds, deadline, compLabel, timezone, locale }: { rounds:
   const primaryRound = rounds[0];
 
   return (
-    <section className="bg-ink text-white">
+    <section className="bg-ink text-white page-header-bg">
       <div className="max-w-content-inner mx-auto" style={{ padding: "40px 32px 34px" }}>
         {/* Pulsing dot + eyebrow */}
         <div className="flex items-center gap-3 mb-[18px]">

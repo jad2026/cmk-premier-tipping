@@ -182,7 +182,7 @@ export default async function ResultsPage() {
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
     >
       {/* Dark header */}
-      <section style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
+      <section className="page-header-bg" style={{ background: "var(--surface, #0B0E13)", color: "#fff" }}>
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "44px 32px 36px" }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
             <div className="shrink-0" style={{ width: 24, height: 3, borderRadius: 2, background: "var(--accent)" }} />

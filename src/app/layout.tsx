@@ -61,9 +61,9 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: compFeatures } = await supabase
     .from("competitions")
-    .select("features, accent_color, accent_text_color, logo_url, surface_color")
+    .select("features, accent_color, accent_text_color, logo_url, surface_color, hero_image")
     .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null; surface_color: string | null } | null };
+    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null; surface_color: string | null; hero_image: string | null } | null };
   const accentVars = getCompetitionAccentCSSVars(compId, compFeatures?.accent_color, compFeatures?.accent_text_color);
   // NPC and CMK keep the default dark surface; other competitions may override it.
   const surfaceColor = compFeatures?.surface_color?.trim();
@@ -92,6 +92,8 @@ export default async function RootLayout({
   const showStats = compFeatures?.features?.stats_enabled !== false;
   const showSponsorStrip = compFeatures?.features?.sponsor_strip === true;
   const showResults = compFeatures?.features?.results_page === true;
+  const heroImage = compFeatures?.hero_image?.trim();
+  const headerPhoto = compFeatures?.features?.header_photo === true && !!heroImage;
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedOut = !user;
@@ -120,7 +122,12 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${archivo.variable} ${archivoBlack.variable} ${themeClass}`}
-      style={{ ...accentVars, ...surfaceVars } as React.CSSProperties}
+      style={{
+        ...accentVars,
+        ...surfaceVars,
+        ...(headerPhoto ? { "--header-image": `url(${JSON.stringify(heroImage)})` } : {}),
+      } as React.CSSProperties}
+      data-header-photo={headerPhoto ? "" : undefined}
     >
       <body className={`${archivo.className} min-h-screen`}>
         <Script id="meta-pixel" strategy="afterInteractive">{`
