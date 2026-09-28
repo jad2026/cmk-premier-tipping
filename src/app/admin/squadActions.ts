@@ -5,6 +5,18 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { getCurrentCompetitionId } from "@/lib/competition";
 import type { Player, CoachingStaff } from "@/lib/supabase/types";
 
+// Server actions are publicly callable, so every write action checks the
+// caller is signed in and profiles.is_admin before touching data.
+async function isAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  return profile?.is_admin === true;
+}
+
+const NOT_AUTHORIZED = { error: "Not authorized" };
+
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -35,6 +47,7 @@ export async function upsertPlayer(
     pts: number;
   },
 ): Promise<{ error?: string; playerId?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
 
@@ -77,6 +90,7 @@ export async function upsertPlayer(
 }
 
 export async function deletePlayer(playerId: string): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const supabase = await createClient();
   const { error } = await supabase.from("players").delete().eq("id", playerId);
   if (error) return { error: error.message };
@@ -87,6 +101,7 @@ export async function uploadPlayerPhoto(
   playerId: string,
   formData: FormData,
 ): Promise<{ error?: string; url?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No file provided" };
   if (file.size > 2 * 1024 * 1024) return { error: "File must be under 2 MB" };
@@ -111,6 +126,7 @@ export async function uploadPlayerPhoto(
 }
 
 export async function removePlayerPhoto(playerId: string): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
 
   const { data: player } = await admin
@@ -149,6 +165,7 @@ export async function upsertCoach(
     display_order: number;
   },
 ): Promise<{ error?: string; coachId?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const supabase = await createClient();
 
   if (coach.id) {
@@ -170,6 +187,7 @@ export async function upsertCoach(
 }
 
 export async function deleteCoach(coachId: string): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const supabase = await createClient();
   const { error } = await supabase.from("coaching_staff").delete().eq("id", coachId);
   if (error) return { error: error.message };
@@ -180,6 +198,7 @@ export async function uploadCoachPhoto(
   coachId: string,
   formData: FormData,
 ): Promise<{ error?: string; url?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No file provided" };
   if (file.size > 2 * 1024 * 1024) return { error: "File must be under 2 MB" };

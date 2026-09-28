@@ -1,6 +1,19 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+
+// Server actions are publicly callable, so every write action checks the
+// caller is signed in and profiles.is_admin before touching data.
+async function isAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  return profile?.is_admin === true;
+}
+
+const NOT_AUTHORIZED = { error: "Not authorized" };
 
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -54,6 +67,7 @@ export async function createSponsoredLeague(data: {
   sponsor_name: string;
   sponsor_accent_color: string | null;
 }): Promise<{ error?: string; league?: Record<string, unknown> }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
 
   const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1 });
@@ -88,6 +102,7 @@ export async function updateLeagueSponsor(
     sponsor_accent_color: string | null;
   }
 ): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
   const { error } = await admin.from("leagues").update(data).eq("id", leagueId);
   if (error) return { error: error.message };
@@ -110,6 +125,7 @@ export async function addSponsorLogo(
   name: string,
   formData: FormData
 ): Promise<{ error?: string; logo?: { id: string; name: string; logo_url: string; display_order: number } }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No file provided" };
 
@@ -148,6 +164,7 @@ export async function addSponsorLogo(
 }
 
 export async function removeSponsorLogo(logoId: string): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
 
   const { data: row } = await admin
@@ -176,6 +193,7 @@ export async function removeSponsorLogo(logoId: string): Promise<{ error?: strin
 export async function reorderSponsorLogos(
   logos: { id: string; display_order: number }[]
 ): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
   await Promise.all(
     logos.map((l) =>
@@ -188,6 +206,7 @@ export async function reorderSponsorLogos(
 export async function upsertPrizes(
   prizes: { league_id: string; gameweek_id: string; prize_description: string }[]
 ): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   if (prizes.length === 0) return {};
   const admin = serviceClient();
   const { error } = await admin
@@ -201,6 +220,7 @@ export async function awardPrize(
   prizeId: string,
   winnerUserId: string
 ): Promise<{ error?: string }> {
+  if (!(await isAdmin())) return NOT_AUTHORIZED;
   const admin = serviceClient();
   const { error } = await admin
     .from("league_prizes")
