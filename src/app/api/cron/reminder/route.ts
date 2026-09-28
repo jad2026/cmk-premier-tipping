@@ -14,6 +14,7 @@ const COMPETITION_SITE_URLS: Record<string, string> = {
   "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
   "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://clubrugbytipping.com",
   "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
+  "24d98bce-ce4b-4411-be28-8af22f4663a7": "https://waikato.clubrugbytipping.com",
 };
 
 export async function GET(request: Request) {
@@ -256,7 +257,7 @@ export async function GET(request: Request) {
           userIds: nativeUserIds,
           title: "Tips close soon",
           body: `${gw.label} tips close ${deadlineStr} — get your picks in!`,
-          data: { url: "/tips" },
+          data: { url: `${siteUrl}/tips` },
         });
         console.log(
           `[reminder] Native push for ${competitionName} ${gw.label}: sent=${nativeResult.sent} tokens=${nativeResult.tokens_found}`

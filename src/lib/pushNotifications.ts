@@ -37,6 +37,26 @@ export async function initPushNotifications(
       "pushNotificationActionPerformed",
       (action) => {
         console.log("Push notification tapped:", action);
+        const url = action.notification.data?.url;
+        if (typeof url !== "string") return;
+        // Relative path: stay on the current origin ("//" would be protocol-relative).
+        if (url.startsWith("/") && !url.startsWith("//")) {
+          window.location.href = url;
+          return;
+        }
+        // Absolute URL: only follow https links to our own sites.
+        try {
+          const target = new URL(url);
+          const host = target.hostname;
+          if (
+            target.protocol === "https:" &&
+            (host === "clubrugbytipping.com" || host.endsWith(".clubrugbytipping.com"))
+          ) {
+            window.location.href = target.href;
+          }
+        } catch {
+          // Not a valid URL; ignore.
+        }
       },
     );
   } catch (err) {
