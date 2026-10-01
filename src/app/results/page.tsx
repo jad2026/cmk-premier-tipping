@@ -6,6 +6,7 @@ import type { TzLocale } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import LadderTable, { type LadderTableRow } from "@/components/LadderTable";
 import { manualLadderKey } from "@/lib/manualLadder";
+import { sameTeam } from "@/lib/teamMatch";
 import type { Team, Fixture, Gameweek } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -55,17 +56,6 @@ function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
   return out;
-}
-
-// Loose team-name match ("Bridlington" vs "Bridlington RUFC") so the fixture
-// already shown in the card isn't repeated under "Around the league".
-function normTeam(name: string) {
-  return name.toLowerCase().replace(/\b(rufc|rfc|rugby( union)?( football)? club)\b/g, "").replace(/[^a-z0-9]/g, "");
-}
-function sameTeam(a: string, b: string) {
-  const x = normTeam(a);
-  const y = normTeam(b);
-  return x.length > 0 && y.length > 0 && (x.includes(y) || y.includes(x));
 }
 
 function hasResult(f: Pick<Fixture, "result_team_id" | "is_draw">) {

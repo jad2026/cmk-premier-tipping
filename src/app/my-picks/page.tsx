@@ -4,6 +4,7 @@ import { getCurrentCompetitionId, getCompetitionTimezone } from "@/lib/competiti
 import { fmtDate as fmtDateTz } from "@/lib/datetime";
 import TeamBadge from "@/components/TeamBadge";
 import type { Team } from "@/lib/supabase/types";
+import { featuredClubFirst, featuredClubName } from "@/lib/teamMatch";
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +57,11 @@ export default async function MyPicksPage() {
 
   const { data: compFeatures } = await supabase
     .from("competitions")
-    .select("features")
+    .select("features, short_label")
     .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null } | null };
+    .single() as unknown as { data: { features: Record<string, boolean> | null; short_label: string | null } | null };
   const marginPicking = compFeatures?.features?.margin_picking === true;
+  const featuredClub = featuredClubName(compFeatures?.features, compFeatures?.short_label);
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -147,7 +149,12 @@ export default async function MyPicksPage() {
   const rounds: RoundData[] = (gameweeks ?? [])
     .filter((gw) => fixturesByGw.has(gw.id))
     .map((gw) => {
-      const gwFixtures = fixturesByGw.get(gw.id) ?? [];
+      // The featured club's fixture first (when features.featured_club is on).
+      const gwFixtures = featuredClubFirst(
+        fixturesByGw.get(gw.id) ?? [],
+        (f) => [f.home_team?.name ?? "", f.away_team?.name ?? ""],
+        featuredClub
+      );
       const myPicks = gwFixtures.map((f) => pickMap.get(f.id)).filter(Boolean) as PickRow[];
       return {
         ...gw,

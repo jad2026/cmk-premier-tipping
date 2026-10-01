@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, NPC_COMPETITION_ID, getCompetitionTimezone } from "@/lib/competition";
 import TipsForm from "./TipsForm";
+import { featuredClubFirst, featuredClubName } from "@/lib/teamMatch";
 import JoinCompetitionButton from "@/components/JoinCompetitionButton";
 import type { Fixture, Pick } from "@/lib/supabase/types";
 import { getCachedCompetitionFeatures, getCachedSeasonConfig } from "@/lib/cached-queries";
@@ -22,13 +23,15 @@ export default async function TipsPage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
   let compLabel = "NPC";
+  let featuredClub: string | null = null;
   if (compId !== NPC_COMPETITION_ID) {
     const { data: labels } = await supabase
       .from("competitions")
-      .select("short_label, region_label")
+      .select("short_label, region_label, features")
       .eq("id", compId)
-      .maybeSingle() as { data: { short_label: string | null; region_label: string | null } | null };
+      .maybeSingle() as { data: { short_label: string | null; region_label: string | null; features: Record<string, boolean> | null } | null };
     compLabel = `${labels?.short_label ?? "CMK Premier"} · ${labels?.region_label ?? "Taranaki"}`;
+    featuredClub = featuredClubName(labels?.features, labels?.short_label);
   }
   const tzLocale = await getCompetitionTimezone(compId);
 
@@ -151,7 +154,12 @@ export default async function TipsPage() {
 
   const activeRounds = gameweeks.map((gw) => {
     const idx = (openGameweeks ?? []).findIndex((g) => g.id === gw.id);
-    const fixtures = (fixtureResults[idx]?.data ?? []) as Fixture[];
+    // The featured club's fixture first (when features.featured_club is on).
+    const fixtures = featuredClubFirst(
+      (fixtureResults[idx]?.data ?? []) as Fixture[],
+      (f) => [f.home_team?.name ?? "", f.away_team?.name ?? ""],
+      featuredClub
+    );
     return { gw, fixtures };
   });
 
@@ -182,7 +190,7 @@ export default async function TipsPage() {
 
   return (
     <div className="-mx-4 sm:-mx-8 -mt-6 sm:-mt-8 -mb-6 sm:-mb-8" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
-      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} timezone={tzLocale.timezone} locale={tzLocale.locale} marginPicking={marginPicking} competitionId={compId} />
+      <TipsForm rounds={rounds} userId={user.id} compLabel={compLabel} timezone={tzLocale.timezone} locale={tzLocale.locale} marginPicking={marginPicking} competitionId={compId} featuredClub={featuredClub} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type { RoundData } from "./page";
 import { hapticImpact, hapticNotification } from "@/lib/native/haptics";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { initPushNotifications } from "@/lib/pushNotifications";
+import { sameTeam } from "@/lib/teamMatch";
 
 // ── Mobile scroll-snap margin picker ────────────────────────────────────────
 
@@ -239,6 +240,7 @@ type Props = {
   locale: string;
   marginPicking?: boolean;
   competitionId: string;
+  featuredClub?: string | null;
 };
 
 function useCountdown(deadline: string) {
@@ -274,7 +276,7 @@ function useIsMobile() {
   return mobile;
 }
 
-export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false, competitionId }: Props) {
+export default function TipsForm({ rounds, compLabel, timezone, locale, marginPicking = false, competitionId, featuredClub = null }: Props) {
   const supabase = createClient();
   const isMobile = useIsMobile();
   const { status: pushStatus, busy: pushBusy, subscribe: pushSubscribe } = usePushNotifications(competitionId);
@@ -507,6 +509,10 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
                   marginPicking={marginPicking}
                   isPastDeadline={isPastDeadline}
                   compact={isMobile}
+                  featured={
+                    !!featuredClub &&
+                    (sameTeam(fixture.home_team?.name ?? "", featuredClub) || sameTeam(fixture.away_team?.name ?? "", featuredClub))
+                  }
                   onSelect={(value) =>
                     selectPick(fixture.id, value, round.deadline, fixture.result_team_id !== null && !fixture.is_draw)
                   }
@@ -715,6 +721,7 @@ function FixtureCard({
   marginPicking,
   isPastDeadline,
   compact,
+  featured = false,
   onSelect,
   onWheelChange,
   timezone,
@@ -726,6 +733,7 @@ function FixtureCard({
   marginPicking: boolean;
   isPastDeadline: boolean;
   compact: boolean;
+  featured?: boolean;
   onSelect: (value: string) => void;
   onWheelChange: (value: number) => void;
   timezone: string;
@@ -759,6 +767,8 @@ function FixtureCard({
       style={{
         background: "#fff",
         border: `1px solid ${cardBorder}`,
+        // The featured club's fixture gets a subtle accent edge.
+        ...(featured ? { borderLeft: "4px solid var(--accent)" } : {}),
         boxShadow: "0 1px 2px rgba(17,21,28,.04)",
         opacity: resultLocked ? 0.7 : 1,
       }}

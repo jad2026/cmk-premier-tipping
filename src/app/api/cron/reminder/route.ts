@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { prepareReminderEmail } from "@/lib/email/reminderEmail";
 import { sendEmailBatch } from "@/lib/email/batch";
 import { sendPushNotification } from "@/lib/sendPushNotification";
+import { featuredClubFirst, featuredClubName } from "@/lib/teamMatch";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -156,7 +157,7 @@ export async function GET(request: Request) {
       { data: sponsors },
     ] = await Promise.all([
       admin.from("season_config").select("season_name").eq("competition_id", compId).single(),
-      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled, timezone, locale").eq("id", compId).single(),
+      admin.from("competitions").select("name, accent_color, accent_text_color, reminders_enabled, timezone, locale, short_label, features").eq("id", compId).single(),
       (async () => {
         let all: { user_id: string }[] = [];
         let from = 0;
@@ -190,11 +191,16 @@ export async function GET(request: Request) {
     const enrolledUserIds = new Set((participants ?? []).map((p: { user_id: string }) => p.user_id));
     const teamName = (id: string) => teams?.find((t: { id: string; name: string }) => t.id === id)?.name ?? "?";
 
-    const fixtureList = (fixtures ?? []).map((f: { home_team_id: string; away_team_id: string; match_date: string }) => ({
-      homeTeam: teamName(f.home_team_id),
-      awayTeam: teamName(f.away_team_id),
-      matchDate: f.match_date,
-    }));
+    // The featured club's fixture first (when features.featured_club is on).
+    const fixtureList = featuredClubFirst(
+      (fixtures ?? []).map((f: { home_team_id: string; away_team_id: string; match_date: string }) => ({
+        homeTeam: teamName(f.home_team_id),
+        awayTeam: teamName(f.away_team_id),
+        matchDate: f.match_date,
+      })),
+      (f) => [f.homeTeam, f.awayTeam],
+      featuredClubName(compConfig?.features, compConfig?.short_label)
+    );
 
     const fixtureIds = (fixtures ?? []).map((f: { id: string }) => f.id);
     const totalFixtures = fixtureIds.length;
