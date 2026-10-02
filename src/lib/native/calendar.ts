@@ -1,39 +1,17 @@
 import { Capacitor } from "@capacitor/core";
 
-type CalendarPlugin = {
-  checkAllPermissions: () => Promise<{ result: Record<string, string> }>;
-  requestWriteOnlyCalendarAccess: () => Promise<{ result: string }>;
-  createEvent: (opts: { title: string; startDate: number; endDate: number; isAllDay: boolean; alerts: number[] }) => Promise<{ id: string }>;
-};
-
-let pluginRef: CalendarPlugin | null = null;
-let checked = false;
-
-function loadPlugin(): CalendarPlugin | null {
-  if (checked) return pluginRef;
-  if (!Capacitor.isNativePlatform()) { checked = true; return null; }
-  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) { checked = true; return null; }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("@ebarooni/capacitor-calendar");
-    pluginRef = mod.CapacitorCalendar as CalendarPlugin;
-    checked = true;
-    return pluginRef;
-  } catch {
-    checked = true;
-    return null;
-  }
-}
-
 export async function isCalendarAvailable(): Promise<boolean> {
-  return loadPlugin() !== null;
+  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) return false;
+  return true;
 }
 
 export async function requestCalendarPermission(): Promise<boolean> {
-  const plugin = loadPlugin();
-  if (!plugin) return false;
+  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) return false;
   try {
-    const result = await plugin.requestWriteOnlyCalendarAccess();
+    const { CapacitorCalendar } = await import("@ebarooni/capacitor-calendar");
+    const result = await CapacitorCalendar.requestWriteOnlyCalendarAccess();
     return result.result === "granted";
   } catch {
     return false;
@@ -63,13 +41,13 @@ function saveAddedGameweeks(ids: Set<string>) {
   try {
     localStorage.setItem(ADDED_KEY, JSON.stringify(Array.from(ids)));
   } catch {
-    // Storage unavailable — deduplication won't persist
+    // Storage unavailable
   }
 }
 
 export async function addDeadlinesToCalendar(events: DeadlineEvent[]): Promise<number> {
-  const plugin = loadPlugin();
-  if (!plugin) return 0;
+  if (!Capacitor.isNativePlatform()) return 0;
+  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) return 0;
 
   const granted = await requestCalendarPermission();
   if (!granted) return 0;
@@ -79,20 +57,25 @@ export async function addDeadlinesToCalendar(events: DeadlineEvent[]): Promise<n
   if (toAdd.length === 0) return 0;
 
   let count = 0;
-  for (const event of toAdd) {
-    try {
-      await plugin.createEvent({
-        title: event.title,
-        startDate: event.startDate,
-        endDate: event.startDate + 30 * 60 * 1000,
-        isAllDay: false,
-        alerts: [-event.alertMinutesBefore],
-      });
-      added.add(event.gameweekId);
-      count++;
-    } catch {
-      // Skip individual failures
+  try {
+    const { CapacitorCalendar } = await import("@ebarooni/capacitor-calendar");
+    for (const event of toAdd) {
+      try {
+        await CapacitorCalendar.createEvent({
+          title: event.title,
+          startDate: event.startDate,
+          endDate: event.startDate + 30 * 60 * 1000,
+          isAllDay: false,
+          alerts: [-event.alertMinutesBefore],
+        });
+        added.add(event.gameweekId);
+        count++;
+      } catch {
+        // Skip individual failures
+      }
     }
+  } catch {
+    return 0;
   }
 
   saveAddedGameweeks(added);
