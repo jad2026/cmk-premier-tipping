@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 
 async function getCalendarPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
+  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) return null;
   try {
     const mod = await import("@ebarooni/capacitor-calendar");
     return mod.CapacitorCalendar;

@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 
 export async function isBiometricAvailable(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isPluginAvailable("NativeBiometric")) return false;
   try {
     const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
     const result = await NativeBiometric.isAvailable();
@@ -13,6 +14,7 @@ export async function isBiometricAvailable(): Promise<boolean> {
 
 export async function hasStoredCredentials(server: string): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isPluginAvailable("NativeBiometric")) return false;
   try {
     const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
     const creds = await NativeBiometric.getCredentials({ server });
