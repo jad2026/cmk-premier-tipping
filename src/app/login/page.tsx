@@ -12,6 +12,7 @@ import {
   hasStoredCredentials,
   storeCredentials,
   getCredentialsWithBiometric,
+  getStoredUsername,
 } from "@/lib/native/biometrics";
 
 // Only same-site relative paths; "//" and "/\\" would leave the site.
@@ -113,13 +114,18 @@ export default function LoginPage() {
       setError(friendlyAuthError(error));
     } else {
       const bioAvailable = await isBiometricAvailable();
-      const bioStored = await hasStoredCredentials(BIOMETRIC_SERVER);
-      if (bioAvailable && !bioStored) {
-        setShowBiometricPrompt(true);
-        setLoading(false);
-        return;
-      }
-      if (bioAvailable && bioStored) {
+      if (bioAvailable) {
+        const storedEmail = await getStoredUsername(BIOMETRIC_SERVER);
+        if (!storedEmail) {
+          setShowBiometricPrompt(true);
+          setLoading(false);
+          return;
+        }
+        if (storedEmail !== trimmedEmail) {
+          setShowBiometricPrompt(true);
+          setLoading(false);
+          return;
+        }
         await storeCredentials(BIOMETRIC_SERVER, trimmedEmail, password);
       }
       window.location.href = safeNext || redirectTo || "/tips";

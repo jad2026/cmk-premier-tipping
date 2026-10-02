@@ -13,7 +13,8 @@ export async function POST(request: Request) {
     }
   }
 
-  const host = request.headers.get("host") || "clubrugbytipping.com";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  return NextResponse.redirect(new URL("/", `${protocol}://${host}`), 302);
+  const origin = request.headers.get("origin")
+    || request.headers.get("referer")?.replace(/\/[^/]*$/, "")
+    || `https://${request.headers.get("host") || "clubrugbytipping.com"}`;
+  return NextResponse.redirect(new URL("/", origin), 302);
 }

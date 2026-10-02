@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
-import { deleteStoredCredentials } from "@/lib/native/biometrics";
+import { deleteStoredCredentials, isBiometricAvailable, hasStoredCredentials } from "@/lib/native/biometrics";
 
 type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
@@ -82,6 +82,18 @@ export default function ProfileForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [faceIdEnabled, setFaceIdEnabled] = useState(false);
+  const [faceIdRemoving, setFaceIdRemoving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const available = await isBiometricAvailable();
+      if (!available) return;
+      const stored = await hasStoredCredentials("clubrugbytipping.com");
+      if (stored) setFaceIdEnabled(true);
+    })();
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -551,6 +563,44 @@ export default function ProfileForm({
               <p style={{ fontSize: 14, color: "#1F9E5A", margin: 0 }}>Supported team updated!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Face ID ────────────────────────────────────────────────── */}
+      {faceIdEnabled && (
+        <div style={{ background: "#fff", border: "1px solid #E4E1D8", borderRadius: 18, padding: "28px 32px", marginTop: 20 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+            <span className="shrink-0" style={{ width: 4, height: 20, borderRadius: 2, background: "var(--accent)" }} />
+            <h2 className="font-display uppercase" style={{ fontSize: 16, letterSpacing: ".02em", color: "#11151C", margin: 0 }}>
+              Face ID Sign-In
+            </h2>
+          </div>
+          <p style={{ fontSize: 14, color: "#5A6371", marginBottom: 16, lineHeight: 1.5 }}>
+            Face ID sign-in is currently enabled. Your credentials are stored securely on this device.
+          </p>
+          <button
+            type="button"
+            disabled={faceIdRemoving}
+            onClick={async () => {
+              setFaceIdRemoving(true);
+              await deleteStoredCredentials("clubrugbytipping.com");
+              setFaceIdEnabled(false);
+              setFaceIdRemoving(false);
+            }}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 10,
+              border: "1px solid #E4E1D8",
+              background: "#fff",
+              color: "#5A6371",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: faceIdRemoving ? "wait" : "pointer",
+              opacity: faceIdRemoving ? 0.6 : 1,
+            }}
+          >
+            {faceIdRemoving ? "Removing…" : "Turn off Face ID sign-in"}
+          </button>
         </div>
       )}
 

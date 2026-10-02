@@ -24,6 +24,18 @@ export async function hasStoredCredentials(server: string): Promise<boolean> {
   }
 }
 
+export async function getStoredUsername(server: string): Promise<string | null> {
+  if (!Capacitor.isNativePlatform()) return null;
+  if (!Capacitor.isPluginAvailable("NativeBiometric")) return null;
+  try {
+    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+    const creds = await NativeBiometric.getCredentials({ server });
+    return creds.username || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function storeCredentials(server: string, username: string, password: string): Promise<void> {
   const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
   await NativeBiometric.setCredentials({ server, username, password });
