@@ -1,19 +1,31 @@
 import { Capacitor } from "@capacitor/core";
 
+let calendarAvailable: boolean | null = null;
+
 async function getCalendarPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
-  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) return null;
+  if (calendarAvailable === false) return null;
   try {
     const mod = await import("@ebarooni/capacitor-calendar");
     return mod.CapacitorCalendar;
   } catch {
+    calendarAvailable = false;
     return null;
   }
 }
 
 export async function isCalendarAvailable(): Promise<boolean> {
-  const plugin = await getCalendarPlugin();
-  return plugin !== null;
+  if (!Capacitor.isNativePlatform()) return false;
+  if (calendarAvailable !== null) return calendarAvailable;
+  try {
+    const mod = await import("@ebarooni/capacitor-calendar");
+    await mod.CapacitorCalendar.checkAllPermissions();
+    calendarAvailable = true;
+    return true;
+  } catch {
+    calendarAvailable = false;
+    return false;
+  }
 }
 
 export async function requestCalendarPermission(): Promise<boolean> {
