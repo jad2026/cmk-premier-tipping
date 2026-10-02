@@ -8,6 +8,7 @@ import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { Capacitor } from "@capacitor/core";
 import { nativeShare } from "@/lib/native/share";
 import { hapticImpact } from "@/lib/native/haptics";
+import { deleteStoredCredentials } from "@/lib/native/biometrics";
 
 const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B"];
 
@@ -165,7 +166,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
           )}
           <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
             {user ? (
-              <form method="POST" action="/api/auth/signout">
+              <form method="POST" action="/api/auth/signout" onSubmit={(e) => { e.preventDefault(); deleteStoredCredentials("clubrugbytipping.com").finally(() => (e.target as HTMLFormElement).submit()); }}>
                 <button
                   type="submit"
                   className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
@@ -327,7 +328,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
                 </Link>
               ))}
               {user && (
-                <form method="POST" action="/api/auth/signout">
+                <form method="POST" action="/api/auth/signout" onSubmit={(e) => { e.preventDefault(); deleteStoredCredentials("clubrugbytipping.com").finally(() => (e.target as HTMLFormElement).submit()); }}>
                   <button
                     type="submit"
                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"

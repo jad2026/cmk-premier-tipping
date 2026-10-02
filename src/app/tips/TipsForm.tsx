@@ -10,6 +10,7 @@ import { hapticImpact, hapticNotification } from "@/lib/native/haptics";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { initPushNotifications } from "@/lib/pushNotifications";
 import { sameTeam } from "@/lib/teamMatch";
+import AddToCalendarButton from "./AddToCalendarButton";
 
 // ── Mobile scroll-snap margin picker ────────────────────────────────────────
 
@@ -706,6 +707,14 @@ function TipsHeader({ rounds, deadline, compLabel, timezone, locale }: { rounds:
               </div>
             </div>
           )}
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <AddToCalendarButton
+            deadlines={rounds.map((r) => ({ gameweekId: r.id, label: r.label, deadline: r.deadline }))}
+            compLabel={compLabel}
+            timezone={timezone}
+          />
         </div>
       </div>
     </section>

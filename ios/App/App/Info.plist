@@ -49,5 +49,11 @@
 	<string>Used to take a profile photo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to choose a profile photo.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to sign in to Club Rugby Tipping quickly.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Add tipping deadlines to your calendar so you never miss a round.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Add tipping deadlines to your calendar so you never miss a round.</string>
 </dict>
 </plist>

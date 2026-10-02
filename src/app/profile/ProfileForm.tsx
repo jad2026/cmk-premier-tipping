@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/Avatar";
+import { deleteStoredCredentials } from "@/lib/native/biometrics";
 
 type CompTeam = { id: string; name: string; short_name: string; colour: string; logo_url: string | null };
 
@@ -183,6 +184,7 @@ export default function ProfileForm({
   async function handleDeleteAccount() {
     setDeleting(true);
     setDeleteError(null);
+    await deleteStoredCredentials("clubrugbytipping.com");
     const res = await fetch("/api/account/delete", { method: "POST" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
