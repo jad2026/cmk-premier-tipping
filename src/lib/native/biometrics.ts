@@ -1,10 +1,37 @@
 import { Capacitor } from "@capacitor/core";
 
-export async function isBiometricAvailable(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
+type NativeBiometricPlugin = {
+  isAvailable: () => Promise<{ isAvailable: boolean }>;
+  getCredentials: (opts: { server: string }) => Promise<{ username: string; password: string }>;
+  setCredentials: (opts: { server: string; username: string; password: string }) => Promise<void>;
+  deleteCredentials: (opts: { server: string }) => Promise<void>;
+  verifyIdentity: (opts: { reason: string; title: string }) => Promise<void>;
+};
+
+let pluginRef: NativeBiometricPlugin | null = null;
+let checked = false;
+
+function loadPlugin(): NativeBiometricPlugin | null {
+  if (checked) return pluginRef;
+  if (!Capacitor.isNativePlatform()) { checked = true; return null; }
+  if (!Capacitor.isPluginAvailable("NativeBiometric")) { checked = true; return null; }
   try {
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    const result = await NativeBiometric.isAvailable();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@capgo/capacitor-native-biometric");
+    pluginRef = mod.NativeBiometric as NativeBiometricPlugin;
+    checked = true;
+    return pluginRef;
+  } catch {
+    checked = true;
+    return null;
+  }
+}
+
+export async function isBiometricAvailable(): Promise<boolean> {
+  const plugin = loadPlugin();
+  if (!plugin) return false;
+  try {
+    const result = await plugin.isAvailable();
     return result.isAvailable;
   } catch {
     return false;
@@ -12,10 +39,10 @@ export async function isBiometricAvailable(): Promise<boolean> {
 }
 
 export async function hasStoredCredentials(server: string): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
+  const plugin = loadPlugin();
+  if (!plugin) return false;
   try {
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    const creds = await NativeBiometric.getCredentials({ server });
+    const creds = await plugin.getCredentials({ server });
     return !!creds.username;
   } catch {
     return false;
@@ -23,10 +50,10 @@ export async function hasStoredCredentials(server: string): Promise<boolean> {
 }
 
 export async function getStoredUsername(server: string): Promise<string | null> {
-  if (!Capacitor.isNativePlatform()) return null;
+  const plugin = loadPlugin();
+  if (!plugin) return null;
   try {
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    const creds = await NativeBiometric.getCredentials({ server });
+    const creds = await plugin.getCredentials({ server });
     return creds.username || null;
   } catch {
     return null;
@@ -34,19 +61,20 @@ export async function getStoredUsername(server: string): Promise<string | null> 
 }
 
 export async function storeCredentials(server: string, username: string, password: string): Promise<void> {
-  const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-  await NativeBiometric.setCredentials({ server, username, password });
+  const plugin = loadPlugin();
+  if (!plugin) return;
+  await plugin.setCredentials({ server, username, password });
 }
 
 export async function getCredentialsWithBiometric(server: string): Promise<{ username: string; password: string } | null> {
-  if (!Capacitor.isNativePlatform()) return null;
+  const plugin = loadPlugin();
+  if (!plugin) return null;
   try {
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    await NativeBiometric.verifyIdentity({
+    await plugin.verifyIdentity({
       reason: "Sign in to Club Rugby Tipping",
       title: "Sign In",
     });
-    const creds = await NativeBiometric.getCredentials({ server });
+    const creds = await plugin.getCredentials({ server });
     return { username: creds.username, password: creds.password };
   } catch {
     return null;
@@ -54,11 +82,11 @@ export async function getCredentialsWithBiometric(server: string): Promise<{ use
 }
 
 export async function deleteStoredCredentials(server: string): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  const plugin = loadPlugin();
+  if (!plugin) return;
   try {
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    await NativeBiometric.deleteCredentials({ server });
+    await plugin.deleteCredentials({ server });
   } catch {
-    // Credentials may not exist — ignore
+    // Credentials may not exist
   }
 }

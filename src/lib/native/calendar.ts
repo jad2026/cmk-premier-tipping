@@ -1,35 +1,36 @@
 import { Capacitor } from "@capacitor/core";
 
-let calendarAvailable: boolean | null = null;
+type CalendarPlugin = {
+  checkAllPermissions: () => Promise<{ result: Record<string, string> }>;
+  requestWriteOnlyCalendarAccess: () => Promise<{ result: string }>;
+  createEvent: (opts: { title: string; startDate: number; endDate: number; isAllDay: boolean; alerts: number[] }) => Promise<{ id: string }>;
+};
 
-async function getCalendarPlugin() {
-  if (!Capacitor.isNativePlatform()) return null;
-  if (calendarAvailable === false) return null;
+let pluginRef: CalendarPlugin | null = null;
+let checked = false;
+
+function loadPlugin(): CalendarPlugin | null {
+  if (checked) return pluginRef;
+  if (!Capacitor.isNativePlatform()) { checked = true; return null; }
+  if (!Capacitor.isPluginAvailable("CapacitorCalendar")) { checked = true; return null; }
   try {
-    const mod = await import("@ebarooni/capacitor-calendar");
-    return mod.CapacitorCalendar;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@ebarooni/capacitor-calendar");
+    pluginRef = mod.CapacitorCalendar as CalendarPlugin;
+    checked = true;
+    return pluginRef;
   } catch {
-    calendarAvailable = false;
+    checked = true;
     return null;
   }
 }
 
 export async function isCalendarAvailable(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
-  if (calendarAvailable !== null) return calendarAvailable;
-  try {
-    const mod = await import("@ebarooni/capacitor-calendar");
-    await mod.CapacitorCalendar.checkAllPermissions();
-    calendarAvailable = true;
-    return true;
-  } catch {
-    calendarAvailable = false;
-    return false;
-  }
+  return loadPlugin() !== null;
 }
 
 export async function requestCalendarPermission(): Promise<boolean> {
-  const plugin = await getCalendarPlugin();
+  const plugin = loadPlugin();
   if (!plugin) return false;
   try {
     const result = await plugin.requestWriteOnlyCalendarAccess();
@@ -67,7 +68,7 @@ function saveAddedGameweeks(ids: Set<string>) {
 }
 
 export async function addDeadlinesToCalendar(events: DeadlineEvent[]): Promise<number> {
-  const plugin = await getCalendarPlugin();
+  const plugin = loadPlugin();
   if (!plugin) return 0;
 
   const granted = await requestCalendarPermission();
