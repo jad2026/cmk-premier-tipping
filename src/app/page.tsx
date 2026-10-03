@@ -3,7 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import AppWelcome from "@/components/AppWelcome";
+import AppWelcome, { type WelcomeSite } from "@/components/AppWelcome";
 import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import { fmtDeadline as fmtDeadlineTz } from "@/lib/datetime";
 import Avatar from "@/components/Avatar";
@@ -42,14 +42,8 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type SiteCard = {
-  compId: string;
-  slug: string;
-  displayName: string;
-  logoUrl: string | null;
-  siteUrl: string;
-  accentColor: string;
-  surfaceColor: string | null;
+const WELCOME_SUBTITLE: Record<string, string> = {
+  "https://taranaki.clubrugbytipping.com": "Proudly sponsored by CMK",
 };
 
 export default async function HomePage() {
@@ -68,23 +62,65 @@ export default async function HomePage() {
     const admin = createAdminClient();
     const { data: mainComps } = await admin
       .from("competitions")
-      .select("id, slug, display_name, name, short_label, logo_url, site_url, accent_color, surface_color")
+      .select("id, slug, display_name, name, short_label, logo_url, site_url, accent_color, surface_color, hero_image, region_label")
       .eq("is_active", true)
       .eq("is_main_comp", true)
       .not("site_url", "is", null);
 
-    const sites: SiteCard[] = (mainComps ?? []).map((c: any) => ({
+    const welcomeCompIds = (mainComps ?? []).map((c: any) => c.id);
+
+    const { data: welcomeGws } = welcomeCompIds.length > 0
+      ? await admin
+          .from("gameweeks")
+          .select("id, competition_id, deadline, label, is_open")
+          .in("competition_id", welcomeCompIds)
+          .or(`is_open.eq.true,deadline.gt.${new Date().toISOString()}`)
+          .order("number")
+      : { data: [] as any[] };
+
+    const welcomeGwIds = (welcomeGws ?? []).map((g: any) => g.id);
+    const { data: welcomeFixtures } = welcomeGwIds.length > 0
+      ? await admin.from("fixtures").select("id, gameweek_id").in("gameweek_id", welcomeGwIds)
+      : { data: [] as any[] };
+
+    const welcomeFixtureCounts = new Map<string, number>();
+    for (const f of welcomeFixtures ?? []) {
+      welcomeFixtureCounts.set(f.gameweek_id, (welcomeFixtureCounts.get(f.gameweek_id) ?? 0) + 1);
+    }
+
+    function resolveWelcomeRound(cId: string): WelcomeSite["round"] {
+      const cGws = (welcomeGws ?? []).filter((g: any) => g.competition_id === cId);
+      const now = new Date();
+      const openFuture = cGws.find((g: any) => g.is_open && new Date(g.deadline) > now && (welcomeFixtureCounts.get(g.id) ?? 0) > 0);
+      if (openFuture) return { mode: "open", label: openFuture.label, deadline: openFuture.deadline };
+      const future = cGws
+        .filter((g: any) => new Date(g.deadline) > now && !g.is_open)
+        .sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+      if (future.length > 0) {
+        const n = future[0];
+        return (welcomeFixtureCounts.get(n.id) ?? 0) > 0
+          ? { mode: "upcoming", label: n.label, deadline: n.deadline }
+          : { mode: "coming-soon", label: n.label };
+      }
+      if (cGws.find((g: any) => g.is_open && new Date(g.deadline) <= now))
+        return { mode: "closed", label: cGws.find((g: any) => g.is_open)!.label };
+      return { mode: "none" };
+    }
+
+    const sites: WelcomeSite[] = (mainComps ?? []).map((c: any) => ({
       compId: c.id,
-      slug: c.slug ?? "",
       displayName: c.display_name ?? c.short_label ?? c.name,
+      subtitle: WELCOME_SUBTITLE[c.site_url] ?? c.region_label ?? null,
       logoUrl: c.logo_url
         ? c.logo_url.startsWith("/")
-          ? (c.site_url || "https://clubrugbytipping.com") + c.logo_url
+          ? (c.site_url || NPC_SITE_URL) + c.logo_url
           : c.logo_url
         : null,
       siteUrl: c.site_url!,
       accentColor: c.accent_color || "#D9A521",
-      surfaceColor: c.surface_color,
+      surfaceColor: c.surface_color || "#161A22",
+      heroImage: c.hero_image ?? null,
+      round: resolveWelcomeRound(c.id),
     }));
 
     return <AppWelcome sites={sites} />;
