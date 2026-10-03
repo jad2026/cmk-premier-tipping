@@ -8,8 +8,8 @@ const config: CapacitorConfig = {
     url: 'https://clubrugbytipping.com',
     cleartext: false,
     allowNavigation: ['clubrugbytipping.com', '*.clubrugbytipping.com', '*.supabase.co'],
-    appendUserAgent: 'CRTApp',
   },
+  appendUserAgent: 'CRTApp',
   ios: {
     allowsLinkPreview: false,
     scrollEnabled: true,

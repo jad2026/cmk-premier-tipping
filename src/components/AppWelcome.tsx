@@ -17,7 +17,7 @@ interface AppWelcomeProps {
 
 export default function AppWelcome({ sites }: AppWelcomeProps) {
   return (
-    <div className="min-h-screen flex flex-col items-center bg-[#0B0E13] text-white px-6 py-12">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center bg-[#0B0E13] text-white px-6 py-12 overflow-y-auto">
 
       {/* Logo */}
       <div className="mt-8 mb-6">
