@@ -29,6 +29,14 @@ export async function POST() {
     return NextResponse.json({ error: "Failed to delete participation records" }, { status: 500 });
   }
 
+  const { error: leagueMemberErr } = await admin
+    .from("league_members")
+    .delete()
+    .eq("user_id", user.id);
+  if (leagueMemberErr) {
+    return NextResponse.json({ error: "Failed to delete league memberships" }, { status: 500 });
+  }
+
   const { error: pushErr } = await admin
     .from("push_subscriptions")
     .delete()

@@ -34,7 +34,7 @@ export type LeagueInfo = {
   invite_code: string;
   member_count: number;
   memberUserIds: string[];
-  created_by: string;
+  created_by: string | null;
   is_sponsored?: boolean;
 };
 
