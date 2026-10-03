@@ -216,13 +216,23 @@ final class OfflineManager: NSObject {
     private func showBanner() {
         guard bannerView == nil, let vc = viewController else { return }
 
-        let banner = UIView()
-        banner.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 0.96)
-        banner.translatesAutoresizingMaskIntoConstraints = false
-        banner.layer.cornerRadius = 18
+        let wrapper = UIView()
+        wrapper.backgroundColor = UIColor(red: 0.10, green: 0.10, blue: 0.11, alpha: 1)
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.layer.shadowColor = UIColor.black.cgColor
+        wrapper.layer.shadowOpacity = 0.5
+        wrapper.layer.shadowRadius = 8
+        wrapper.layer.shadowOffset = CGSize(width: 0, height: 3)
 
-        let icon = UIImageView(image: UIImage(systemName: "wifi.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)))
-        icon.tintColor = UIColor.white.withAlphaComponent(0.65)
+        let amber = UIColor(red: 0.95, green: 0.65, blue: 0.15, alpha: 1)
+
+        let dot = UIView()
+        dot.backgroundColor = amber
+        dot.layer.cornerRadius = 4
+        dot.translatesAutoresizingMaskIntoConstraints = false
+
+        let icon = UIImageView(image: UIImage(systemName: "wifi.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)))
+        icon.tintColor = amber
         icon.translatesAutoresizingMaskIntoConstraints = false
 
         let label = UILabel()
@@ -230,40 +240,42 @@ final class OfflineManager: NSObject {
         label.font = .systemFont(ofSize: 13, weight: .semibold)
         label.textColor = .white
 
-        let hStack = UIStackView(arrangedSubviews: [icon, label])
+        let hStack = UIStackView(arrangedSubviews: [dot, icon, label])
         hStack.axis = .horizontal
-        hStack.spacing = 6
+        hStack.spacing = 8
         hStack.alignment = .center
         hStack.translatesAutoresizingMaskIntoConstraints = false
 
-        banner.addSubview(hStack)
-        vc.view.addSubview(banner)
+        wrapper.addSubview(hStack)
+        vc.view.addSubview(wrapper)
 
-        let top = banner.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor, constant: -50)
+        let top = wrapper.topAnchor.constraint(equalTo: vc.view.topAnchor, constant: -100)
 
         NSLayoutConstraint.activate([
             top,
-            banner.centerXAnchor.constraint(equalTo: vc.view.centerXAnchor),
-            hStack.topAnchor.constraint(equalTo: banner.topAnchor, constant: 8),
-            hStack.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -8),
-            hStack.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 16),
-            hStack.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -16),
+            wrapper.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+            wrapper.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+            dot.widthAnchor.constraint(equalToConstant: 8),
+            dot.heightAnchor.constraint(equalToConstant: 8),
+            hStack.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor, constant: 6),
+            hStack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10),
+            hStack.centerXAnchor.constraint(equalTo: wrapper.centerXAnchor),
         ])
 
-        bannerView = banner
+        bannerView = wrapper
         bannerTopConstraint = top
 
         vc.view.layoutIfNeeded()
-        top.constant = 4
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: [], animations: {
+        top.constant = 0
+        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0, options: [], animations: {
             vc.view.layoutIfNeeded()
         })
     }
 
     private func hideBanner() {
         guard let banner = bannerView, let vc = viewController else { return }
-        bannerTopConstraint?.constant = -50
-        UIView.animate(withDuration: 0.25, animations: {
+        bannerTopConstraint?.constant = -100
+        UIView.animate(withDuration: 0.3, animations: {
             vc.view.layoutIfNeeded()
         }) { _ in
             banner.removeFromSuperview()
