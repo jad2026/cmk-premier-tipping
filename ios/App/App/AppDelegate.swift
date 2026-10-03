@@ -34,9 +34,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         if url.scheme == "clubrugbytipping", let compId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "comp" })?.value {
-            if let vc = window?.rootViewController as? CAPBridgeViewController {
-                let navUrl = "https://clubrugbytipping.com/api/hub/switch?comp=\(compId)"
-                vc.bridge?.webView?.load(URLRequest(url: URL(string: navUrl)!))
+            if let vc = window?.rootViewController as? CAPBridgeViewController,
+               let webView = vc.bridge?.webView {
+                let origin = webView.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+                    .map { "\($0.scheme ?? "https")://\($0.host ?? "clubrugbytipping.com")\($0.port.map { ":\($0)" } ?? "")" }
+                    ?? "https://clubrugbytipping.com"
+                let navUrl = "\(origin)/api/hub/switch?comp=\(compId)"
+                webView.load(URLRequest(url: URL(string: navUrl)!))
             }
             return true
         }

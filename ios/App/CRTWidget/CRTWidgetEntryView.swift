@@ -8,162 +8,177 @@ struct CRTWidgetEntryView: View {
     var body: some View {
         if !entry.loggedIn {
             loggedOutView
-        } else if entry.comps.isEmpty {
+        } else if entry.displays.isEmpty {
             emptyView
         } else {
             switch family {
-            case .systemSmall:
-                smallView(comp: entry.comps[0])
             case .systemMedium:
                 mediumView
             default:
-                smallView(comp: entry.comps[0])
+                smallView(display: entry.displays[0])
             }
         }
     }
+
+    // MARK: - Logged out
 
     private var loggedOutView: some View {
         VStack(spacing: 8) {
-            Image(systemName: "sportscourt")
-                .font(.title2)
-                .foregroundColor(.secondary)
-            Text("Open Club Rugby Tipping")
-                .font(.caption)
-                .fontWeight(.medium)
+            Image(systemName: "sportscourt.fill")
+                .font(.system(size: 28))
+                .foregroundColor(.white.opacity(0.6))
+            Text("Sign in to get started")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .widgetURL(URL(string: "\(CRTShared.urlScheme)://open"))
     }
+
+    // MARK: - Empty
 
     private var emptyView: some View {
         VStack(spacing: 8) {
-            Image(systemName: "sportscourt")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            Image(systemName: "sportscourt.fill")
+                .font(.system(size: 28))
+                .foregroundColor(.white.opacity(0.6))
             Text("No competitions")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.7))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .widgetURL(URL(string: "\(CRTShared.urlScheme)://open"))
     }
 
-    // MARK: - Small widget (one comp)
+    // MARK: - Small widget
 
-    private func smallView(comp: WidgetComp) -> some View {
-        let accent = Color(hex: comp.accentColor)
-        return VStack(alignment: .leading, spacing: 4) {
+    private func smallView(display: CompDisplay) -> some View {
+        let accent = Color(hex: display.comp.accentColor)
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-                if let logoUrl = comp.logoUrl, let url = URL(string: logoUrl) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().aspectRatio(contentMode: .fit)
-                    } placeholder: {
-                        Circle().fill(accent.opacity(0.3))
+                logoView(display: display, size: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(display.comp.name)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    if let round = display.comp.roundLabel {
+                        Text(round)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.65))
                     }
-                    .frame(width: 20, height: 20)
-                    .clipShape(Circle())
                 }
-                Text(comp.name)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
+            }
+
+            Spacer(minLength: 4)
+
+            if let dl = display.comp.deadline, let date = parseISO(dl) {
+                Text(date, style: .relative)
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.5)
                     .lineLimit(1)
-                    .foregroundColor(accent)
-            }
-
-            Spacer(minLength: 0)
-
-            if let round = comp.roundLabel {
-                Text(round)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-
-            if let deadline = comp.deadline, let date = parseISO(deadline) {
-                deadlineRow(date: date)
             } else {
-                Text("No deadline")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                Text("—")
+                    .font(.system(size: 28, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.3))
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
 
-            HStack {
-                tipsStatus(comp: comp)
+            HStack(spacing: 0) {
+                if display.comp.total > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: display.comp.tipsComplete
+                              ? "checkmark.circle.fill"
+                              : "exclamationmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                        Text("\(display.comp.picked)/\(display.comp.total)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
                 Spacer()
-                if let rank = comp.rank {
+                if let rank = display.comp.rank {
                     Text("#\(rank)")
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundColor(accent)
                 }
             }
         }
-        .padding(12)
+        .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .widgetURL(URL(string: "\(CRTShared.urlScheme)://tips?comp=\(comp.id)"))
+        .widgetURL(URL(string: "\(CRTShared.urlScheme)://tips?comp=\(display.comp.id)"))
     }
 
-    // MARK: - Medium widget (up to 2 comps)
+    // MARK: - Medium widget
 
     private var mediumView: some View {
-        let comps = Array(entry.comps.prefix(2))
+        let displays = Array(entry.displays.prefix(2))
         return HStack(spacing: 0) {
-            ForEach(Array(comps.enumerated()), id: \.element.id) { index, comp in
+            ForEach(Array(displays.enumerated()), id: \.element.comp.id) { index, display in
                 if index > 0 {
-                    Divider().padding(.vertical, 8)
+                    Rectangle()
+                        .fill(.white.opacity(0.1))
+                        .frame(width: 0.5)
                 }
-                smallCompCard(comp: comp)
-                    .frame(maxWidth: .infinity)
+                mediumCard(display: display)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func smallCompCard(comp: WidgetComp) -> some View {
-        let accent = Color(hex: comp.accentColor)
-        return Link(destination: URL(string: "\(CRTShared.urlScheme)://tips?comp=\(comp.id)")!) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    if let logoUrl = comp.logoUrl, let url = URL(string: logoUrl) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            Circle().fill(accent.opacity(0.3))
-                        }
-                        .frame(width: 18, height: 18)
-                        .clipShape(Circle())
-                    }
-                    Text(comp.name)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
+    private func mediumCard(display: CompDisplay) -> some View {
+        let accent = Color(hex: display.comp.accentColor)
+        return Link(destination: URL(string: "\(CRTShared.urlScheme)://tips?comp=\(display.comp.id)")!) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 5) {
+                    logoView(display: display, size: 18)
+                    Text(display.comp.name)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
                         .lineLimit(1)
-                        .foregroundColor(accent)
                 }
 
-                Spacer(minLength: 0)
-
-                if let round = comp.roundLabel {
+                if let round = display.comp.roundLabel {
                     Text(round)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.top, 1)
                 }
 
-                if let deadline = comp.deadline, let date = parseISO(deadline) {
-                    deadlineRow(date: date)
+                Spacer(minLength: 2)
+
+                if let dl = display.comp.deadline, let date = parseISO(dl) {
+                    Text(date, style: .relative)
+                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                 }
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 2)
 
-                HStack {
-                    tipsStatus(comp: comp)
+                HStack(spacing: 0) {
+                    if display.comp.total > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: display.comp.tipsComplete
+                                  ? "checkmark.circle.fill"
+                                  : "exclamationmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                            Text("\(display.comp.picked)/\(display.comp.total)")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
                     Spacer()
-                    if let rank = comp.rank {
+                    if let rank = display.comp.rank {
                         Text("#\(rank)")
-                            .font(.caption)
-                            .fontWeight(.bold)
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
                             .foregroundColor(accent)
                     }
                 }
@@ -174,28 +189,23 @@ struct CRTWidgetEntryView: View {
 
     // MARK: - Helpers
 
-    private func deadlineRow(date: Date) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "clock")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-            Text(date, style: .relative)
-                .font(.caption2)
-                .foregroundColor(.primary)
-        }
-    }
-
     @ViewBuilder
-    private func tipsStatus(comp: WidgetComp) -> some View {
-        if comp.total > 0 {
-            HStack(spacing: 3) {
-                Image(systemName: comp.tipsComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(comp.tipsComplete ? .green : .orange)
-                Text("\(comp.picked)/\(comp.total)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+    private func logoView(display: CompDisplay, size: CGFloat) -> some View {
+        if let uiImage = display.logoImage {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        } else {
+            Circle()
+                .fill(.white.opacity(0.2))
+                .frame(width: size, height: size)
+                .overlay(
+                    Text(String(display.comp.name.prefix(1)))
+                        .font(.system(size: size * 0.5, weight: .bold))
+                        .foregroundColor(.white.opacity(0.7))
+                )
         }
     }
 
@@ -207,6 +217,57 @@ struct CRTWidgetEntryView: View {
         return f.date(from: string)
     }
 }
+
+// MARK: - Widget Background
+
+struct WidgetBackgroundView: View {
+    let entry: CRTEntry
+    @Environment(\.widgetFamily) var family
+
+    var body: some View {
+        if !entry.loggedIn || entry.displays.isEmpty {
+            neutralGradient
+        } else if family == .systemMedium && entry.displays.count >= 2 {
+            HStack(spacing: 0) {
+                accentGradient(hex: entry.displays[0].comp.accentColor)
+                accentGradient(hex: entry.displays[1].comp.accentColor)
+            }
+        } else {
+            accentGradient(hex: entry.displays[0].comp.accentColor)
+        }
+    }
+
+    private var neutralGradient: some View {
+        LinearGradient(
+            colors: [Color(white: 0.18), Color(white: 0.08)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private func accentGradient(hex: String) -> some View {
+        let ui = UIColor(hex: hex)
+        var h: CGFloat = 0, s: CGFloat = 0, br: CGFloat = 0
+        ui.getHue(&h, saturation: &s, brightness: &br, alpha: nil)
+        let top = Color(
+            hue: Double(h),
+            saturation: min(Double(s) * 1.15, 1),
+            brightness: 0.3
+        )
+        let bottom = Color(
+            hue: Double(h),
+            saturation: min(Double(s) * 1.3, 1),
+            brightness: 0.12
+        )
+        return LinearGradient(
+            colors: [top, bottom],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+// MARK: - Color Extensions
 
 extension Color {
     init(hex: String) {
@@ -223,5 +284,23 @@ extension Color {
             r = 0; g = 0; b = 0
         }
         self.init(red: r, green: g, blue: b)
+    }
+}
+
+extension UIColor {
+    convenience init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r, g, b: CGFloat
+        switch hex.count {
+        case 6:
+            r = CGFloat((int >> 16) & 0xFF) / 255
+            g = CGFloat((int >> 8) & 0xFF) / 255
+            b = CGFloat(int & 0xFF) / 255
+        default:
+            r = 0; g = 0; b = 0
+        }
+        self.init(red: r, green: g, blue: b, alpha: 1)
     }
 }

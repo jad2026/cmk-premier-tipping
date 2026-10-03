@@ -100,7 +100,7 @@ export default function LoginPage() {
       setError(friendlyAuthError(error));
     } else {
       await ensureWidgetToken();
-      window.location.href = safeNext || redirectTo || "/tips";
+      window.location.href = safeNext || redirectTo || "/";
     }
   }, [supabase, safeNext, redirectTo]);
 
@@ -131,7 +131,7 @@ export default function LoginPage() {
         await storeCredentials(BIOMETRIC_SERVER, trimmedEmail, password);
       }
       await ensureWidgetToken();
-      window.location.href = safeNext || redirectTo || "/tips";
+      window.location.href = safeNext || redirectTo || "/";
     }
   }
 
@@ -141,7 +141,7 @@ export default function LoginPage() {
       await storeCredentials(BIOMETRIC_SERVER, email.trim(), password);
     }
     await ensureWidgetToken();
-    window.location.href = safeNext || redirectTo || "/tips";
+    window.location.href = safeNext || redirectTo || "/";
   }
 
   async function handleForgotPassword() {

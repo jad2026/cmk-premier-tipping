@@ -9,11 +9,14 @@ struct CRTWidget: Widget {
         StaticConfiguration(kind: kind, provider: CRTTimelineProvider()) { entry in
             if #available(iOSApplicationExtension 17.0, *) {
                 CRTWidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
+                    .containerBackground(for: .widget) {
+                        WidgetBackgroundView(entry: entry)
+                    }
             } else {
-                CRTWidgetEntryView(entry: entry)
-                    .padding()
-                    .background()
+                ZStack {
+                    WidgetBackgroundView(entry: entry)
+                    CRTWidgetEntryView(entry: entry)
+                }
             }
         }
         .configurationDisplayName("Club Rugby Tipping")

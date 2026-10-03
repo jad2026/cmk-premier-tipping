@@ -132,17 +132,15 @@ export async function GET(request: NextRequest) {
     : { data: [] };
   const pickedFixtureIds = new Set((userPicks ?? []).map((p) => p.fixture_id));
 
-  // Leaderboard rank per main comp
   const rankByComp = new Map<string, { rank: number; total: number }>();
   for (const compId of mainCompIds) {
     const { data: lb } = await admin
-      .from("leaderboard")
-      .select("user_id, total_points")
-      .eq("competition_id", compId)
-      .order("total_points", { ascending: false }) as unknown as { data: { user_id: string; total_points: number }[] | null };
-    if (lb) {
-      const sorted = lb;
-      const idx = sorted.findIndex((r: { user_id: string }) => r.user_id === userId);
+      .rpc("get_leaderboard_scores", { comp_id: compId }) as unknown as {
+        data: { user_id: string; total_points: number }[] | null;
+      };
+    if (lb && lb.length > 0) {
+      const sorted = [...lb].sort((a, b) => b.total_points - a.total_points);
+      const idx = sorted.findIndex((r) => r.user_id === userId);
       if (idx >= 0) {
         rankByComp.set(compId, { rank: idx + 1, total: sorted.length });
       }

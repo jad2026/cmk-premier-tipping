@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 struct WidgetResponse: Codable {
     let comps: [WidgetComp]
@@ -17,4 +18,9 @@ struct WidgetComp: Codable {
     let rank: Int?
     let totalPlayers: Int?
     let siteUrl: String
+}
+
+struct CompDisplay {
+    let comp: WidgetComp
+    let logoImage: UIImage?
 }
