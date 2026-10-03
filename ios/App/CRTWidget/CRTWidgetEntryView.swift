@@ -55,16 +55,17 @@ struct CRTWidgetEntryView: View {
 
     private func smallView(display: CompDisplay) -> some View {
         let accent = Color(hex: display.comp.accentColor)
+        let label = display.comp.shortLabel ?? display.comp.name
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 logoView(display: display, size: 22)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(display.comp.name)
+                    Text(label)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     if let round = display.comp.roundLabel {
-                        Text(round)
+                        Text(shortRoundLabel(round))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.white.opacity(0.65))
                     }
@@ -73,7 +74,13 @@ struct CRTWidgetEntryView: View {
 
             Spacer(minLength: 4)
 
-            if let dl = display.comp.deadline, let date = parseISO(dl) {
+            if display.comp.comingSoon {
+                Text("Next round\ncoming soon")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            } else if let dl = display.comp.deadline, let date = parseISO(dl) {
                 Text(date, style: .relative)
                     .font(.system(size: 28, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
@@ -87,24 +94,26 @@ struct CRTWidgetEntryView: View {
 
             Spacer(minLength: 4)
 
-            HStack(spacing: 0) {
-                if display.comp.total > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: display.comp.tipsComplete
-                              ? "checkmark.circle.fill"
-                              : "exclamationmark.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(display.comp.tipsComplete ? .green : .orange)
-                        Text("\(display.comp.picked)/\(display.comp.total)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
+            if !display.comp.comingSoon {
+                HStack(spacing: 0) {
+                    if display.comp.total > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: display.comp.tipsComplete
+                                  ? "checkmark.circle.fill"
+                                  : "exclamationmark.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                            Text("\(display.comp.picked)/\(display.comp.total)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
                     }
-                }
-                Spacer()
-                if let rank = display.comp.rank {
-                    Text("#\(rank)")
-                        .font(.system(size: 14, weight: .heavy, design: .rounded))
-                        .foregroundColor(accent)
+                    Spacer()
+                    if let rank = display.comp.rank {
+                        Text("#\(rank)")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundColor(accent)
+                    }
                 }
             }
         }
@@ -152,7 +161,12 @@ struct CRTWidgetEntryView: View {
 
                 Spacer(minLength: 2)
 
-                if let dl = display.comp.deadline, let date = parseISO(dl) {
+                if display.comp.comingSoon {
+                    Text("Next round\ncoming soon")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(2)
+                } else if let dl = display.comp.deadline, let date = parseISO(dl) {
                     Text(date, style: .relative)
                         .font(.system(size: 20, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
@@ -162,24 +176,26 @@ struct CRTWidgetEntryView: View {
 
                 Spacer(minLength: 2)
 
-                HStack(spacing: 0) {
-                    if display.comp.total > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: display.comp.tipsComplete
-                                  ? "checkmark.circle.fill"
-                                  : "exclamationmark.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(display.comp.tipsComplete ? .green : .orange)
-                            Text("\(display.comp.picked)/\(display.comp.total)")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
+                if !display.comp.comingSoon {
+                    HStack(spacing: 0) {
+                        if display.comp.total > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: display.comp.tipsComplete
+                                      ? "checkmark.circle.fill"
+                                      : "exclamationmark.circle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                                Text("\(display.comp.picked)/\(display.comp.total)")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
                         }
-                    }
-                    Spacer()
-                    if let rank = display.comp.rank {
-                        Text("#\(rank)")
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .foregroundColor(accent)
+                        Spacer()
+                        if let rank = display.comp.rank {
+                            Text("#\(rank)")
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                .foregroundColor(accent)
+                        }
                     }
                 }
             }
@@ -202,11 +218,18 @@ struct CRTWidgetEntryView: View {
                 .fill(.white.opacity(0.2))
                 .frame(width: size, height: size)
                 .overlay(
-                    Text(String(display.comp.name.prefix(1)))
+                    Text(String((display.comp.shortLabel ?? display.comp.name).prefix(1)))
                         .font(.system(size: size * 0.5, weight: .bold))
                         .foregroundColor(.white.opacity(0.7))
                 )
         }
+    }
+
+    private func shortRoundLabel(_ label: String) -> String {
+        if let match = label.range(of: #"Round \d+"#, options: .regularExpression) {
+            return String(label[match])
+        }
+        return label
     }
 
     private func parseISO(_ string: String) -> Date? {
@@ -229,41 +252,39 @@ struct WidgetBackgroundView: View {
             neutralGradient
         } else if family == .systemMedium && entry.displays.count >= 2 {
             HStack(spacing: 0) {
-                accentGradient(hex: entry.displays[0].comp.accentColor)
-                accentGradient(hex: entry.displays[1].comp.accentColor)
+                surfaceGradient(display: entry.displays[0])
+                surfaceGradient(display: entry.displays[1])
             }
         } else {
-            accentGradient(hex: entry.displays[0].comp.accentColor)
+            surfaceGradient(display: entry.displays[0])
         }
     }
 
     private var neutralGradient: some View {
         LinearGradient(
-            colors: [Color(white: 0.18), Color(white: 0.08)],
+            colors: [Color(white: 0.15), Color(white: 0.08)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
-    private func accentGradient(hex: String) -> some View {
-        let ui = UIColor(hex: hex)
-        var h: CGFloat = 0, s: CGFloat = 0, br: CGFloat = 0
-        ui.getHue(&h, saturation: &s, brightness: &br, alpha: nil)
-        let top = Color(
-            hue: Double(h),
-            saturation: min(Double(s) * 1.15, 1),
-            brightness: 0.3
-        )
-        let bottom = Color(
-            hue: Double(h),
-            saturation: min(Double(s) * 1.3, 1),
-            brightness: 0.12
-        )
-        return LinearGradient(
-            colors: [top, bottom],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    private func surfaceGradient(display: CompDisplay) -> some View {
+        let base: Color
+        if let hex = display.comp.surfaceColor {
+            base = Color(hex: hex)
+        } else {
+            base = Color(white: 0.12)
+        }
+        let lighter = base.opacity(1)
+        let darker = Color.black.opacity(0.4)
+        return ZStack {
+            base
+            LinearGradient(
+                colors: [lighter, darker],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
 }
 

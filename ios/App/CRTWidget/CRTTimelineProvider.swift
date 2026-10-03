@@ -80,19 +80,40 @@ struct CRTTimelineProvider: TimelineProvider {
     private func loadLogo(from urlString: String, completion: @escaping (UIImage?) -> Void) {
         let cached = cacheFile(for: urlString)
         if let data = try? Data(contentsOf: cached), let image = UIImage(data: data) {
+            NSLog("[CRT-Widget] Logo cache hit: %@", urlString)
             completion(image)
             return
         }
         guard let url = URL(string: urlString) else {
+            NSLog("[CRT-Widget] Logo URL invalid: %@", urlString)
             completion(nil)
             return
         }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let image = UIImage(data: data) else {
+        NSLog("[CRT-Widget] Logo downloading: %@", urlString)
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                NSLog("[CRT-Widget] Logo download error: %@", error.localizedDescription)
                 completion(nil)
                 return
             }
-            try? image.pngData()?.write(to: cached, options: .atomic)
+            let http = response as? HTTPURLResponse
+            NSLog("[CRT-Widget] Logo response: status=%d, bytes=%d, type=%@",
+                  http?.statusCode ?? 0,
+                  data?.count ?? 0,
+                  http?.value(forHTTPHeaderField: "Content-Type") ?? "unknown")
+            guard let data = data, let image = UIImage(data: data) else {
+                NSLog("[CRT-Widget] Logo UIImage init failed for %@", urlString)
+                completion(nil)
+                return
+            }
+            let cacheDir = self.logosCacheDir()
+            NSLog("[CRT-Widget] Logo cache dir: %@", cacheDir.path)
+            do {
+                try image.pngData()?.write(to: cached, options: .atomic)
+                NSLog("[CRT-Widget] Logo cached to: %@", cached.path)
+            } catch {
+                NSLog("[CRT-Widget] Logo cache write error: %@", error.localizedDescription)
+            }
             completion(image)
         }.resume()
     }

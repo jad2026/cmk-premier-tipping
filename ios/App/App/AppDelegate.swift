@@ -36,15 +36,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if url.scheme == "clubrugbytipping", let compId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "comp" })?.value {
             if let vc = window?.rootViewController as? CAPBridgeViewController,
                let webView = vc.bridge?.webView {
-                let origin = webView.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
-                    .map { "\($0.scheme ?? "https")://\($0.host ?? "clubrugbytipping.com")\($0.port.map { ":\($0)" } ?? "")" }
-                    ?? "https://clubrugbytipping.com"
+                let origin: String
+                if let currentURL = webView.url,
+                   let comps = URLComponents(url: currentURL, resolvingAgainstBaseURL: false),
+                   let host = comps.host, !host.isEmpty {
+                    origin = "\(comps.scheme ?? "https")://\(host)\(comps.port.map { ":\($0)" } ?? "")"
+                } else {
+                    origin = Self.capacitorServerOrigin()
+                }
                 let navUrl = "\(origin)/api/hub/switch?comp=\(compId)"
+                NSLog("[CRT] Deep link: webView.url=%@, resolved origin=%@, navigating to %@",
+                      webView.url?.absoluteString ?? "nil", origin, navUrl)
                 webView.load(URLRequest(url: URL(string: navUrl)!))
             }
             return true
         }
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+
+    private static func capacitorServerOrigin() -> String {
+        guard let path = Bundle.main.path(forResource: "capacitor.config", ofType: "json"),
+              let data = FileManager.default.contents(atPath: path),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let server = json["server"] as? [String: Any],
+              let urlString = server["url"] as? String,
+              let comps = URLComponents(string: urlString),
+              let host = comps.host else {
+            return "https://clubrugbytipping.com"
+        }
+        return "\(comps.scheme ?? "https")://\(host)\(comps.port.map { ":\($0)" } ?? "")"
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {

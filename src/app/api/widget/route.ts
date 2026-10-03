@@ -24,6 +24,7 @@ type CompRow = {
   id: string;
   name: string;
   accent_color: string | null;
+  surface_color: string | null;
   logo_url: string | null;
   site_url: string | null;
   short_label: string | null;
@@ -32,10 +33,13 @@ type CompRow = {
 type WidgetComp = {
   id: string;
   name: string;
+  shortLabel: string | null;
   accentColor: string;
+  surfaceColor: string | null;
   logoUrl: string | null;
   roundLabel: string | null;
   deadline: string | null;
+  comingSoon: boolean;
   tipsComplete: boolean;
   picked: number;
   total: number;
@@ -83,7 +87,7 @@ export async function GET(request: NextRequest) {
 
   const { data: allComps } = await admin
     .from("competitions")
-    .select("id, name, accent_color, logo_url, site_url, short_label")
+    .select("id, name, accent_color, surface_color, logo_url, site_url, short_label")
     .eq("is_active", true)
     .in("id", joinedIds) as unknown as { data: CompRow[] | null };
 
@@ -165,6 +169,7 @@ export async function GET(request: NextRequest) {
     let picked = 0;
     let total = 0;
     let tipsComplete = false;
+    let comingSoon = false;
 
     if (openFuture) {
       const fIds = fixtureIdsByGw.get(openFuture.id) ?? [];
@@ -179,8 +184,14 @@ export async function GET(request: NextRequest) {
         .sort((a: { deadline: string }, b: { deadline: string }) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
 
       if (futureRounds.length > 0) {
-        roundLabel = futureRounds[0].label;
-        deadline = futureRounds[0].deadline;
+        const nextRound = futureRounds[0];
+        roundLabel = nextRound.label;
+        const fc = fixtureIdsByGw.get(nextRound.id)?.length ?? 0;
+        if (fc > 0) {
+          deadline = nextRound.deadline;
+        } else {
+          comingSoon = true;
+        }
       } else {
         const openPast = gws.find((g: { is_open: boolean; deadline: string }) => g.is_open && new Date(g.deadline) <= nowDate);
         if (openPast) {
@@ -191,20 +202,29 @@ export async function GET(request: NextRequest) {
 
     const displayName = SITE_DISPLAY[siteUrl] ?? main.short_label ?? main.name;
     const rankInfo = rankByComp.get(main.id);
+    const resolvedSiteUrl = siteUrl || FALLBACK_URL;
+
+    let resolvedLogo = main.logo_url;
+    if (resolvedLogo && resolvedLogo.startsWith("/")) {
+      resolvedLogo = `${resolvedSiteUrl}${resolvedLogo}`;
+    }
 
     result.push({
       id: main.id,
       name: displayName,
+      shortLabel: main.short_label,
       accentColor: main.accent_color || "#D9A521",
-      logoUrl: main.logo_url,
+      surfaceColor: main.surface_color,
+      logoUrl: resolvedLogo,
       roundLabel,
       deadline,
+      comingSoon,
       tipsComplete,
       picked,
       total,
       rank: rankInfo?.rank ?? null,
       totalPlayers: rankInfo?.total ?? null,
-      siteUrl: siteUrl || FALLBACK_URL,
+      siteUrl: resolvedSiteUrl,
     });
   }
 
