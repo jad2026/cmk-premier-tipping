@@ -8,6 +8,7 @@ import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { Capacitor } from "@capacitor/core";
 import { nativeShare } from "@/lib/native/share";
 import { hapticImpact } from "@/lib/native/haptics";
+import { ensureWidgetToken, getWidgetToken, clearWidgetToken, reloadWidgetTimelines } from "@/lib/native/widget";
 
 const AVATAR_COLORS = ["#1E7A3E", "#21409A", "#B23A48", "#2C9FD4", "#7A4B36", "#15324E", "#2B6E2B"];
 
@@ -74,6 +75,20 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
       androidPad ? `${74 + androidPad}px` : "calc(74px + env(safe-area-inset-top, 0px))",
     );
   }, [androidPad]);
+
+  useEffect(() => {
+    if (user) ensureWidgetToken();
+  }, [user]);
+
+  async function handleSignOut() {
+    const token = await getWidgetToken();
+    await clearWidgetToken();
+    await reloadWidgetTimelines();
+    const headers: Record<string, string> = {};
+    if (token) headers["x-widget-token"] = token;
+    const res = await fetch("/api/auth/signout", { method: "POST", headers, redirect: "follow" });
+    window.location.href = res.url || "/";
+  }
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -166,23 +181,22 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
           )}
           <div className="ml-3 pl-3" style={{ borderLeft: "1px solid rgba(255,255,255,.1)" }}>
             {user ? (
-              <form method="POST" action="/api/auth/signout">
-                <button
-                  type="submit"
-                  className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
-                  style={{ color: "#99A0AC" }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#FFFFFF";
-                    e.currentTarget.style.background = "rgba(255,255,255,.06)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "#99A0AC";
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  Sign out
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-[15px] py-[9px] rounded-[9px] text-sm font-medium transition-all duration-150"
+                style={{ color: "#99A0AC" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.background = "rgba(255,255,255,.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#99A0AC";
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                Sign out
+              </button>
             ) : (
               <Link
                 href="/login"
@@ -350,16 +364,15 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
                 </Link>
               ))}
               {user && (
-                <form method="POST" action="/api/auth/signout">
-                  <button
-                    type="submit"
-                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
-                    style={{ color: "#99A0AC" }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 16H4a1 1 0 01-1-1V3a1 1 0 011-1h3M12 13l4-4-4-4M16 9H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    Sign out
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                  style={{ color: "#99A0AC" }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 16H4a1 1 0 01-1-1V3a1 1 0 011-1h3M12 13l4-4-4-4M16 9H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Sign out
+                </button>
               )}
             </>
           )}

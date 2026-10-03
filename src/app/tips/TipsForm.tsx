@@ -7,6 +7,7 @@ import TeamBadge from "@/components/TeamBadge";
 import MarginWheel, { type MarginWheelHandle } from "@/components/MarginWheel";
 import type { RoundData } from "./page";
 import { hapticImpact, hapticNotification } from "@/lib/native/haptics";
+import { reloadWidgetTimelines } from "@/lib/native/widget";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { initPushNotifications } from "@/lib/pushNotifications";
 import { sameTeam } from "@/lib/teamMatch";
@@ -387,6 +388,7 @@ export default function TipsForm({ rounds, compLabel, timezone, locale, marginPi
       }
       setSaved(true);
       hapticNotification("success");
+      reloadWidgetTimelines().catch(() => {});
 
       try {
         const { data: { user: currentUser } } = await supabase.auth.getUser();

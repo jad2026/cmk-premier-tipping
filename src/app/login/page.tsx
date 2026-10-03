@@ -14,6 +14,7 @@ import {
   getCredentialsWithBiometric,
   getStoredUsername,
 } from "@/lib/native/biometrics";
+import { ensureWidgetToken } from "@/lib/native/widget";
 
 // Only same-site relative paths; "//" and "/\\" would leave the site.
 function safeRelativePath(path: string | null): string | null {
@@ -98,6 +99,7 @@ export default function LoginPage() {
       setBiometricLoading(false);
       setError(friendlyAuthError(error));
     } else {
+      await ensureWidgetToken();
       window.location.href = safeNext || redirectTo || "/tips";
     }
   }, [supabase, safeNext, redirectTo]);
@@ -128,6 +130,7 @@ export default function LoginPage() {
         }
         await storeCredentials(BIOMETRIC_SERVER, trimmedEmail, password);
       }
+      await ensureWidgetToken();
       window.location.href = safeNext || redirectTo || "/tips";
     }
   }
@@ -137,6 +140,7 @@ export default function LoginPage() {
     if (accepted) {
       await storeCredentials(BIOMETRIC_SERVER, email.trim(), password);
     }
+    await ensureWidgetToken();
     window.location.href = safeNext || redirectTo || "/tips";
   }
 

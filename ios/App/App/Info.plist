@@ -55,5 +55,16 @@
 	<string>Add tipping deadlines to your calendar so you never miss a round.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Add tipping deadlines to your calendar so you never miss a round.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.clubrugbytipping.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>clubrugbytipping</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
