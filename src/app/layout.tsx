@@ -110,7 +110,7 @@ export default async function RootLayout({
   // to their own id.
   let hasPushSubscription = true;
   if (user) {
-    const [{ data: profile }, { count: pushCount }, { count: compCount }] = await Promise.all([
+    const [{ data: profile }, { count: pushCount }, { data: userComps }] = await Promise.all([
       supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
       createAdminClient()
         .from("push_subscriptions")
@@ -119,12 +119,24 @@ export default async function RootLayout({
         .eq("competition_id", compId),
       supabase
         .from("competition_participants")
-        .select("competition_id", { count: "exact", head: true })
+        .select("competition_id")
         .eq("user_id", user.id),
     ]);
     isAdmin = profile?.is_admin ?? false;
     hasPushSubscription = (pushCount ?? 0) > 0;
-    showHubLink = (compCount ?? 0) >= 2;
+
+    const userCompIds = (userComps ?? []).map((p) => p.competition_id);
+    if (userCompIds.length >= 2) {
+      type SiteRow = { site_url: string | null };
+      const { data: compSites } = await supabase
+        .from("competitions")
+        .select("site_url")
+        .in("id", userCompIds) as unknown as { data: SiteRow[] | null };
+      const distinctSites = new Set(
+        (compSites ?? []).map((r) => r.site_url).filter(Boolean),
+      );
+      showHubLink = distinctSites.size >= 2;
+    }
   }
 
   return (

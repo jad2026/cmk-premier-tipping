@@ -16,6 +16,8 @@ import { manualLadderKey } from "@/lib/manualLadder";
 
 export const revalidate = 60;
 
+const NPC_SITE_URL = "https://clubrugbytipping.com";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type RoundStatus = "open" | "completed" | "upcoming";
@@ -48,6 +50,8 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   // ── Hub routing (root domain only) ──────────────────────────────────────────
+  // Count distinct SITES (site_url), not individual comps. Two comps sharing
+  // one hostname (e.g. CMK Men + Women on taranaki) count as one site.
   if (user && compId === NPC_COMPETITION_ID) {
     const cookieStore = await cookies();
     const lastComp = cookieStore.get("last-comp")?.value;
@@ -58,7 +62,7 @@ export default async function HomePage() {
         .select("site_url")
         .eq("id", lastComp)
         .maybeSingle() as unknown as { data: { site_url: string | null } | null };
-      if (compUrl?.site_url) redirect(compUrl.site_url);
+      if (compUrl?.site_url && compUrl.site_url !== NPC_SITE_URL) redirect(compUrl.site_url);
     }
 
     if (!lastComp) {
@@ -68,15 +72,22 @@ export default async function HomePage() {
         .eq("user_id", user.id);
       const userCompIds = (participations ?? []).map((p) => p.competition_id);
 
-      if (userCompIds.length >= 2) {
-        redirect("/hub");
-      } else if (userCompIds.length === 1 && userCompIds[0] !== NPC_COMPETITION_ID) {
-        const { data: compUrl } = await supabase
+      if (userCompIds.length > 0) {
+        type SiteRow = { site_url: string | null };
+        const { data: compSites } = await supabase
           .from("competitions")
           .select("site_url")
-          .eq("id", userCompIds[0])
-          .maybeSingle() as unknown as { data: { site_url: string | null } | null };
-        if (compUrl?.site_url) redirect(compUrl.site_url);
+          .in("id", userCompIds) as unknown as { data: SiteRow[] | null };
+        const distinctSites = new Set(
+          (compSites ?? []).map((r) => r.site_url).filter(Boolean),
+        );
+
+        if (distinctSites.size >= 2) {
+          redirect("/hub");
+        } else if (distinctSites.size === 1) {
+          const onlySite = Array.from(distinctSites)[0]!;
+          if (onlySite !== NPC_SITE_URL) redirect(onlySite);
+        }
       }
     }
   }
