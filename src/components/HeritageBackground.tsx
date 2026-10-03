@@ -1,11 +1,6 @@
-// Slow-scrolling "heritage" photo strip behind the cream parts of the site,
-// for competitions with features.heritage_bg. Rendered as the first child of
-// <body> when that flag is on (layout.tsx sets data-heritage-bg on <html>).
-//
-// Stacking: the layer uses z-index -1 in the root stacking context, so it
-// paints above the page's cream background (body's background is drawn on the
-// canvas) but below all page content. That keeps the sticky navbar and any
-// modals/fixed bars stacked exactly as they are without the layer.
+"use client";
+
+import { usePathname } from "next/navigation";
 
 const IMAGES = ["/brands/heritage-1.jpg", "/brands/heritage-2.jpg", "/brands/heritage-3.jpg", "/brands/heritage-4.jpg"];
 
@@ -68,6 +63,9 @@ html[data-heritage-bg] .auth-page-bg {
 `;
 
 export default function HeritageBackground() {
+  const pathname = usePathname();
+  if (pathname === "/hub") return null;
+
   return (
     <div className="heritage-bg" aria-hidden="true">
       <style>{CSS}</style>
