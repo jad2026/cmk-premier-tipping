@@ -88,7 +88,7 @@ export default async function HomePage() {
       welcomeFixtureCounts.set(f.gameweek_id, (welcomeFixtureCounts.get(f.gameweek_id) ?? 0) + 1);
     }
 
-    function resolveWelcomeRound(cId: string): WelcomeSite["round"] {
+    const resolveWelcomeRound = (cId: string): WelcomeSite["round"] => {
       const cGws = (welcomeGws ?? []).filter((g: any) => g.competition_id === cId);
       const now = new Date();
       const openFuture = cGws.find((g: any) => g.is_open && new Date(g.deadline) > now && (welcomeFixtureCounts.get(g.id) ?? 0) > 0);

@@ -3,6 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const NPC_COMPETITION_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
 
+const HOSTNAME_FALLBACK = new Map<string, string>([
+  ["clubrugbytipping.com", NPC_COMPETITION_ID],
+  ["www.clubrugbytipping.com", NPC_COMPETITION_ID],
+  ["taranaki.clubrugbytipping.com", "b3dbe30d-91ef-40c3-9680-3586c6d17ef8"],
+  ["bridlington.clubrugbytipping.com", "7a27f36c-aab6-4ba8-86e3-2bd9b182361e"],
+  ["waikato.clubrugbytipping.com", "24d98bce-ce4b-4411-be28-8af22f4663a7"],
+]);
+
 // Module-level cache
 let hostnameCache: Map<string, string> | null = null;
 let cacheTTL = 0;
@@ -39,7 +47,7 @@ async function resolveCompetitionId(hostname: string): Promise<string> {
       cacheTTL = now + CACHE_DURATION;
     }
   }
-  return hostnameCache?.get(hostname) ?? NPC_COMPETITION_ID;
+  return hostnameCache?.get(hostname) ?? HOSTNAME_FALLBACK.get(hostname) ?? NPC_COMPETITION_ID;
 }
 
 export async function middleware(request: NextRequest) {
