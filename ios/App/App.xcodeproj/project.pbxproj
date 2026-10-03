@@ -16,6 +16,7 @@
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		3A2E85A230709E01004F1EE9 /* CRTViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2E85A130709E01004F1EE9 /* CRTViewController.swift */; };
 		3A2E85A430709E01004F1EE9 /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2E85A330709E01004F1EE9 /* WidgetBridgePlugin.swift */; };
+		3A2E85A630709E01004F1EE9 /* OfflineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2E85A530709E01004F1EE9 /* OfflineManager.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -58,6 +59,7 @@
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3A2E85A130709E01004F1EE9 /* CRTViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CRTViewController.swift; sourceTree = "<group>"; };
 		3A2E85A330709E01004F1EE9 /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
+		3A2E85A530709E01004F1EE9 /* OfflineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineManager.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				3A2E85A130709E01004F1EE9 /* CRTViewController.swift */,
 				3A2E85A330709E01004F1EE9 /* WidgetBridgePlugin.swift */,
+				3A2E85A530709E01004F1EE9 /* OfflineManager.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -275,6 +278,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				3A2E85A230709E01004F1EE9 /* CRTViewController.swift in Sources */,
 				3A2E85A430709E01004F1EE9 /* WidgetBridgePlugin.swift in Sources */,
+				3A2E85A630709E01004F1EE9 /* OfflineManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
