@@ -57,6 +57,7 @@ export default function SignupPage() {
   const siteName = useSiteName();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+  const compParam = searchParams.get("comp") ?? "";
   const codeParam = searchParams.get("code") ?? "";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -200,9 +201,21 @@ export default function SignupPage() {
         { onConflict: "id" }
       );
 
-      autoEnrollCurrentCompetition(userId).catch(
-        (err) => console.error("[signup] auto-enroll failed:", err)
-      );
+      // Detect if running inside the native app (Capacitor)
+      const isApp =
+        typeof window !== "undefined" &&
+        !!(window as any).Capacitor?.isNativePlatform?.();
+
+      if (isApp) {
+        // App: skip auto-enroll, redirect to comp picker
+        // (auto-enroll is skipped because the user picks comps manually)
+      } else {
+        // Website: keep existing auto-enroll behavior
+        autoEnrollCurrentCompetition(userId).catch(
+          (err) => console.error("[signup] auto-enroll failed:", err)
+        );
+      }
+
       triggerWelcomeEmail(trimmedEmail, firstName.trim(), trimmedTeamName).catch(
         (err) => console.error("[signup] welcome email failed:", err)
       );
@@ -211,6 +224,16 @@ export default function SignupPage() {
         await joinLeagueByCode(inviteCode.trim()).catch(
           (err) => console.error("[signup] league join failed:", err)
         );
+      }
+
+      setLoading(false);
+
+      if (isApp) {
+        const onboardingUrl = compParam
+          ? `/onboarding/choose-comps?comp=${encodeURIComponent(compParam)}`
+          : "/onboarding/choose-comps";
+        window.location.href = onboardingUrl;
+        return;
       }
     }
 
@@ -240,6 +263,31 @@ export default function SignupPage() {
               Sign Up<span style={{ color: "var(--accent)" }}>.</span>
             </h1>
           </div>
+
+          {/* Invite banner */}
+          {compParam && (
+            <div
+              style={{
+                borderRadius: 12,
+                background: "var(--accent-wash, rgba(217,165,33,.10))",
+                border: "1px solid var(--accent, #D9A521)",
+                padding: "12px 16px",
+                marginBottom: 20,
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "var(--accent, #D9A521)",
+                  margin: 0,
+                }}
+              >
+                You&apos;ve been invited to join a competition!
+              </p>
+            </div>
+          )}
 
           {/* Avatar picker */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>

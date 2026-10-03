@@ -4,17 +4,6 @@ import { createHash } from "crypto";
 
 const FALLBACK_URL = "https://clubrugbytipping.com";
 
-const MAIN_COMP_IDS = new Set([
-  "bf6bb916-86c7-4cb1-8268-ba887a973c1f",
-  "b3dbe30d-91ef-40c3-9680-3586c6d17ef8",
-  "7a27f36c-aab6-4ba8-86e3-2bd9b182361e",
-  "24d98bce-ce4b-4411-be28-8af22f4663a7",
-]);
-
-const SITE_DISPLAY: Record<string, string> = {
-  "https://clubrugbytipping.com": "Provincial Rugby",
-  "https://taranaki.clubrugbytipping.com": "Taranaki Club Rugby",
-};
 
 function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
@@ -28,6 +17,8 @@ type CompRow = {
   logo_url: string | null;
   site_url: string | null;
   short_label: string | null;
+  is_main_comp: boolean;
+  display_name: string | null;
 };
 
 type WidgetComp = {
@@ -87,7 +78,7 @@ export async function GET(request: NextRequest) {
 
   const { data: allComps } = await admin
     .from("competitions")
-    .select("id, name, accent_color, surface_color, logo_url, site_url, short_label")
+    .select("id, name, accent_color, surface_color, logo_url, site_url, short_label, is_main_comp, display_name")
     .eq("is_active", true)
     .in("id", joinedIds) as unknown as { data: CompRow[] | null };
 
@@ -102,7 +93,7 @@ export async function GET(request: NextRequest) {
   }
 
   function mainCompForSite(group: CompRow[]): CompRow {
-    return group.find((c) => MAIN_COMP_IDS.has(c.id)) ?? group[0];
+    return group.find((c) => c.is_main_comp) ?? group[0];
   }
 
   const sites = Array.from(siteGroups.entries());
@@ -200,7 +191,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const displayName = SITE_DISPLAY[siteUrl] ?? main.short_label ?? main.name;
+    const displayName = main.display_name ?? main.short_label ?? main.name;
     const rankInfo = rankByComp.get(main.id);
     const resolvedSiteUrl = siteUrl || FALLBACK_URL;
 

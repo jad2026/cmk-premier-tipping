@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { cookies, headers } from "next/headers";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import AppWelcome from "@/components/AppWelcome";
 import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import { fmtDeadline as fmtDeadlineTz } from "@/lib/datetime";
 import Avatar from "@/components/Avatar";
@@ -41,13 +42,53 @@ function roundStatus(gw: Gameweek, fixtures: Fixture[]): RoundStatus {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+type SiteCard = {
+  compId: string;
+  slug: string;
+  displayName: string;
+  logoUrl: string | null;
+  siteUrl: string;
+  accentColor: string;
+  surfaceColor: string | null;
+};
+
 export default async function HomePage() {
   const supabase = await createClient();
   const compId = await getCurrentCompetitionId();
   const tzLocale = await getCompetitionTimezone(compId);
   const fmtDeadline = (iso: string) => fmtDeadlineTz(iso, tzLocale);
 
+  const headersList = await headers();
+  const isApp = headersList.get("x-is-app") === "1";
+
   const { data: { user } } = await supabase.auth.getUser();
+
+  // ── App welcome screen (logged-out app users) ─────────────────────────────
+  if (isApp && !user) {
+    const admin = createAdminClient();
+    const { data: mainComps } = await admin
+      .from("competitions")
+      .select("id, slug, display_name, name, short_label, logo_url, site_url, accent_color, surface_color")
+      .eq("is_active", true)
+      .eq("is_main_comp", true)
+      .not("site_url", "is", null);
+
+    const sites: SiteCard[] = (mainComps ?? []).map((c: any) => ({
+      compId: c.id,
+      slug: c.slug ?? "",
+      displayName: c.display_name ?? c.short_label ?? c.name,
+      logoUrl: c.logo_url
+        ? c.logo_url.startsWith("/")
+          ? (c.site_url || "https://clubrugbytipping.com") + c.logo_url
+          : c.logo_url
+        : null,
+      siteUrl: c.site_url!,
+      accentColor: c.accent_color || "#D9A521",
+      surfaceColor: c.surface_color,
+    }));
+
+    return <AppWelcome sites={sites} />;
+  }
 
   // ── Hub routing (root domain only) ──────────────────────────────────────────
   // Count distinct SITES (site_url), not individual comps. Two comps sharing

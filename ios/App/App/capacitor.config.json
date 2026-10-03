@@ -9,7 +9,8 @@
 			"clubrugbytipping.com",
 			"*.clubrugbytipping.com",
 			"*.supabase.co"
-		]
+		],
+		"appendUserAgent": "CRTApp"
 	},
 	"ios": {
 		"allowsLinkPreview": false,

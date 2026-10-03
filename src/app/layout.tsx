@@ -63,9 +63,9 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: compFeatures } = await supabase
     .from("competitions")
-    .select("features, accent_color, accent_text_color, logo_url, surface_color, hero_image")
+    .select("features, accent_color, accent_text_color, logo_url, surface_color, hero_image, display_name, short_label, name")
     .eq("id", compId)
-    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null; surface_color: string | null; hero_image: string | null } | null };
+    .single() as unknown as { data: { features: Record<string, boolean> | null; accent_color: string | null; accent_text_color: string | null; logo_url: string | null; surface_color: string | null; hero_image: string | null; display_name: string | null; short_label: string | null; name: string | null } | null };
   const accentVars = getCompetitionAccentCSSVars(compId, compFeatures?.accent_color, compFeatures?.accent_text_color);
   // NPC and CMK keep the default dark surface; other competitions may override it.
   const surfaceColor = compFeatures?.surface_color?.trim();
@@ -89,6 +89,7 @@ export default async function RootLayout({
     };
   }
   const logoUrl = compFeatures?.logo_url ?? null;
+  const compDisplayName = compFeatures?.display_name ?? compFeatures?.short_label ?? compFeatures?.name ?? "Club Rugby Tipping";
   const showSquads = compFeatures?.features?.show_squads === true;
   const showFantasy = compFeatures?.features?.fantasy_enabled === true;
   const showStats = compFeatures?.features?.stats_enabled !== false;
@@ -198,7 +199,7 @@ export default async function RootLayout({
           />
         </noscript>
         <Analytics />
-        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} showResults={showResults} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} showHubLink={showHubLink} />
+        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} showResults={showResults} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} showHubLink={showHubLink} compDisplayName={compDisplayName} />
         {showSponsorStrip && <SponsorStrip />}
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">

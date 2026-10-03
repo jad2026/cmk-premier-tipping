@@ -7,19 +7,8 @@ export const revalidate = 60;
 
 const FALLBACK_URL = "https://clubrugbytipping.com";
 
-const MAIN_COMP_IDS = new Set([
-  "bf6bb916-86c7-4cb1-8268-ba887a973c1f",
-  "b3dbe30d-91ef-40c3-9680-3586c6d17ef8",
-  "7a27f36c-aab6-4ba8-86e3-2bd9b182361e",
-  "24d98bce-ce4b-4411-be28-8af22f4663a7",
-]);
-
-const SITE_DISPLAY: Record<string, { name: string; subtitle?: string }> = {
-  "https://clubrugbytipping.com": { name: "Provincial Rugby" },
-  "https://taranaki.clubrugbytipping.com": {
-    name: "Taranaki Club Rugby",
-    subtitle: "Proudly sponsored by CMK",
-  },
+const FALLBACK_SUBTITLE: Record<string, string> = {
+  "https://taranaki.clubrugbytipping.com": "Proudly sponsored by CMK",
 };
 
 type CompRow = {
@@ -32,6 +21,8 @@ type CompRow = {
   hero_image: string | null;
   site_url: string | null;
   short_label: string | null;
+  is_main_comp: boolean;
+  display_name: string | null;
 };
 
 type GwRow = {
@@ -74,7 +65,7 @@ export default async function HubPage() {
 
   const { data: allComps } = await supabase
     .from("competitions")
-    .select("id, name, logo_url, accent_color, surface_color, region_label, hero_image, site_url, short_label")
+    .select("id, name, logo_url, accent_color, surface_color, region_label, hero_image, site_url, short_label, is_main_comp, display_name")
     .eq("is_active", true) as unknown as { data: CompRow[] | null };
 
   const comps = (allComps ?? []).filter((c) => c.site_url);
@@ -88,7 +79,7 @@ export default async function HubPage() {
   }
 
   function mainCompForSite(group: CompRow[]): CompRow {
-    return group.find((c) => MAIN_COMP_IDS.has(c.id)) ?? group[0];
+    return group.find((c) => c.is_main_comp) ?? group[0];
   }
 
   function userInSite(group: CompRow[]): boolean {
@@ -175,11 +166,10 @@ export default async function HubPage() {
 
   function buildHubSite(siteUrl: string, group: CompRow[]): HubSite {
     const main = mainCompForSite(group);
-    const display = SITE_DISPLAY[siteUrl];
     return {
       siteUrl,
-      displayName: display?.name ?? main.short_label ?? main.name,
-      subtitle: display?.subtitle ?? main.region_label,
+      displayName: main.display_name ?? main.short_label ?? main.name,
+      subtitle: FALLBACK_SUBTITLE[siteUrl] ?? main.region_label,
       mainComp: main,
       compIds: group.map((c) => c.id),
       round: resolveRound(main.id),

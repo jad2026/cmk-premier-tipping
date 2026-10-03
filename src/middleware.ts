@@ -2,19 +2,45 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const NPC_COMPETITION_ID = "bf6bb916-86c7-4cb1-8268-ba887a973c1f";
-const CMK_COMPETITION_ID = "b3dbe30d-91ef-40c3-9680-3586c6d17ef8";
-const BRIDLINGTON_COMPETITION_ID = "7a27f36c-aab6-4ba8-86e3-2bd9b182361e";
-const WAIKATO_COMPETITION_ID = "24d98bce-ce4b-4411-be28-8af22f4663a7";
 
-const HOST_TO_COMPETITION_ID: Record<string, string> = {
-  "taranaki.clubrugbytipping.com": CMK_COMPETITION_ID,
-  "bridlington.clubrugbytipping.com": BRIDLINGTON_COMPETITION_ID,
-  "waikato.clubrugbytipping.com": WAIKATO_COMPETITION_ID,
-  // Local dev hostnames
-  "bridlington": BRIDLINGTON_COMPETITION_ID,
-  "taranaki": CMK_COMPETITION_ID,
-  "waikato": WAIKATO_COMPETITION_ID,
-};
+// Module-level cache
+let hostnameCache: Map<string, string> | null = null;
+let cacheTTL = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function resolveCompetitionId(hostname: string): Promise<string> {
+  const now = Date.now();
+  if (!hostnameCache || now > cacheTTL) {
+    // Query Supabase REST API directly (competitions has public-read RLS)
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/competitions?is_active=eq.true&is_main_comp=eq.true&select=id,site_url`,
+      {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+        },
+      }
+    );
+    if (res.ok) {
+      const rows: { id: string; site_url: string }[] = await res.json();
+      const map = new Map<string, string>();
+      for (const row of rows) {
+        try {
+          const url = new URL(row.site_url);
+          map.set(url.hostname, row.id);
+          // Local dev: also map bare subdomain (e.g., "taranaki" for "taranaki.clubrugbytipping.com")
+          const sub = url.hostname.replace('.clubrugbytipping.com', '');
+          if (sub !== url.hostname) {
+            map.set(sub, row.id);
+          }
+        } catch {}
+      }
+      hostnameCache = map;
+      cacheTTL = now + CACHE_DURATION;
+    }
+  }
+  return hostnameCache?.get(hostname) ?? NPC_COMPETITION_ID;
+}
 
 export async function middleware(request: NextRequest) {
   // Resolve competition from hostname and inject as a request header so all
@@ -27,13 +53,14 @@ export async function middleware(request: NextRequest) {
     url.port = "";
     return NextResponse.redirect(url, 301);
   }
-  const competitionId = HOST_TO_COMPETITION_ID[host] ?? NPC_COMPETITION_ID;
+  const competitionId = await resolveCompetitionId(host);
+  const h = new Headers(request.headers);
+  h.set("x-competition-id", competitionId);
+  if (request.headers.get("user-agent")?.includes("CRTApp")) {
+    h.set("x-is-app", "1");
+  }
   const requestWithCompetition = new Request(request, {
-    headers: (() => {
-      const h = new Headers(request.headers);
-      h.set("x-competition-id", competitionId);
-      return h;
-    })(),
+    headers: h,
   });
 
   let supabaseResponse = NextResponse.next({ request: requestWithCompetition });
