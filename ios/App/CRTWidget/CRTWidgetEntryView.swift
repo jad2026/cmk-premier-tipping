@@ -64,6 +64,7 @@ struct CRTWidgetEntryView: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     if let round = display.comp.roundLabel {
                         Text(shortRoundLabel(round))
                             .font(.system(size: 10, weight: .medium))
@@ -86,34 +87,36 @@ struct CRTWidgetEntryView: View {
                     .foregroundColor(.white)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
+            } else if display.comp.roundLabel != nil {
+                Text("No open round")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
             } else {
-                Text("—")
-                    .font(.system(size: 28, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.3))
+                Text("Season complete")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
             }
 
             Spacer(minLength: 4)
 
-            if !display.comp.comingSoon {
-                HStack(spacing: 0) {
-                    if display.comp.total > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: display.comp.tipsComplete
-                                  ? "checkmark.circle.fill"
-                                  : "exclamationmark.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(display.comp.tipsComplete ? .green : .orange)
-                            Text("\(display.comp.picked)/\(display.comp.total)")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
+            HStack(spacing: 0) {
+                if display.comp.total > 0 && !display.comp.comingSoon {
+                    HStack(spacing: 3) {
+                        Image(systemName: display.comp.tipsComplete
+                              ? "checkmark.circle.fill"
+                              : "exclamationmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                        Text("\(display.comp.picked)/\(display.comp.total)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.8))
                     }
-                    Spacer()
-                    if let rank = display.comp.rank {
-                        Text("#\(rank)")
-                            .font(.system(size: 14, weight: .heavy, design: .rounded))
-                            .foregroundColor(accent)
-                    }
+                }
+                Spacer()
+                if let rank = display.comp.rank {
+                    Text("#\(rank)")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundColor(accent)
                 }
             }
         }
@@ -172,30 +175,36 @@ struct CRTWidgetEntryView: View {
                         .foregroundColor(.white)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                } else if display.comp.roundLabel != nil {
+                    Text("No open round")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                } else {
+                    Text("Season complete")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
                 }
 
                 Spacer(minLength: 2)
 
-                if !display.comp.comingSoon {
-                    HStack(spacing: 0) {
-                        if display.comp.total > 0 {
-                            HStack(spacing: 3) {
-                                Image(systemName: display.comp.tipsComplete
-                                      ? "checkmark.circle.fill"
-                                      : "exclamationmark.circle.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(display.comp.tipsComplete ? .green : .orange)
-                                Text("\(display.comp.picked)/\(display.comp.total)")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
+                HStack(spacing: 0) {
+                    if display.comp.total > 0 && !display.comp.comingSoon {
+                        HStack(spacing: 3) {
+                            Image(systemName: display.comp.tipsComplete
+                                  ? "checkmark.circle.fill"
+                                  : "exclamationmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(display.comp.tipsComplete ? .green : .orange)
+                            Text("\(display.comp.picked)/\(display.comp.total)")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
                         }
-                        Spacer()
-                        if let rank = display.comp.rank {
-                            Text("#\(rank)")
-                                .font(.system(size: 13, weight: .heavy, design: .rounded))
-                                .foregroundColor(accent)
-                        }
+                    }
+                    Spacer()
+                    if let rank = display.comp.rank {
+                        Text("#\(rank)")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundColor(accent)
                     }
                 }
             }
