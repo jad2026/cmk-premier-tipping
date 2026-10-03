@@ -13,6 +13,7 @@ const HOST_TO_COMPETITION_ID: Record<string, string> = {
   // Local dev hostnames
   "bridlington": BRIDLINGTON_COMPETITION_ID,
   "taranaki": CMK_COMPETITION_ID,
+  "waikato": WAIKATO_COMPETITION_ID,
 };
 
 export async function middleware(request: NextRequest) {

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompetitionId, getCompetitionTimezone, NPC_COMPETITION_ID, CMK_COMPETITION_ID } from "@/lib/competition";
 import { fmtDeadline as fmtDeadlineTz } from "@/lib/datetime";
@@ -44,6 +46,40 @@ export default async function HomePage() {
   const fmtDeadline = (iso: string) => fmtDeadlineTz(iso, tzLocale);
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  // ── Hub routing (root domain only) ──────────────────────────────────────────
+  if (user && compId === NPC_COMPETITION_ID) {
+    const cookieStore = await cookies();
+    const lastComp = cookieStore.get("last-comp")?.value;
+
+    if (lastComp && lastComp !== NPC_COMPETITION_ID) {
+      const { data: compUrl } = await supabase
+        .from("competitions")
+        .select("site_url")
+        .eq("id", lastComp)
+        .maybeSingle() as unknown as { data: { site_url: string | null } | null };
+      if (compUrl?.site_url) redirect(compUrl.site_url);
+    }
+
+    if (!lastComp) {
+      const { data: participations } = await supabase
+        .from("competition_participants")
+        .select("competition_id")
+        .eq("user_id", user.id);
+      const userCompIds = (participations ?? []).map((p) => p.competition_id);
+
+      if (userCompIds.length >= 2) {
+        redirect("/hub");
+      } else if (userCompIds.length === 1 && userCompIds[0] !== NPC_COMPETITION_ID) {
+        const { data: compUrl } = await supabase
+          .from("competitions")
+          .select("site_url")
+          .eq("id", userCompIds[0])
+          .maybeSingle() as unknown as { data: { site_url: string | null } | null };
+        if (compUrl?.site_url) redirect(compUrl.site_url);
+      }
+    }
+  }
 
   let isEnrolled = false;
   if (user) {

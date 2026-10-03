@@ -3,15 +3,10 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { prepareResultsEmail } from "@/lib/email/resultsEmail";
 import { sendEmailBatch } from "@/lib/email/batch";
 import { rankByScore } from "@/lib/ranking";
+import { getCompetitionSiteUrls, getSiteUrl } from "@/lib/competition-urls";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-const COMPETITION_SITE_URLS: Record<string, string> = {
-  "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
-  "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://clubrugbytipping.com",
-  "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
-};
 
 // Competitions with email_schedule set are emailed on their own local
 // timetable by the hourly ?mode=local cron; the default UTC cron skips them.
@@ -56,6 +51,7 @@ export async function GET(request: Request) {
     }
   );
 
+  const siteUrls = await getCompetitionSiteUrls(admin);
   const localMode = new URL(request.url).searchParams.get("mode") === "local";
   const { data: scheduleRows, error: scheduleError } = await admin
     .from("competitions")
@@ -191,7 +187,7 @@ export async function GET(request: Request) {
     }
 
     const competitionName = compConfig?.name ?? seasonConfig?.season_name ?? "Club Rugby Tipping";
-    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
+    const siteUrl = getSiteUrl(siteUrls, compId);
     const accentColor = compConfig?.accent_color ?? "#D9A521";
     const accentTextColor = compConfig?.accent_text_color ?? "#11151C";
     const enrolledUserIds = new Set((participants ?? []).map((p: { user_id: string }) => p.user_id));

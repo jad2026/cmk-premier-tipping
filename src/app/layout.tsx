@@ -102,6 +102,7 @@ export default async function RootLayout({
   const isLoggedOut = !user;
 
   let isAdmin = false;
+  let showHubLink = false;
   // Anyone already registered for push never sees the opt-in prompt, on any
   // device — the remaining "don't show" rules live in localStorage. Read with
   // the admin client because push_subscriptions is written service-side and
@@ -109,16 +110,21 @@ export default async function RootLayout({
   // to their own id.
   let hasPushSubscription = true;
   if (user) {
-    const [{ data: profile }, { count: pushCount }] = await Promise.all([
+    const [{ data: profile }, { count: pushCount }, { count: compCount }] = await Promise.all([
       supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
       createAdminClient()
         .from("push_subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("competition_id", compId),
+      supabase
+        .from("competition_participants")
+        .select("competition_id", { count: "exact", head: true })
+        .eq("user_id", user.id),
     ]);
     isAdmin = profile?.is_admin ?? false;
     hasPushSubscription = (pushCount ?? 0) > 0;
+    showHubLink = (compCount ?? 0) >= 2;
   }
 
   return (
@@ -180,7 +186,7 @@ export default async function RootLayout({
           />
         </noscript>
         <Analytics />
-        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} showResults={showResults} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} />
+        <Navbar siteName={siteName} showSquads={showSquads} showFantasy={showFantasy} showStats={showStats} showResults={showResults} user={user} isAdmin={isAdmin} competitionId={compId} logoUrl={logoUrl} showHubLink={showHubLink} />
         {showSponsorStrip && <SponsorStrip />}
         <GlobalTeamMarquee />
         <main className="max-w-content mx-auto px-4 sm:px-8 py-6 sm:py-8">

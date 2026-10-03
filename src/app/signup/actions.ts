@@ -82,11 +82,12 @@ export async function triggerWelcomeEmail(
   const seasonName = seasonConfig?.season_name ?? "2026 Season";
   const competitionName = compConfig?.name ?? "Club Rugby Tipping";
 
-  const COMPETITION_SITE_URLS: Record<string, string> = {
-    "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
-    "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://clubrugbytipping.com",
-    "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
-  };
+  const { data: compUrlRow } = await supabase
+    .from("competitions")
+    .select("site_url")
+    .eq("id", compId)
+    .maybeSingle() as unknown as { data: { site_url: string | null } | null };
+  const siteUrl = compUrlRow?.site_url || "https://clubrugbytipping.com";
 
   console.log("[welcomeEmail] compId:", compId, "| competitionName:", competitionName, "| seasonName:", seasonName, "| accentColor:", compConfig?.accent_color);
 
@@ -97,7 +98,7 @@ export async function triggerWelcomeEmail(
     seasonName,
     sponsors: emailSponsors,
     competitionName,
-    siteUrl: COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com",
+    siteUrl,
     accentColor: compConfig?.accent_color ?? undefined,
     accentTextColor: compConfig?.accent_text_color ?? undefined,
   });

@@ -22,11 +22,12 @@ function NavIcon({ name }: { name: string }) {
     Squads: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M2.5 15c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="13" cy="7" r="2" stroke="currentColor" strokeWidth="1.5"/><path d="M13 10.5c1.7 0 3 1.3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
     Profile: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
     Admin: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 3.2 3.5.5-2.5 2.5.6 3.5L9 10.2 5.9 11.7l.6-3.5L4 5.7l3.5-.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 12v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+    "Switch Comp": <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 3H4a1 1 0 00-1 1v10a1 1 0 001 1h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 3h2a1 1 0 011 1v10a1 1 0 01-1 1h-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M6 9h6M9 6l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   };
   return <span className="shrink-0 w-[18px] h-[18px] flex items-center justify-center">{icons[name] ?? null}</span>;
 }
 
-export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, showStats = true, showResults = false, user = null, isAdmin = false, competitionId = "", logoUrl = null }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; showStats?: boolean; showResults?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null }) {
+export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = false, showFantasy = false, showStats = true, showResults = false, user = null, isAdmin = false, competitionId = "", logoUrl = null, showHubLink = false }: { siteName?: string; showSquads?: boolean; showFantasy?: boolean; showStats?: boolean; showResults?: boolean; user?: User | null; isAdmin?: boolean; competitionId?: string; logoUrl?: string | null; showHubLink?: boolean }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [androidPad, setAndroidPad] = useState(0);
@@ -89,6 +90,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   ];
 
   const accountLinks = [
+    ...(showHubLink ? [{ href: "/hub", label: "Switch Comp" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];

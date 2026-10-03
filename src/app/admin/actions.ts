@@ -199,11 +199,8 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const COMPETITION_SITE_URLS: Record<string, string> = {
-    "b3dbe30d-91ef-40c3-9680-3586c6d17ef8": "https://clubrugbytipping.com",
-    "bf6bb916-86c7-4cb1-8268-ba887a973c1f": "https://clubrugbytipping.com",
-    "7a27f36c-aab6-4ba8-86e3-2bd9b182361e": "https://bridlington.clubrugbytipping.com",
-  };
+  const { getCompetitionSiteUrls, getSiteUrl } = await import("@/lib/competition-urls");
+  const siteUrls = await getCompetitionSiteUrls(admin);
 
   // Pre-fetch shared data
   let profiles: any[] = [];
@@ -269,7 +266,7 @@ export async function sendResultsEmails(gameweekIds: string[], testEmail?: strin
     ]);
 
     const competitionName = (compConfig as any)?.name ?? (seasonConfig as any)?.season_name ?? "Club Rugby Tipping";
-    const siteUrl = COMPETITION_SITE_URLS[compId] ?? "https://clubrugbytipping.com";
+    const siteUrl = getSiteUrl(siteUrls, compId);
     const accentColor = (compConfig as any)?.accent_color ?? "#D9A521";
     const accentTextColor = (compConfig as any)?.accent_text_color ?? "#11151C";
     const marginPicking = (compFeaturesRow as any)?.features?.margin_picking === true;
