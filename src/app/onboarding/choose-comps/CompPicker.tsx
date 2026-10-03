@@ -129,6 +129,7 @@ export default function CompPicker({
                     alt={site.display_name || site.name}
                     width={40}
                     height={40}
+                    unoptimized
                     style={{
                       borderRadius: "50%",
                       objectFit: "cover",

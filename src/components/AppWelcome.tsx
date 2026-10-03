@@ -1,5 +1,17 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
+
+function CRTWordmark() {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <span className="block w-10 h-[3px] rounded-full" style={{ background: "var(--accent, #D9A521)" }} />
+      <span className="font-display text-[22px] uppercase tracking-[.08em] text-white text-center leading-tight">
+        Club Rugby<br />Tipping
+      </span>
+    </div>
+  );
+}
 
 type SiteCard = {
   compId: string;
@@ -19,16 +31,9 @@ export default function AppWelcome({ sites }: AppWelcomeProps) {
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center bg-[#0B0E13] text-white px-6 py-12 overflow-y-auto">
 
-      {/* Logo */}
-      <div className="mt-8 mb-6">
-        <Image
-          src="/logo.png"
-          alt="Club Rugby Tipping"
-          width={180}
-          height={180}
-          className="mx-auto"
-          priority
-        />
+      {/* Brand wordmark */}
+      <div className="mt-12 mb-8">
+        <CRTWordmark />
       </div>
 
       {/* Pitch */}
@@ -38,18 +43,18 @@ export default function AppWelcome({ sites }: AppWelcomeProps) {
 
       {/* Auth buttons */}
       <div className="flex gap-3 w-full max-w-xs mb-14">
-        <Link
-          href="/login"
-          className="flex-1 text-center py-[14px] rounded-full bg-white text-[#0B0E13] text-[15px] font-bold no-underline active:scale-[0.97] transition-transform"
+        <button
+          onClick={() => { window.location.href = "/login"; }}
+          className="flex-1 text-center py-[14px] rounded-full bg-white text-[#0B0E13] text-[15px] font-bold cursor-pointer active:scale-[0.97] transition-transform"
         >
           Sign in
-        </Link>
-        <Link
-          href="/signup"
-          className="flex-1 text-center py-[14px] rounded-full border border-white/40 text-white text-[15px] font-bold no-underline active:scale-[0.97] transition-transform"
+        </button>
+        <button
+          onClick={() => { window.location.href = "/signup"; }}
+          className="flex-1 text-center py-[14px] rounded-full border border-white/40 text-white text-[15px] font-bold cursor-pointer active:scale-[0.97] transition-transform"
         >
           Sign up
-        </Link>
+        </button>
       </div>
 
       {/* Browse competitions */}
