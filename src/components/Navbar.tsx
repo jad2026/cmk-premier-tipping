@@ -90,7 +90,6 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
   ];
 
   const accountLinks = [
-    ...(showHubLink ? [{ href: "/hub", label: "Switch Comp" }] : []),
     ...(user ? [{ href: "/profile", label: "Profile" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
@@ -113,7 +112,7 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
       <div className="max-w-content mx-auto px-4 sm:px-8 flex items-center justify-between h-[74px]">
 
         {/* Logo: accent tick + wordmark */}
-        <Link href="/" className="flex items-center gap-3 select-none min-w-0">
+        <Link href={showHubLink ? "/hub" : "/"} className="flex items-center gap-3 select-none min-w-0">
           <span
             className="block w-[26px] h-[3px] rounded-full shrink-0"
             style={{ background: "var(--accent)" }}
@@ -305,6 +304,28 @@ export default function Navbar({ siteName = "Club Rugby Tipping", showSquads = f
               )}
             </Link>
           ))}
+
+          {/* Switch competition (mobile only) */}
+          {showHubLink && (
+            <>
+              <div className="mx-3 my-1.5" style={{ borderTop: "1px solid rgba(255,255,255,.08)" }} />
+              <Link
+                href="/hub"
+                onClick={() => { setMenuOpen(false); hapticImpact("light"); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                style={{
+                  color: isActive("/hub") ? "#FFFFFF" : "#99A0AC",
+                  background: isActive("/hub") ? "rgba(255,255,255,.06)" : "transparent",
+                }}
+              >
+                <NavIcon name="Switch Comp" />
+                Switch competition
+                {isActive("/hub") && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--accent)" }} />
+                )}
+              </Link>
+            </>
+          )}
 
           {/* Divider + Account section */}
           {(accountLinks.length > 0 || user) && (
