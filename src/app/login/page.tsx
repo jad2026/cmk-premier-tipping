@@ -21,6 +21,31 @@ function safeRelativePath(path: string | null): string | null {
   return path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\") ? path : null;
 }
 
+async function getDefaultRedirect(supabase: ReturnType<typeof createClient>): Promise<string> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return "/tips";
+
+    const { data: parts } = await supabase
+      .from("competition_participants")
+      .select("competition_id")
+      .eq("user_id", user.id);
+
+    if (!parts || parts.length <= 1) return "/tips";
+
+    const { data: comps } = await supabase
+      .from("competitions")
+      .select("site_url")
+      .in("id", parts.map((p) => p.competition_id))
+      .eq("is_active", true);
+
+    const sites = new Set((comps ?? []).map((c: { site_url: string | null }) => c.site_url).filter(Boolean));
+    return sites.size >= 2 ? "/" : "/tips";
+  } catch {
+    return "/tips";
+  }
+}
+
 function useSiteName() {
   const [name, setName] = useState("Club Rugby Tipping");
   useEffect(() => {
@@ -100,7 +125,8 @@ export default function LoginPage() {
       setError(friendlyAuthError(error));
     } else {
       await ensureWidgetToken();
-      window.location.href = safeNext || redirectTo || "/";
+      const dest = safeNext || redirectTo || await getDefaultRedirect(supabase);
+      window.location.href = dest;
     }
   }, [supabase, safeNext, redirectTo]);
 
@@ -131,7 +157,8 @@ export default function LoginPage() {
         await storeCredentials(BIOMETRIC_SERVER, trimmedEmail, password);
       }
       await ensureWidgetToken();
-      window.location.href = safeNext || redirectTo || "/";
+      const dest = safeNext || redirectTo || await getDefaultRedirect(supabase);
+      window.location.href = dest;
     }
   }
 
@@ -141,7 +168,8 @@ export default function LoginPage() {
       await storeCredentials(BIOMETRIC_SERVER, email.trim(), password);
     }
     await ensureWidgetToken();
-    window.location.href = safeNext || redirectTo || "/";
+    const dest = safeNext || redirectTo || await getDefaultRedirect(supabase);
+    window.location.href = dest;
   }
 
   async function handleForgotPassword() {
