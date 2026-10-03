@@ -199,7 +199,7 @@ export default async function HubPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-hub-page="">
       <div>
         <h1 className="font-display text-2xl sm:text-3xl uppercase tracking-[.04em]" style={{ color: "var(--accent)" }}>
           Your Competitions

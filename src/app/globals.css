@@ -169,3 +169,7 @@ html[data-header-photo] .page-header-bg {
   background-size: cover !important;
   background-position: center 65% !important;
 }
+
+body:has([data-hub-page]) .heritage-bg {
+  display: none !important;
+}
