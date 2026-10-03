@@ -55,7 +55,7 @@ struct CRTWidgetEntryView: View {
 
     private func smallView(display: CompDisplay) -> some View {
         let accent = Color(hex: display.comp.accentColor)
-        let label = display.comp.shortLabel ?? display.comp.name
+        let label = compactName(display.comp.shortLabel ?? display.comp.name)
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 logoView(display: display, size: 22)
@@ -232,6 +232,18 @@ struct CRTWidgetEntryView: View {
                         .foregroundColor(.white.opacity(0.7))
                 )
         }
+    }
+
+    private func compactName(_ name: String) -> String {
+        let suffixes = [" RUFC", " RFC", " FC", " RU", " Rugby"]
+        var result = name
+        for suffix in suffixes {
+            if result.hasSuffix(suffix) {
+                result = String(result.dropLast(suffix.count))
+                break
+            }
+        }
+        return result
     }
 
     private func shortRoundLabel(_ label: String) -> String {
